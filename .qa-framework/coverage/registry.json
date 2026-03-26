@@ -1,0 +1,296 @@
+{
+  "target_url": "https://example.com",
+  "last_updated": "2026-03-26T22:50:23Z",
+  "pages": {
+    "page_example.com_0f115db062b7": {
+      "page_id": "page_example.com_0f115db062b7",
+      "url": "https://example.com",
+      "page_type": "static",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "deterministic_smoke_v1",
+              "last_tested": "2026-03-26T22:39:23Z",
+              "last_result": "pass",
+              "test_count": 4,
+              "history": [
+                {
+                  "run_id": "run_dfdaec62",
+                  "timestamp": "2026-03-26T13:06:17Z",
+                  "result": "pass",
+                  "duration_seconds": 49.45,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_83b3ef52",
+                  "timestamp": "2026-03-26T13:21:24Z",
+                  "result": "pass",
+                  "duration_seconds": 49.27,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_2b4811e3",
+                  "timestamp": "2026-03-26T22:33:46Z",
+                  "result": "pass",
+                  "duration_seconds": 49.49,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_c4432b55",
+                  "timestamp": "2026-03-26T22:39:23Z",
+                  "result": "pass",
+                  "duration_seconds": 49.4,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-26T22:39:23Z",
+      "test_count": 4
+    },
+    "page_www.amazon.com_77b186a30235": {
+      "page_id": "page_www.amazon.com_77b186a30235",
+      "url": "https://www.amazon.com",
+      "page_type": "error",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "deterministic_smoke_v1",
+              "last_tested": "2026-03-26T22:50:10Z",
+              "last_result": "pass",
+              "test_count": 1,
+              "history": [
+                {
+                  "run_id": "run_494befab",
+                  "timestamp": "2026-03-26T22:50:10Z",
+                  "result": "pass",
+                  "duration_seconds": 23.7,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-26T22:50:10Z",
+      "test_count": 1
+    },
+    "page_www.amazon.com_d059b5384d60": {
+      "page_id": "page_www.amazon.com_d059b5384d60",
+      "url": "https://www.amazon.com/gp/history?ref_=nav_AccountFlyout_browsinghistory",
+      "page_type": "error",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.amazon.com_373b990f5929": {
+      "page_id": "page_www.amazon.com_373b990f5929",
+      "url": "https://www.amazon.com/CRZ-YOGA-Butterluxe-Waisted-Legging/dp/B09P1GB319/?_encoding=UTF8&pd_rd_w=czFWn&content-id=amzn1.sym.9929d3ab-edb7-4ef5-a232-26d90f828fa5&pf_rd_p=9929d3ab-edb7-4ef5-a232-26d90f828fa5&pf_rd_r=H2Y757DKN8S6DHZ98NKB&pd_rd_wg=iHckt&pd_rd_r=440dcf98-f3e7-47da-b366-e852f6ed2190&ref_=pd_hp_d_btf_crs_zg_bs_7141123011",
+      "page_type": "error",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.amazon.com_06a68837fdee": {
+      "page_id": "page_www.amazon.com_06a68837fdee",
+      "url": "https://www.amazon.com/Gildan-G2000-Cotton-T-Shirt-2-Pack/dp/B075ZZ7XKD/?_encoding=UTF8&pd_rd_w=czFWn&content-id=amzn1.sym.9929d3ab-edb7-4ef5-a232-26d90f828fa5&pf_rd_p=9929d3ab-edb7-4ef5-a232-26d90f828fa5&pf_rd_r=H2Y757DKN8S6DHZ98NKB&pd_rd_wg=iHckt&pd_rd_r=440dcf98-f3e7-47da-b366-e852f6ed2190&ref_=pd_hp_d_btf_crs_zg_bs_7141123011",
+      "page_type": "error",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.amazon.com_583c588a6b4a": {
+      "page_id": "page_www.amazon.com_583c588a6b4a",
+      "url": "https://www.amazon.com/Hanes-Pullover-EcoSmart-Fleece-Hoodie/dp/B00JUM2VAQ/?_encoding=UTF8&pd_rd_w=czFWn&content-id=amzn1.sym.9929d3ab-edb7-4ef5-a232-26d90f828fa5&pf_rd_p=9929d3ab-edb7-4ef5-a232-26d90f828fa5&pf_rd_r=H2Y757DKN8S6DHZ98NKB&pd_rd_wg=iHckt&pd_rd_r=440dcf98-f3e7-47da-b366-e852f6ed2190&ref_=pd_hp_d_btf_crs_zg_bs_7141123011",
+      "page_type": "error",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.amazon.com_6973eee2c85a": {
+      "page_id": "page_www.amazon.com_6973eee2c85a",
+      "url": "https://www.amazon.com/r/?_encoding=UTF8&aid=Jb1bh6HBRX-p7CkTgHfWPg&dest=https%3A%2F%2Fwww.amazon.in%3Fref%3Daisgw_intl_stripe_in&pd_rd_w=ZEJUb&content-id=amzn1.sym.5d022dd3-7374-4c36-972c-d2f317605745&pf_rd_p=5d022dd3-7374-4c36-972c-d2f317605745&pf_rd_r=H2Y757DKN8S6DHZ98NKB&pd_rd_wg=E6HVU&pd_rd_r=f4753489-741b-4d02-a2e0-9da205e2dc10&ref_=pd_hp_d_atf_unk",
+      "page_type": "form",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.amazon.com_0abaa0f69f5d": {
+      "page_id": "page_www.amazon.com_0abaa0f69f5d",
+      "url": "https://www.amazon.com/Rainbow-Fish-Marcus-Pfister/dp/1558585362/?_encoding=UTF8&pd_rd_w=CUjlh&content-id=amzn1.sym.9929d3ab-edb7-4ef5-a232-26d90f828fa5&pf_rd_p=9929d3ab-edb7-4ef5-a232-26d90f828fa5&pf_rd_r=H2Y757DKN8S6DHZ98NKB&pd_rd_wg=iHckt&pd_rd_r=440dcf98-f3e7-47da-b366-e852f6ed2190&ref_=pd_hp_d_btf_crs_zg_bs_283155",
+      "page_type": "error",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.amazon.com_ced5b204b0d6": {
+      "page_id": "page_www.amazon.com_ced5b204b0d6",
+      "url": "https://www.amazon.com/Amazon-Essentials-Classic-Fit-Short-Sleeve-T-Shirt/dp/B0775PN4ML/?_encoding=UTF8&pd_rd_w=czFWn&content-id=amzn1.sym.9929d3ab-edb7-4ef5-a232-26d90f828fa5&pf_rd_p=9929d3ab-edb7-4ef5-a232-26d90f828fa5&pf_rd_r=H2Y757DKN8S6DHZ98NKB&pd_rd_wg=iHckt&pd_rd_r=440dcf98-f3e7-47da-b366-e852f6ed2190&ref_=pd_hp_d_btf_crs_zg_bs_7141123011",
+      "page_type": "error",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.amazon.com_19c886a09c79": {
+      "page_id": "page_www.amazon.com_19c886a09c79",
+      "url": "https://www.amazon.com/LEVOIT-Humidifiers-Essential-Diffuser-Operation/dp/B09KT9ZK7Q/?_encoding=UTF8&pd_rd_w=Al5sH&content-id=amzn1.sym.4bba068a-9322-4692-abd5-0bbe652907a9&pf_rd_p=4bba068a-9322-4692-abd5-0bbe652907a9&pf_rd_r=H2Y757DKN8S6DHZ98NKB&pd_rd_wg=iHckt&pd_rd_r=440dcf98-f3e7-47da-b366-e852f6ed2190&ref_=pd_hp_d_btf_nta-top-picks",
+      "page_type": "error",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.amazon.com_66624725e332": {
+      "page_id": "page_www.amazon.com_66624725e332",
+      "url": "https://www.amazon.com/Nespresso-Capsules-Vertuo-Barista-Flavored/dp/B0BZJVFFNM/?_encoding=UTF8&pd_rd_w=9fUWt&content-id=amzn1.sym.9929d3ab-edb7-4ef5-a232-26d90f828fa5&pf_rd_p=9929d3ab-edb7-4ef5-a232-26d90f828fa5&pf_rd_r=H2Y757DKN8S6DHZ98NKB&pd_rd_wg=iHckt&pd_rd_r=440dcf98-f3e7-47da-b366-e852f6ed2190&ref_=pd_hp_d_btf_crs_zg_bs_284507",
+      "page_type": "error",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.tradingview.com_c98ac84cc2d6": {
+      "page_id": "page_www.tradingview.com_c98ac84cc2d6",
+      "url": "https://www.tradingview.com/",
+      "page_type": "dashboard",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "deterministic_smoke_v1",
+              "last_tested": "2026-03-26T22:50:23Z",
+              "last_result": "pass",
+              "test_count": 1,
+              "history": [
+                {
+                  "run_id": "run_10ecab62",
+                  "timestamp": "2026-03-26T22:50:23Z",
+                  "result": "pass",
+                  "duration_seconds": 26.92,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-26T22:50:23Z",
+      "test_count": 1
+    },
+    "page_www.tradingview.com_64565926197f": {
+      "page_id": "page_www.tradingview.com_64565926197f",
+      "url": "https://www.tradingview.com/news/tradingview:480b5db70094b:0-dji-dow-jones-climbs-400-points-as-oil-prices-slide-dollar-loses-grip-in-fx-deals/",
+      "page_type": "dashboard",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.tradingview.com_80d2a7de5855": {
+      "page_id": "page_www.tradingview.com_80d2a7de5855",
+      "url": "https://www.tradingview.com/news/coindar:8b21fed53094b:0-alchemy-pay-completed-type-1-and-type-4-license-upgrade-in-hong-kong/",
+      "page_type": "dashboard",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.tradingview.com_f798aff79ee0": {
+      "page_id": "page_www.tradingview.com_f798aff79ee0",
+      "url": "https://www.tradingview.com/symbols/NASDAQ-XXII/",
+      "page_type": "dashboard",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.tradingview.com_9eea65c38ce5": {
+      "page_id": "page_www.tradingview.com_9eea65c38ce5",
+      "url": "https://www.tradingview.com/mobile/",
+      "page_type": "static",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.tradingview.com_023602d3bf67": {
+      "page_id": "page_www.tradingview.com_023602d3bf67",
+      "url": "https://www.tradingview.com/markets/cryptocurrencies/prices-losers/",
+      "page_type": "listing",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.tradingview.com_c88c1d50a60b": {
+      "page_id": "page_www.tradingview.com_c88c1d50a60b",
+      "url": "https://www.tradingview.com/u/XauusdMarketNavigator/",
+      "page_type": "error",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.tradingview.com_c727fe66b2c4": {
+      "page_id": "page_www.tradingview.com_c727fe66b2c4",
+      "url": "https://www.tradingview.com/chart/AMD/STom6T2K-AMD-GEX-Chip-maker-rally/",
+      "page_type": "error",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.tradingview.com_c2592935589c": {
+      "page_id": "page_www.tradingview.com_c2592935589c",
+      "url": "https://www.tradingview.com/chart/COIN/VU0sGUUe-COIN-Weekly-Rising-Wedge-Breakdown-Measured-Move-Targets-62/",
+      "page_type": "error",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.tradingview.com_a27fc8b17be5": {
+      "page_id": "page_www.tradingview.com_a27fc8b17be5",
+      "url": "https://www.tradingview.com/symbols/NASDAQ-MU/",
+      "page_type": "error",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    }
+  },
+  "journeys": {},
+  "global_stats": {
+    "total_pages": 21,
+    "pages_tested": 3,
+    "overall_score": 0.14285714285714285,
+    "category_scores": {
+      "functional": 1.0
+    },
+    "last_full_run": "",
+    "regression_count": 0
+  }
+}
