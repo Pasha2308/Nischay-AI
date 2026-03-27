@@ -58,6 +58,13 @@ class ResultsResponse(BaseModel):
     error: Optional[str] = None
 
 
+class JobStatusResponse(BaseModel):
+    job_id: str
+    status: str
+    message: str
+    progress: int
+
+
 class SyntheticGenerateRequest(BaseModel):
     domain: str = Field(..., description="ecommerce | healthcare | finance | auth")
     count: int = Field(10, ge=1, le=1000)
@@ -109,6 +116,24 @@ _jobs: dict[str, dict[str, Any]] = {}
 _jobs_events: dict[str, list[dict[str, Any]]] = {}
 _latest_job_id: str | None = None
 _lock = asyncio.Lock()
+
+_STATUS_PROGRESS = {
+    "QUEUED": 5,
+    "RUNNING": 15,
+    "WAITING_FOR_LOGIN": 25,
+    "SCANNING": 60,
+    "PARTIAL": 100,
+    "COMPLETE": 100,
+    "FAILED": 100,
+}
+
+
+async def _set_job_state(job_id: str, status: str, message: str) -> None:
+    async with _lock:
+        if job_id in _jobs:
+            _jobs[job_id]["status"] = status
+            _jobs[job_id]["status_message"] = message
+            _jobs[job_id]["progress"] = _STATUS_PROGRESS.get(status, 0)
 
 try:
     from anthropic import AsyncAnthropic
@@ -194,6 +219,23 @@ async def _push_event(job_id: str, event_type: str, message: str) -> None:
                 "message": message,
             }
         )
+
+
+async def _emit_scan_progress(job_id: str, pipeline_task: "asyncio.Task[dict[str, Any]]") -> None:
+    steps = [
+        "Checking page performance...",
+        "Scanning for console errors...",
+        "Detecting interactive elements...",
+        "Testing form interactions...",
+        "Checking for missing elements...",
+        "Crawling linked pages...",
+        "Calculating risk score...",
+    ]
+    for step in steps:
+        if pipeline_task.done():
+            return
+        await _push_event(job_id, "action", step)
+        await asyncio.sleep(1.2)
 
 _DEMO_RESULT: dict[str, Any] = {
     "summary": {
@@ -318,7 +360,9 @@ async def trigger_test_run(req: TestRunRequest) -> Any:
     async with _lock:
         _jobs[job_id] = {
             "job_id": job_id,
-            "status": "pending",
+            "status": "QUEUED",
+            "status_message": "Job queued",
+            "progress": _STATUS_PROGRESS["QUEUED"],
             "started_at": started_at,
             "completed_at": None,
             "result": None,
@@ -330,9 +374,7 @@ async def trigger_test_run(req: TestRunRequest) -> Any:
 
     async def _run_job() -> None:
         try:
-            async with _lock:
-                if job_id in _jobs:
-                    _jobs[job_id]["status"] = "running"
+            await _set_job_state(job_id, "RUNNING", "Starting scan run")
             await _push_event(job_id, "action", "Opening browser")
             await _push_event(job_id, "action", "Loading URL")
             await _push_event(job_id, "detection", "Detecting login form")
@@ -342,65 +384,100 @@ async def trigger_test_run(req: TestRunRequest) -> Any:
 
             config = FrameworkConfig(target_url=req.url)
             if req.auth and req.auth.username and req.auth.password:
+                await _set_job_state(
+                    job_id,
+                    "WAITING_FOR_LOGIN",
+                    "Please login in the Chrome window",
+                )
                 config.auth = {
                     "login_url": req.url,
                     "username": req.auth.username,
                     "password": req.auth.password,
                     "auto_detect": True,
                 }
-                await _push_event(job_id, "detection", "Login required, attempting authentication")
+                await _push_event(job_id, "detection", "Login page detected")
+                await _push_event(job_id, "action", "⏸ Waiting for you to login in the browser window...")
             orch = Orchestrator(config)
 
             # Guard against stalled pipelines.
-            await _push_event(job_id, "action", "Running tests")
-            result = await asyncio.wait_for(orch._run_pipeline(), timeout=60)
+            pipeline_task = asyncio.create_task(asyncio.wait_for(orch._run_pipeline(), timeout=120))
+            progress_task = asyncio.create_task(_emit_scan_progress(job_id, pipeline_task))
+            result = await pipeline_task
+            if not progress_task.done():
+                progress_task.cancel()
             issues_found = int(((result or {}).get("summary") or {}).get("total_issues_found") or 0)
-            await _push_event(job_id, "success", f"Found {issues_found} issues")
+            if issues_found > 0:
+                await _push_event(job_id, "success", f"Found {issues_found} issues")
+            auth_status = str((result or {}).get("auth_status") or "not_attempted")
+            if auth_status == "success":
+                await _set_job_state(job_id, "SCANNING", "Login confirmed, scanning in progress")
+                await _push_event(job_id, "success", "Login confirmed — resuming scan")
+                await _push_event(job_id, "success", "Login successful")
+            if auth_status == "failed":
+                issues = list((result or {}).get("issues") or [])
+                login_timeout = any("timeout" in str(i.get("message", "")).lower() for i in issues)
+                await _push_event(
+                    job_id,
+                    "error",
+                    "Login timeout — scan cancelled" if login_timeout else "Login failed — check credentials or bot protection",
+                )
             if bool((result or {}).get("partial")):
-                await _push_event(job_id, "error", "Login failed")
                 await _push_event(job_id, "detection", "Scan marked as partial")
-            await _push_event(job_id, "success", "Collecting results")
+            await _push_event(job_id, "action", "Generating AI summary...")
+            await _push_event(job_id, "success", "Scan complete")
 
             async with _lock:
                 if job_id in _jobs:
-                    _jobs[job_id]["status"] = "completed"
                     _jobs[job_id]["completed_at"] = time.time()
                     _jobs[job_id]["result"] = result
+            await _set_job_state(
+                job_id,
+                "PARTIAL" if bool((result or {}).get("partial")) else "COMPLETE",
+                "Scan finished with partial results"
+                if bool((result or {}).get("partial"))
+                else "Scan completed successfully",
+            )
             # Non-blocking executive summary generation.
             asyncio.create_task(_generate_executive_summary(job_id))
         except asyncio.TimeoutError:
             await _push_event(job_id, "error", "Scan timeout")
+            partial_result = orch.build_partial_result("Scan timed out — showing partial results")
             async with _lock:
                 if job_id in _jobs:
-                    _jobs[job_id]["status"] = "failed"
                     _jobs[job_id]["completed_at"] = time.time()
                     _jobs[job_id]["error"] = "Scan timeout"
-                    _jobs[job_id]["result"] = _build_failed_result("Scan timeout", defect="scan_timeout")
+                    _jobs[job_id]["result"] = partial_result
+            await _set_job_state(job_id, "PARTIAL", "Scan timed out — showing partial results")
         except Exception as e:
             await _push_event(job_id, "error", f"Scan failed: {e}")
             async with _lock:
                 if job_id in _jobs:
-                    _jobs[job_id]["status"] = "failed"
                     _jobs[job_id]["completed_at"] = time.time()
                     _jobs[job_id]["error"] = str(e)
                     _jobs[job_id]["result"] = _build_failed_result(str(e))
+            await _set_job_state(job_id, "FAILED", "Scan failed")
         finally:
             # Never leave a job in pending/running forever.
+            forced_failed = False
             async with _lock:
                 job = _jobs.get(job_id)
-                if job and job.get("status") in {"pending", "running"}:
-                    job["status"] = "failed"
+                if job and job.get("status") in {"QUEUED", "RUNNING"}:
                     job["completed_at"] = time.time()
                     job["error"] = job.get("error") or "Scan ended unexpectedly"
                     job["result"] = job.get("result") or _build_failed_result(
                         str(job["error"]),
                         defect="unexpected_termination",
                     )
+                    forced_failed = True
+            if forced_failed:
+                await _set_job_state(job_id, "FAILED", "Scan ended unexpectedly")
             async with _lock:
                 status = (_jobs.get(job_id) or {}).get("status")
-            if status == "completed":
+            if status == "COMPLETE":
                 await _push_event(job_id, "success", "Job completed")
-            elif status == "failed":
+            elif status == "PARTIAL":
+                await _push_event(job_id, "detection", "Job completed with partial results")
+            elif status == "FAILED":
                 await _push_event(job_id, "error", "Job failed")
 
     asyncio.create_task(_run_job())
@@ -498,7 +575,7 @@ async def get_latest_results() -> Any:
             return ResultsResponse(status="none", result=None)
         return ResultsResponse(
             job_id=data.get("job_id"),
-            status=data.get("status", "unknown"),
+            status=str(data.get("status", "unknown")).lower(),
             started_at=data.get("started_at"),
             completed_at=data.get("completed_at"),
             result=data.get("result"),
@@ -515,11 +592,25 @@ async def get_results(job_id: str) -> Any:
             raise HTTPException(status_code=404, detail="job not found")
         return ResultsResponse(
             job_id=data.get("job_id"),
-            status=data.get("status", "unknown"),
+            status=str(data.get("status", "unknown")).lower(),
             started_at=data.get("started_at"),
             completed_at=data.get("completed_at"),
             result=data.get("result"),
             error=data.get("error"),
+        )
+
+
+@app.get("/jobs/{job_id}/status", response_model=JobStatusResponse)
+async def get_job_status(job_id: str) -> Any:
+    async with _lock:
+        data = _jobs.get(job_id)
+        if not data:
+            raise HTTPException(status_code=404, detail="job not found")
+        return JobStatusResponse(
+            job_id=data.get("job_id", job_id),
+            status=str(data.get("status", "QUEUED")),
+            message=str(data.get("status_message", "")),
+            progress=int(data.get("progress", 0)),
         )
 
 

@@ -381,6 +381,11 @@ def build_structured_output(
 
     risk_score = sum(_risk_weight(i.get("severity", "medium")) for i in issues_normalized)
     risk_level = _risk_level(risk_score)
+    auth_failed = any(i.get("defect") == "auth_login_failed" for i in issues_normalized)
+    auth_succeeded = bool(
+        run_result
+        and any(tr.test_id == "auth_login" and tr.result == "pass" for tr in run_result.test_results)
+    )
 
     summary = {
         "total_pages_scanned": len(site_model.pages) if site_model else 0,
@@ -392,7 +397,8 @@ def build_structured_output(
         "summary": summary,
         "risk_score": risk_score,
         "risk_level": risk_level,
-        "partial": any(i.get("defect") == "auth_login_failed" for i in issues_normalized),
+        "partial": auth_failed,
+        "auth_status": "failed" if auth_failed else ("success" if auth_succeeded else "not_attempted"),
         "issues_by_severity": _issues_by_severity(issues_normalized),
         "issues": issues_normalized,
         "pages": _page_summaries(site_model),

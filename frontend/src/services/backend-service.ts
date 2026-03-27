@@ -36,6 +36,8 @@ export type ScanResultPayload = {
   run_id?: string | null;
   duration?: number;
   mode?: string;
+  status?: string;
+  warning?: string;
 };
 
 export type SyntheticDomain = "ecommerce" | "healthcare" | "finance" | "auth";
@@ -59,7 +61,17 @@ export type ScanAuthPayload = {
 
 export type LatestResultsResponse = {
   job_id?: string | null;
-  status: "none" | "pending" | "running" | "started" | "completed" | "failed" | "unknown";
+  status:
+    | "none"
+    | "pending"
+    | "running"
+    | "started"
+    | "WAITING_FOR_LOGIN"
+    | "SCANNING"
+    | "completed"
+    | "partial"
+    | "failed"
+    | "unknown";
   started_at?: number | null;
   completed_at?: number | null;
   result?: ScanResultPayload | null;
@@ -70,6 +82,13 @@ export type JobEvent = {
   time: number;
   type: "action" | "detection" | "error" | "success" | string;
   message: string;
+};
+
+export type JobStatusResponse = {
+  job_id: string;
+  status: "QUEUED" | "RUNNING" | "WAITING_FOR_LOGIN" | "SCANNING" | "PARTIAL" | "COMPLETE" | "FAILED";
+  message: string;
+  progress: number;
 };
 
 const API_BASE = "http://localhost:8000";
@@ -101,6 +120,12 @@ export async function fetchJobEvents(jobId: string): Promise<JobEvent[]> {
   if (!response.ok) throw new Error(`Failed to fetch job events (${response.status})`);
   const payload = (await response.json()) as { job_id: string; events: JobEvent[] };
   return payload.events ?? [];
+}
+
+export async function fetchJobStatus(jobId: string): Promise<JobStatusResponse> {
+  const response = await fetch(`${API_BASE}/jobs/${jobId}/status`);
+  if (!response.ok) throw new Error(`Failed to fetch job status (${response.status})`);
+  return response.json();
 }
 
 export async function fetchDemo(): Promise<ScanResultPayload> {

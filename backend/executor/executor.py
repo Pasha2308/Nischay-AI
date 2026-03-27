@@ -89,6 +89,7 @@ class Executor:
         sorted_tests = sorted(plan.test_cases, key=lambda tc: tc.priority)
         test_results: list[TestResult] = []
         auth_failure_result: TestResult | None = None
+        auth_success_result: TestResult | None = None
 
         try:
             async with async_playwright() as p:
@@ -110,6 +111,17 @@ class Executor:
                     if auth_result.success:
                         method = auth_result.auth_flow.detection_method if auth_result.auth_flow else "unknown"
                         logger.info("Auth state captured successfully (method=%s)", method)
+                        auth_success_result = TestResult(
+                            test_id="auth_login",
+                            test_name="Authentication login",
+                            description="Login validated before running tests",
+                            category="functional",
+                            priority=1,
+                            target_page_id="",
+                            coverage_signature="auth_login",
+                            result="pass",
+                            duration_seconds=0.0,
+                        )
                     else:
                         logger.error("Initial auth failed: %s", auth_result.error)
                         auth_failure_result = TestResult(
@@ -123,6 +135,25 @@ class Executor:
                             result="error",
                             duration_seconds=0.0,
                             failure_reason=f"AUTH_LOGIN_FAILED: {auth_result.error or 'unknown error'}",
+                        )
+                        test_results = [auth_failure_result]
+                        logger.info("Collecting results")
+                        await browser.close()
+                        duration = time.time() - start_time
+                        completed_at = time.strftime("%Y-%m-%dT%H:%M:%SZ")
+                        return RunResult(
+                            run_id=self.run_id,
+                            plan_id=plan.plan_id,
+                            started_at=started_at,
+                            completed_at=completed_at,
+                            target_url=plan.target_url,
+                            total_tests=len(test_results),
+                            passed=0,
+                            failed=0,
+                            skipped=0,
+                            errors=1,
+                            duration_seconds=round(duration, 2),
+                            test_results=test_results,
                         )
 
                 # Run tests in parallel, bounded by max_parallel_contexts
@@ -245,8 +276,11 @@ class Executor:
                 test_results = list(await asyncio.gather(
                     *(_run_one(i, tc) for i, tc in enumerate(sorted_tests))
                 ))
-                if auth_failure_result:
-                    test_results.insert(0, auth_failure_result)
+                if self.config.auth:
+                    if auth_failure_result:
+                        test_results.insert(0, auth_failure_result)
+                    elif auth_success_result:
+                        test_results.insert(0, auth_success_result)
                 logger.info("Collecting results")
                 await browser.close()
         except (PlaywrightTimeoutError, PlaywrightError) as e:

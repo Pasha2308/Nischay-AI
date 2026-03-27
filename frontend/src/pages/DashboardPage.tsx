@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fetchDemo, fetchJobEvents, fetchResults, triggerTestRun, type JobEvent } from "../services/backend-service";
+import { fetchDemo, fetchJobEvents, fetchJobStatus, fetchResults, triggerTestRun, type JobEvent } from "../services/backend-service";
 import { KpiCard } from "../components/KpiCard";
 import { LineChart } from "../components/LineChart";
 import { ActivityFeed } from "../components/ActivityFeed";
@@ -16,6 +16,7 @@ export function DashboardPage() {
   const [password, setPassword] = useState("");
   const [scans, setScans] = useState<ScanRecord[]>(() => loadScans());
   const [events, setEvents] = useState<JobEvent[]>([]);
+  const [jobStatus, setJobStatus] = useState<string>("");
   const logRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -80,19 +81,33 @@ export function DashboardPage() {
       const jobId = started.job_id;
       // simple polling loop
       for (let i = 0; i < 50; i++) {
-        const [latest, jobEvents] = await Promise.all([fetchResults(jobId), fetchJobEvents(jobId)]);
+        const [latest, jobEvents, jobStatus] = await Promise.all([
+          fetchResults(jobId),
+          fetchJobEvents(jobId),
+          fetchJobStatus(jobId),
+        ]);
         setEvents(jobEvents);
+        setJobStatus(jobStatus.status);
+        if (jobStatus.status === "WAITING_FOR_LOGIN") {
+          setMsg(jobStatus.message || "Please login in the Chrome window");
+        }
         if (latest.status === "completed" && latest.result) {
           const rec = toScanRecord({ id: `scan_${Date.now()}`, url, result: latest.result });
           setScans(upsertScan(rec));
           setMsg("Scan complete");
           break;
         }
+        if (latest.status === "partial" && latest.result) {
+          const rec = toScanRecord({ id: `scan_${Date.now()}`, url, result: latest.result, status: "failed" });
+          setScans(upsertScan(rec));
+          setMsg(latest.result.warning ?? "Scan timed out — showing partial results");
+          break;
+        }
         if (latest.status === "failed") {
           setMsg(latest.error ?? "Scan failed");
           break;
         }
-        await new Promise((r) => setTimeout(r, 1500));
+        await new Promise((r) => setTimeout(r, 2000));
       }
     } catch (e) {
       setMsg(String(e));
@@ -144,6 +159,18 @@ export function DashboardPage() {
           )}
           {busy && <div className="scanning-indicator" aria-live="polite">Scanning<span className="dots" /></div>}
           {msg && <p className="muted">{msg}</p>}
+          {busy && jobStatus === "WAITING_FOR_LOGIN" && (
+            <div className="card login-wait-card">
+              <div className="card-title">Login required</div>
+              <p>
+                A Chrome window has opened. Please login in that window. The scan will resume automatically.
+              </p>
+              <div className="wait-row">
+                <span className="spinner" aria-hidden="true" />
+                <span>Waiting up to 3 minutes</span>
+              </div>
+            </div>
+          )}
           {(busy || events.length > 0) && (
             <div className="card log-card">
               <div className="card-title">Live Scan Activity</div>
@@ -197,6 +224,18 @@ export function DashboardPage() {
       )}
       {busy && <div className="scanning-indicator" aria-live="polite">Scanning<span className="dots" /></div>}
       {msg && <p className="muted">{msg}</p>}
+      {busy && jobStatus === "WAITING_FOR_LOGIN" && (
+        <div className="card login-wait-card">
+          <div className="card-title">Login required</div>
+          <p>
+            A Chrome window has opened. Please login in that window. The scan will resume automatically.
+          </p>
+          <div className="wait-row">
+            <span className="spinner" aria-hidden="true" />
+            <span>Waiting up to 3 minutes</span>
+          </div>
+        </div>
+      )}
       {(busy || events.length > 0) && (
         <div className="card log-card">
           <div className="card-title">Live Scan Activity</div>

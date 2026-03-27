@@ -47,6 +47,9 @@ class Orchestrator:
             baselines_dir=self.framework_dir / "visual_baselines",
             target_url=config.target_url,
         )
+        self._last_site_model: SiteModel | None = None
+        self._last_run_result: RunResult | None = None
+        self._started_at: float = time.time()
 
     def run_full_pipeline(self) -> dict:
         """Execute the pipeline and return structured JSON (always, even on failure)."""
@@ -54,6 +57,7 @@ class Orchestrator:
 
     async def _run_pipeline(self) -> dict:
         start = time.time()
+        self._started_at = start
         site_model: SiteModel | None = None
         run_result: RunResult | None = None
         reports: dict[str, str] = {}
@@ -66,6 +70,7 @@ class Orchestrator:
             logger.info("--- Stage 1: Crawl ---")
             t0 = time.time()
             site_model = await self._crawl()
+            self._last_site_model = site_model
             self._save_site_model(site_model)
             logger.info(
                 "--- Stage 1 complete: %d pages in %.1fs ---",
@@ -88,6 +93,7 @@ class Orchestrator:
             logger.info("--- Stage 3: Execute ---")
             t0 = time.time()
             run_result = await self._execute(plan)
+            self._last_run_result = run_result
             self._save_run_result(run_result)
             logger.info(
                 "--- Stage 3 complete: %d passed, %d failed in %.1fs ---",
@@ -160,6 +166,21 @@ class Orchestrator:
             run_result=run_result,
             pipeline_error=None,
             extra=extra,
+        )
+
+    def build_partial_result(self, warning_message: str) -> dict[str, object]:
+        duration = round(time.time() - self._started_at, 2)
+        return build_structured_output(
+            site_model=self._last_site_model,
+            run_result=self._last_run_result,
+            pipeline_error=None,
+            extra={
+                "run_id": self._last_run_result.run_id if self._last_run_result else None,
+                "duration": duration,
+                "mode": "deterministic_no_ai",
+                "status": "partial",
+                "warning": warning_message,
+            },
         )
 
     async def _crawl(self) -> SiteModel:

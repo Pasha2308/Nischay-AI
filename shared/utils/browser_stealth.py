@@ -13,8 +13,9 @@ from typing import Any
 async def launch_stealth_browser(playwright: Any):
     """Launch Chromium with sensible defaults."""
     return await playwright.chromium.launch(
-        headless=True,
+        headless=False,
         args=[
+            "--start-maximized",
             "--disable-dev-shm-usage",
             "--no-sandbox",
         ],
@@ -30,7 +31,8 @@ async def create_stealth_context(
 ):
     """Create a browser context with optional storage state and video."""
     kwargs: dict[str, object] = {}
-    if viewport:
+    kwargs["no_viewport"] = True
+    if viewport and not kwargs.get("no_viewport"):
         kwargs["viewport"] = viewport
     if user_agent:
         kwargs["user_agent"] = user_agent

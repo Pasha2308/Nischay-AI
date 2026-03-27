@@ -21,6 +21,23 @@ class AuthResult:
     post_login_url: str | None = None
 
 
+@dataclass
+class LoginAttemptResult:
+    success: bool
+    message: str
+
+
+async def detect_login_page(page: Any) -> bool:
+    url = (page.url or "").lower()
+    if "login" in url or "signin" in url:
+        return True
+    try:
+        password_inputs = page.locator("input[type='password']")
+        return await password_inputs.count() > 0
+    except Exception:
+        return False
+
+
 async def _first_visible_selector(page: Any, selectors: list[str]) -> str:
     for sel in selectors:
         try:
@@ -32,65 +49,91 @@ async def _first_visible_selector(page: Any, selectors: list[str]) -> str:
     return ""
 
 
+async def attempt_login(page: Any, username: str, password: str) -> LoginAttemptResult:
+    """Fill login form, submit, and verify auth via URL transition."""
+    user_sel = await _first_visible_selector(
+        page,
+        [
+            "input[type='email']",
+            "input[name*='email' i]",
+            "input[name*='user' i]",
+            "input[name*='login' i]",
+            "input[type='text']",
+        ],
+    )
+    pass_sel = await _first_visible_selector(
+        page,
+        [
+            "input[type='password']",
+            "input[name*='pass' i]",
+        ],
+    )
+    submit_sel = await _first_visible_selector(
+        page,
+        [
+            "button[type='submit']",
+            "input[type='submit']",
+            "button:has-text('Login')",
+            "button:has-text('Log in')",
+            "button:has-text('Sign in')",
+            "[role='button'][aria-label*='login' i]",
+        ],
+    )
+
+    if not (user_sel and pass_sel and submit_sel):
+        return LoginAttemptResult(False, "Login form selectors not found")
+
+    await page.fill(user_sel, username)
+    await page.fill(pass_sel, password)
+    await page.click(submit_sel)
+
+    try:
+        await page.wait_for_url(
+            lambda u: ("login" not in str(u).lower()) and ("signin" not in str(u).lower()),
+            timeout=15000,
+        )
+    except Exception:
+        pass
+
+    final_url = (page.url or "").lower()
+    if "login" in final_url or "signin" in final_url:
+        return LoginAttemptResult(False, "Still on login page after timeout")
+    return LoginAttemptResult(True, "Login successful")
+
+
 async def perform_smart_auth(context: Any, auth_config: Any, ai_client: Any | None = None) -> AuthResult:
-    """Attempt form login with selector auto-detection."""
+    """Human-in-the-loop login with explicit URL-based confirmation."""
     try:
         login_url = getattr(auth_config, "login_url", "") or ""
         username = getattr(auth_config, "username", "") or ""
         password = getattr(auth_config, "password", "") or ""
-        user_sel = getattr(auth_config, "username_selector", "") or ""
-        pass_sel = getattr(auth_config, "password_selector", "") or ""
-        submit_sel = getattr(auth_config, "submit_selector", "") or ""
 
         if not (login_url and username and password):
             return AuthResult(False, "Auth not configured (missing credentials)")
 
         page = await context.new_page()
         await page.goto(login_url, wait_until="domcontentloaded", timeout=30000)
-
-        if not user_sel:
-            user_sel = await _first_visible_selector(
-                page,
-                [
-                    "input[type='email']",
-                    "input[name*='email' i]",
-                    "input[name*='user' i]",
-                    "input[name*='login' i]",
-                    "input[type='text']",
-                ],
-            )
-        if not pass_sel:
-            pass_sel = await _first_visible_selector(
-                page,
-                [
-                    "input[type='password']",
-                    "input[name*='pass' i]",
-                ],
-            )
-        if not submit_sel:
-            submit_sel = await _first_visible_selector(
-                page,
-                [
-                    "button[type='submit']",
-                    "input[type='submit']",
-                    "button:has-text('Login')",
-                    "button:has-text('Log in')",
-                    "button:has-text('Sign in')",
-                    "[role='button'][aria-label*='login' i]",
-                ],
-            )
-
-        if not (user_sel and pass_sel and submit_sel):
+        if await detect_login_page(page):
+            for _ in range(90):  # 3 minutes, poll every 2 seconds
+                current = (page.url or "").lower()
+                if "login" not in current and "signin" not in current:
+                    post_login_url = page.url
+                    await page.close()
+                    return AuthResult(
+                        True,
+                        auth_flow=AuthFlow(
+                            login_url=login_url,
+                            login_method="form",
+                            requires_credentials=True,
+                            detection_method="manual_human",
+                            detected_selectors={},
+                        ),
+                        post_login_url=post_login_url,
+                    )
+                await page.wait_for_timeout(2000)
             await page.close()
-            return AuthResult(False, "Auth auto-detect failed (login form selectors not found)")
+            return AuthResult(False, "MANUAL_LOGIN_TIMEOUT: Login timeout — scan cancelled")
 
-        await page.fill(user_sel, username)
-        await page.fill(pass_sel, password)
-        await page.click(submit_sel)
-        try:
-            await page.wait_for_load_state("domcontentloaded", timeout=10000)
-        except Exception:
-            await page.wait_for_timeout(1200)
         post_login_url = page.url
         await page.close()
 
