@@ -139,6 +139,19 @@ def _build_rule_based_issues(
         return issues, console_errors_flat, failed_actions, missing_elements
 
     for tr in run_result.test_results:
+        if (tr.failure_reason or "").startswith("AUTH_LOGIN_FAILED:"):
+            issues.append(
+                {
+                    "type": "auth_error",
+                    "defect": "auth_login_failed",
+                    "severity": "high",
+                    "message": tr.failure_reason.replace("AUTH_LOGIN_FAILED:", "").strip()
+                    or "Login failed",
+                    "test_id": tr.test_id,
+                }
+            )
+            continue
+
         # Console errors from evidence → HIGH
         for raw in _console_error_lines(tr.evidence.console_logs):
             console_errors_flat.append(raw)
@@ -379,6 +392,7 @@ def build_structured_output(
         "summary": summary,
         "risk_score": risk_score,
         "risk_level": risk_level,
+        "partial": any(i.get("defect") == "auth_login_failed" for i in issues_normalized),
         "issues_by_severity": _issues_by_severity(issues_normalized),
         "issues": issues_normalized,
         "pages": _page_summaries(site_model),

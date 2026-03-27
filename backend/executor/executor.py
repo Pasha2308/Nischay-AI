@@ -8,7 +8,11 @@ import time
 import uuid
 from pathlib import Path
 
-from playwright.async_api import async_playwright
+from playwright.async_api import (
+    Error as PlaywrightError,
+    TimeoutError as PlaywrightTimeoutError,
+    async_playwright,
+)
 
 from shared.utils.ai.client import AIClient
 from shared.utils.auth import authenticate_and_capture_state
@@ -84,151 +88,183 @@ class Executor:
 
         sorted_tests = sorted(plan.test_cases, key=lambda tc: tc.priority)
         test_results: list[TestResult] = []
+        auth_failure_result: TestResult | None = None
 
         try:
             async with async_playwright() as p:
+                logger.info("Launching browser")
                 logger.debug("Launching stealth Chromium for test execution...")
                 browser = await launch_stealth_browser(p)
 
-            # Capture auth state once — will be injected into per-test contexts
-            auth_storage_state: dict | None = None
-            if self.config.auth:
-                logger.info("Authenticating to capture session state...")
-                auth_result, auth_storage_state = await authenticate_and_capture_state(
-                    browser,
-                    self.config.auth,
-                    ai_client=self.ai_client,
-                    viewport={"width": 1280, "height": 720},
-                    user_agent=self.config.crawl.user_agent,
-                )
-                if auth_result.success:
-                    method = auth_result.auth_flow.detection_method if auth_result.auth_flow else "unknown"
-                    logger.info("Auth state captured successfully (method=%s)", method)
-                else:
-                    logger.error("Initial auth failed: %s", auth_result.error)
-
-            # Run tests in parallel, bounded by max_parallel_contexts
-            semaphore = asyncio.Semaphore(self.config.max_parallel_contexts)
-            auth_lock = asyncio.Lock()
-            auth_state: dict[str, dict | None] = {"storage": auth_storage_state}
-
-            async def _run_one(index: int, tc: TestCase) -> TestResult:
-                async with semaphore:
-                    elapsed = time.time() - start_time
-                    if elapsed >= self.config.max_execution_time_seconds:
-                        logger.warning("Time limit reached, skipping %s", tc.name)
-                        return TestResult(
-                            test_id=tc.test_id, test_name=tc.name,
-                            description=tc.description, category=tc.category,
-                            priority=tc.priority, target_page_id=tc.target_page_id,
-                            coverage_signature=tc.coverage_signature,
-                            result="skip", failure_reason="Time limit reached",
-                        )
-
-                    logger.info("Running test [%d/%d]: %s (%s)",
-                                index + 1, total_tests, tc.name, tc.category)
-                    logger.debug("  Test ID: %s | Page: %s | Timeout: %ds | requires_auth: %s",
-                                 tc.test_id, tc.target_page_id, tc.timeout_seconds,
-                                 tc.requires_auth)
-
-                    storage = auth_state["storage"] if (tc.requires_auth and self.config.auth) else None
-                    capture_mode = self.config.capture_video
-
-                    # For "always" mode, prepare video dir before context creation
-                    video_dir: Path | None = None
-                    record_video_dir_arg: str | None = None
-                    if capture_mode == "always":
-                        evidence_dir = self.run_dir / "evidence" / tc.test_id
-                        evidence_dir.mkdir(parents=True, exist_ok=True)
-                        video_dir = evidence_dir / "video"
-                        video_dir.mkdir(parents=True, exist_ok=True)
-                        record_video_dir_arg = str(video_dir)
-
-                    context = await create_stealth_context(
+                # Capture auth state once — will be injected into per-test contexts
+                auth_storage_state: dict | None = None
+                if self.config.auth:
+                    logger.info("Authenticating to capture session state...")
+                    auth_result, auth_storage_state = await authenticate_and_capture_state(
                         browser,
+                        self.config.auth,
+                        ai_client=self.ai_client,
                         viewport={"width": 1280, "height": 720},
                         user_agent=self.config.crawl.user_agent,
-                        storage_state=storage,
-                        record_video_dir=record_video_dir_arg,
                     )
-                    try:
-                        result = await self._run_test(context, tc, baseline_dir)
-                        logger.info("[%s] %s: %s (%.1fs)",
-                                    result.result.upper(), tc.test_id, tc.name,
-                                    result.duration_seconds or 0)
+                    if auth_result.success:
+                        method = auth_result.auth_flow.detection_method if auth_result.auth_flow else "unknown"
+                        logger.info("Auth state captured successfully (method=%s)", method)
+                    else:
+                        logger.error("Initial auth failed: %s", auth_result.error)
+                        auth_failure_result = TestResult(
+                            test_id="auth_login",
+                            test_name="Authentication login",
+                            description="Login attempt before running tests",
+                            category="functional",
+                            priority=1,
+                            target_page_id="",
+                            coverage_signature="auth_login",
+                            result="error",
+                            duration_seconds=0.0,
+                            failure_reason=f"AUTH_LOGIN_FAILED: {auth_result.error or 'unknown error'}",
+                        )
 
-                        if self.config.auth and self._session_invalidated(result):
-                            async with auth_lock:
-                                logger.info("Session invalidated by %s, re-capturing auth state...",
-                                            tc.test_id)
-                                auth_result, new_state = await authenticate_and_capture_state(
-                                    browser,
-                                    self.config.auth,
-                                    ai_client=self.ai_client,
-                                    viewport={"width": 1280, "height": 720},
-                                    user_agent=self.config.crawl.user_agent,
-                                )
-                                if auth_result.success:
-                                    auth_state["storage"] = new_state
-                                else:
-                                    logger.error("Re-auth after session invalidation failed: %s",
-                                                 auth_result.error)
-                    finally:
-                        await context.close()
+                # Run tests in parallel, bounded by max_parallel_contexts
+                semaphore = asyncio.Semaphore(self.config.max_parallel_contexts)
+                auth_lock = asyncio.Lock()
+                auth_state: dict[str, dict | None] = {"storage": auth_storage_state}
 
-                    # "always" mode: attach video after context close finalizes it
-                    if capture_mode == "always" and video_dir:
-                        video_path = self._find_video_file(video_dir)
-                        if video_path:
-                            result.evidence.video_path = video_path
-                            logger.debug("Video recorded for %s: %s", tc.test_id, video_path)
-
-                    # "on_failure" mode: re-run failed tests with video
-                    if capture_mode == "on_failure" and result.result in ("fail", "error"):
+                async def _run_one(index: int, tc: TestCase) -> TestResult:
+                    async with semaphore:
                         elapsed = time.time() - start_time
-                        if elapsed < self.config.max_execution_time_seconds:
-                            logger.info("Re-running %s with video capture for failure analysis...",
-                                        tc.test_id)
-                            rerun_evidence_dir = self.run_dir / "evidence" / tc.test_id / "video_rerun"
-                            rerun_evidence_dir.mkdir(parents=True, exist_ok=True)
-                            rerun_video_dir = rerun_evidence_dir / "video"
-                            rerun_video_dir.mkdir(parents=True, exist_ok=True)
-
-                            video_context = await create_stealth_context(
-                                browser,
-                                viewport={"width": 1280, "height": 720},
-                                user_agent=self.config.crawl.user_agent,
-                                storage_state=storage,
-                                record_video_dir=str(rerun_video_dir),
+                        if elapsed >= self.config.max_execution_time_seconds:
+                            logger.warning("Time limit reached, skipping %s", tc.name)
+                            return TestResult(
+                                test_id=tc.test_id, test_name=tc.name,
+                                description=tc.description, category=tc.category,
+                                priority=tc.priority, target_page_id=tc.target_page_id,
+                                coverage_signature=tc.coverage_signature,
+                                result="skip", failure_reason="Time limit reached",
                             )
-                            try:
-                                video_result = await self._run_test(video_context, tc, baseline_dir)
-                            finally:
-                                await video_context.close()
 
-                            video_path = self._find_video_file(rerun_video_dir)
+                        logger.info("Running test [%d/%d]: %s (%s)",
+                                    index + 1, total_tests, tc.name, tc.category)
+                        logger.debug("  Test ID: %s | Page: %s | Timeout: %ds | requires_auth: %s",
+                                     tc.test_id, tc.target_page_id, tc.timeout_seconds,
+                                     tc.requires_auth)
+
+                        storage = auth_state["storage"] if (tc.requires_auth and self.config.auth) else None
+                        capture_mode = self.config.capture_video
+
+                        # For "always" mode, prepare video dir before context creation
+                        video_dir: Path | None = None
+                        record_video_dir_arg: str | None = None
+                        if capture_mode == "always":
+                            evidence_dir = self.run_dir / "evidence" / tc.test_id
+                            evidence_dir.mkdir(parents=True, exist_ok=True)
+                            video_dir = evidence_dir / "video"
+                            video_dir.mkdir(parents=True, exist_ok=True)
+                            record_video_dir_arg = str(video_dir)
+
+                        context = await create_stealth_context(
+                            browser,
+                            viewport={"width": 1280, "height": 720},
+                            user_agent=self.config.crawl.user_agent,
+                            storage_state=storage,
+                            record_video_dir=record_video_dir_arg,
+                        )
+                        try:
+                            result = await self._run_test(context, tc, baseline_dir)
+                            logger.info("[%s] %s: %s (%.1fs)",
+                                        result.result.upper(), tc.test_id, tc.name,
+                                        result.duration_seconds or 0)
+
+                            if self.config.auth and self._session_invalidated(result):
+                                async with auth_lock:
+                                    logger.info("Session invalidated by %s, re-capturing auth state...",
+                                                tc.test_id)
+                                    auth_result, new_state = await authenticate_and_capture_state(
+                                        browser,
+                                        self.config.auth,
+                                        ai_client=self.ai_client,
+                                        viewport={"width": 1280, "height": 720},
+                                        user_agent=self.config.crawl.user_agent,
+                                    )
+                                    if auth_result.success:
+                                        auth_state["storage"] = new_state
+                                    else:
+                                        logger.error("Re-auth after session invalidation failed: %s",
+                                                     auth_result.error)
+                        finally:
+                            await context.close()
+
+                        # "always" mode: attach video after context close finalizes it
+                        if capture_mode == "always" and video_dir:
+                            video_path = self._find_video_file(video_dir)
                             if video_path:
                                 result.evidence.video_path = video_path
-                                logger.debug("Failure video for %s: %s", tc.test_id, video_path)
+                                logger.debug("Video recorded for %s: %s", tc.test_id, video_path)
 
-                            # Flaky detection: re-run passed but original failed
-                            if video_result.result == "pass":
-                                result.potentially_flaky = True
-                                logger.warning(
-                                    "Test %s is potentially flaky: failed initially but passed on re-run",
-                                    tc.test_id,
+                        # "on_failure" mode: re-run failed tests with video
+                        if capture_mode == "on_failure" and result.result in ("fail", "error"):
+                            elapsed = time.time() - start_time
+                            if elapsed < self.config.max_execution_time_seconds:
+                                logger.info("Re-running %s with video capture for failure analysis...",
+                                            tc.test_id)
+                                rerun_evidence_dir = self.run_dir / "evidence" / tc.test_id / "video_rerun"
+                                rerun_evidence_dir.mkdir(parents=True, exist_ok=True)
+                                rerun_video_dir = rerun_evidence_dir / "video"
+                                rerun_video_dir.mkdir(parents=True, exist_ok=True)
+
+                                video_context = await create_stealth_context(
+                                    browser,
+                                    viewport={"width": 1280, "height": 720},
+                                    user_agent=self.config.crawl.user_agent,
+                                    storage_state=storage,
+                                    record_video_dir=str(rerun_video_dir),
                                 )
-                        else:
-                            logger.warning("Skipping video re-run for %s: time limit approaching",
-                                           tc.test_id)
+                                try:
+                                    video_result = await self._run_test(video_context, tc, baseline_dir)
+                                finally:
+                                    await video_context.close()
 
-                    return result
+                                video_path = self._find_video_file(rerun_video_dir)
+                                if video_path:
+                                    result.evidence.video_path = video_path
+                                    logger.debug("Failure video for %s: %s", tc.test_id, video_path)
+
+                                # Flaky detection: re-run passed but original failed
+                                if video_result.result == "pass":
+                                    result.potentially_flaky = True
+                                    logger.warning(
+                                        "Test %s is potentially flaky: failed initially but passed on re-run",
+                                        tc.test_id,
+                                    )
+                            else:
+                                logger.warning("Skipping video re-run for %s: time limit approaching",
+                                               tc.test_id)
+
+                        return result
 
                 test_results = list(await asyncio.gather(
                     *(_run_one(i, tc) for i, tc in enumerate(sorted_tests))
                 ))
-
+                if auth_failure_result:
+                    test_results.insert(0, auth_failure_result)
+                logger.info("Collecting results")
                 await browser.close()
+        except (PlaywrightTimeoutError, PlaywrightError) as e:
+            logger.error("Executor Playwright failure (launch/runtime): %s", e)
+            test_results = [
+                TestResult(
+                    test_id="playwright_runtime",
+                    test_name="Playwright runtime",
+                    description="Playwright launch/runtime failure",
+                    category="functional",
+                    priority=1,
+                    target_page_id="",
+                    coverage_signature="playwright_runtime",
+                    result="error",
+                    duration_seconds=0.0,
+                    failure_reason=str(e),
+                )
+            ]
         except Exception as e:
             logger.error("Executor bootstrap failed before/while launching browser: %s", e)
             test_results = [
@@ -339,6 +375,7 @@ class Executor:
         collector.setup_listeners(page)
 
         try:
+            logger.info("Executing actions")
             # === PRECONDITIONS ===
             if tc.preconditions:
                 logger.debug("  Running %d preconditions...", len(tc.preconditions))
@@ -387,6 +424,8 @@ class Executor:
                 logger.debug("  Step %d/%d: %s %s",
                              step_idx + 1, len(tc.steps), action.action_type,
                              action.description or action.selector or "")
+                if action.action_type == "navigate":
+                    logger.info("Navigating to URL")
                 step_screenshot = None
                 try:
                     await run_action(page, action, timeout=selector_timeout_ms)
@@ -571,6 +610,46 @@ class Executor:
                 assertions_total=len(tc.assertions),
             )
 
+        except PlaywrightTimeoutError as e:
+            logger.error("Playwright timeout in test %s: %s", tc.test_id, e)
+            collector.save_logs()
+            return TestResult(
+                test_id=tc.test_id,
+                test_name=tc.name,
+                description=tc.description,
+                category=tc.category,
+                priority=tc.priority,
+                target_page_id=tc.target_page_id,
+                coverage_signature=tc.coverage_signature,
+                result="error",
+                duration_seconds=round(time.time() - test_start, 2),
+                failure_reason=f"Playwright timeout: {e}",
+                evidence=collector.build_evidence(screenshots),
+                fallback_records=fallback_records,
+                precondition_results=precondition_results,
+                step_results=step_results,
+                assertion_results=assertion_results_list,
+            )
+        except PlaywrightError as e:
+            logger.error("Playwright runtime error in test %s: %s", tc.test_id, e)
+            collector.save_logs()
+            return TestResult(
+                test_id=tc.test_id,
+                test_name=tc.name,
+                description=tc.description,
+                category=tc.category,
+                priority=tc.priority,
+                target_page_id=tc.target_page_id,
+                coverage_signature=tc.coverage_signature,
+                result="error",
+                duration_seconds=round(time.time() - test_start, 2),
+                failure_reason=f"Playwright error: {e}",
+                evidence=collector.build_evidence(screenshots),
+                fallback_records=fallback_records,
+                precondition_results=precondition_results,
+                step_results=step_results,
+                assertion_results=assertion_results_list,
+            )
         except Exception as e:
             logger.error("Test %s crashed: %s", tc.test_id, e)
             collector.save_logs()

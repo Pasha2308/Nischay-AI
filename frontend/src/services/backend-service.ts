@@ -1,101 +1,120 @@
-export type StartScanResponse = {
-	status: 'started';
-	job_id: string;
-	message: string;
-};
+export type Severity = "critical" | "high" | "medium" | "low";
 
 export type ScanIssue = {
-	type?: string;
-	defect?: string;
-	severity?: string;
-	message?: string;
-	test_id?: string;
-	phase?: string;
-	step_index?: number;
-	action_type?: string;
-	selector?: string | null;
-	assertion_type?: string;
+  type?: string;
+  defect?: string;
+  severity?: Severity | string;
+  message?: string;
+  test_id?: string;
+  phase?: string;
+  step_index?: number;
+  action_type?: string;
+  selector?: string | null;
+  assertion_type?: string;
 };
 
-export type IssuesBySeverity = {
-	critical: ScanIssue[];
-	high: ScanIssue[];
-	medium: ScanIssue[];
-	low: ScanIssue[];
-};
+export type IssuesBySeverity = Record<Severity, ScanIssue[]>;
 
 export type ScanSummary = {
-	total_pages_scanned: number;
-	total_actions_run: number;
-	total_issues_found: number;
+  total_pages_scanned: number;
+  total_actions_run: number;
+  total_issues_found: number;
 };
 
-/** Payload stored in `LatestResultsResponse.result` when a scan completes */
 export type ScanResultPayload = {
-	summary?: ScanSummary;
-	risk_score?: number;
-	risk_level?: 'HIGH RISK' | 'MEDIUM RISK' | 'LOW RISK';
-	issues_by_severity?: IssuesBySeverity;
-	issues?: ScanIssue[];
-	pages?: unknown[];
-	actions_run?: unknown[];
-	console_errors?: string[];
-	failed_actions?: unknown[];
-	missing_elements?: unknown[];
-	run_id?: string | null;
-	duration?: number;
-	mode?: string;
+  summary?: ScanSummary;
+  risk_score?: number;
+  risk_level?: "HIGH RISK" | "MEDIUM RISK" | "LOW RISK";
+  executive_summary?: string;
+  issues_by_severity?: IssuesBySeverity;
+  issues?: ScanIssue[];
+  pages?: unknown[];
+  actions_run?: unknown[];
+  console_errors?: string[];
+  failed_actions?: unknown[];
+  missing_elements?: unknown[];
+  run_id?: string | null;
+  duration?: number;
+  mode?: string;
+};
+
+export type SyntheticDomain = "ecommerce" | "healthcare" | "finance" | "auth";
+
+export type SyntheticGenerateResponse = {
+  domain: SyntheticDomain;
+  count: number;
+  rows: Record<string, string | number>[];
+};
+
+export type StartScanResponse = {
+  status: "started";
+  job_id: string;
+  message: string;
+};
+
+export type ScanAuthPayload = {
+  username: string;
+  password: string;
 };
 
 export type LatestResultsResponse = {
-	job_id?: string | null;
-	status: 'none' | 'started' | 'completed' | 'failed' | 'unknown';
-	started_at?: number | null;
-	completed_at?: number | null;
-	result?: ScanResultPayload | null;
-	error?: string | null;
+  job_id?: string | null;
+  status: "none" | "pending" | "running" | "started" | "completed" | "failed" | "unknown";
+  started_at?: number | null;
+  completed_at?: number | null;
+  result?: ScanResultPayload | null;
+  error?: string | null;
 };
 
-export function flattenIssuesBySeverity(ibs: IssuesBySeverity | undefined): Array<ScanIssue & { _bucket: keyof IssuesBySeverity }> {
-	if (!ibs) return [];
-	const order: (keyof IssuesBySeverity)[] = ['critical', 'high', 'medium', 'low'];
-	const out: Array<ScanIssue & { _bucket: keyof IssuesBySeverity }> = [];
-	for (const bucket of order) {
-		for (const issue of ibs[bucket] ?? []) {
-			out.push({ ...issue, _bucket: bucket });
-		}
-	}
-	return out;
+export type JobEvent = {
+  time: number;
+  type: "action" | "detection" | "error" | "success" | string;
+  message: string;
+};
+
+const API_BASE = "http://localhost:8000";
+
+export async function triggerTestRun(url: string, auth?: ScanAuthPayload): Promise<StartScanResponse> {
+  const response = await fetch(`${API_BASE}/jobs/test.run`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(auth ? { url, auth } : { url }),
+  });
+  if (!response.ok) throw new Error(`Failed to start scan (${response.status})`);
+  return response.json();
 }
 
-const API_BASE = 'http://localhost:3000';
+export async function fetchLatestResults(): Promise<LatestResultsResponse> {
+  const response = await fetch(`${API_BASE}/results`);
+  if (!response.ok) throw new Error(`Failed to fetch results (${response.status})`);
+  return response.json();
+}
 
-export const triggerTestRun = async (url: string): Promise<StartScanResponse> => {
-	const response = await fetch(`${API_BASE}/jobs/test.run`, {
-		headers: { 'Content-Type': 'application/json' },
-		method: 'POST',
-		body: JSON.stringify({ url })
-	});
+export async function fetchResults(jobId: string): Promise<LatestResultsResponse> {
+  const response = await fetch(`${API_BASE}/results/${jobId}`);
+  if (!response.ok) throw new Error(`Failed to fetch job results (${response.status})`);
+  return response.json();
+}
 
-	if (!response.ok) {
-		throw new Error(`Failed to start scan (${response.status})`);
-	}
+export async function fetchJobEvents(jobId: string): Promise<JobEvent[]> {
+  const response = await fetch(`${API_BASE}/jobs/${jobId}/events`);
+  if (!response.ok) throw new Error(`Failed to fetch job events (${response.status})`);
+  const payload = (await response.json()) as { job_id: string; events: JobEvent[] };
+  return payload.events ?? [];
+}
 
-	return response.json();
-};
+export async function fetchDemo(): Promise<ScanResultPayload> {
+  const response = await fetch(`${API_BASE}/demo`);
+  if (!response.ok) throw new Error(`Failed to fetch demo (${response.status})`);
+  return response.json();
+}
 
-export const fetchLatestResults = async (): Promise<LatestResultsResponse> => {
-	const response = await fetch(`${API_BASE}/results`, { method: 'GET' });
-	if (!response.ok) {
-		throw new Error(`Failed to fetch results (${response.status})`);
-	}
-	return response.json();
-};
-
-export const fetchDemo = async (): Promise<ScanResultPayload> => {
-	const response = await fetch(`${API_BASE}/demo`, { method: 'GET' });
-	if (!response.ok) {
-		throw new Error(`Failed to fetch demo (${response.status})`);
-	}
-	return response.json();
-};
+export async function generateSynthetic(domain: SyntheticDomain, count: number): Promise<SyntheticGenerateResponse> {
+  const response = await fetch(`${API_BASE}/synthetic/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ domain, count }),
+  });
+  if (!response.ok) throw new Error(`Failed to generate synthetic data (${response.status})`);
+  return response.json();
+}

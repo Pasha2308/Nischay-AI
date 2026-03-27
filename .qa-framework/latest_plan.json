@@ -1,16 +1,16 @@
 {
-  "plan_id": "plan_det_511eb765",
-  "generated_at": "2026-03-26T22:49:55Z",
+  "plan_id": "plan_det_a10f117a",
+  "generated_at": "2026-03-27T11:22:41Z",
   "target_url": "https://www.tradingview.com/",
   "test_cases": [
     {
       "test_id": "deterministic_smoke",
-      "name": "Deterministic smoke (open \u2192 button \u2192 input)",
-      "description": "No-AI smoke flow using tool-based executor.",
+      "name": "Deterministic smoke (generic_flow)",
+      "description": "No-AI deterministic flow using tool-based executor.",
       "category": "functional",
       "priority": 1,
       "target_page_id": "page_www.tradingview.com_c98ac84cc2d6",
-      "coverage_signature": "deterministic_smoke_v1",
+      "coverage_signature": "deterministic_smoke_generic_flow_v1",
       "requires_auth": false,
       "preconditions": [],
       "steps": [
@@ -23,20 +23,20 @@
         {
           "action_type": "wait",
           "selector": null,
-          "value": "750",
-          "description": "Short settle after navigation"
+          "value": "900",
+          "description": "Settle after navigation"
         },
         {
           "action_type": "click",
-          "selector": "button:visible",
+          "selector": "button:visible, input[type='submit']:visible, input[type='button']:visible, [role='button']:visible, a[role='button']:visible",
           "value": null,
-          "description": "Click first button-like control if present"
+          "description": "Click visible primary action if present"
         },
         {
           "action_type": "fill",
           "selector": "input[type='text']:visible, input:not([type]):visible, textarea:visible",
           "value": "{{synthetic}}",
-          "description": "Fill first text-like input if present"
+          "description": "Fill first visible text input if present"
         }
       ],
       "assertions": [
@@ -54,6 +54,7 @@
   "estimated_duration_seconds": 60,
   "coverage_intent": {
     "mode": "deterministic_smoke",
-    "no_ai": true
+    "no_ai": true,
+    "flow_type": "generic_flow"
   }
 }

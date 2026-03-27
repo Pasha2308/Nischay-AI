@@ -1,6 +1,6 @@
 {
   "target_url": "https://example.com",
-  "last_updated": "2026-03-26T22:50:23Z",
+  "last_updated": "2026-03-27T11:22:43Z",
   "pages": {
     "page_example.com_0f115db062b7": {
       "page_id": "page_example.com_0f115db062b7",
@@ -280,13 +280,94 @@
       "elements_tested": {},
       "last_tested": "",
       "test_count": 0
+    },
+    "page_www.tradingview.com_438a70eb0ed4": {
+      "page_id": "page_www.tradingview.com_438a70eb0ed4",
+      "url": "https://www.tradingview.com/u/CryptoCoinsCoach/",
+      "page_type": "error",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.tradingview.com_f2ff087b67b7": {
+      "page_id": "page_www.tradingview.com_f2ff087b67b7",
+      "url": "https://www.tradingview.com/news/coinmarketcal:fad29c3ea094b:0-onfa-oft-onfa-insurance-talk-27-march-2026/",
+      "page_type": "dashboard",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.tradingview.com_39aa79f30221": {
+      "page_id": "page_www.tradingview.com_39aa79f30221",
+      "url": "https://www.tradingview.com/news/DJN_DN20260326012065:0/",
+      "page_type": "dashboard",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.tradingview.com_5d4b2ce79270": {
+      "page_id": "page_www.tradingview.com_5d4b2ce79270",
+      "url": "https://www.tradingview.com/brokers/",
+      "page_type": "static",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.tradingview.com_331ff69b0a24": {
+      "page_id": "page_www.tradingview.com_331ff69b0a24",
+      "url": "https://www.tradingview.com/news/reuters.com,2026:newsml_L4N40E03O:0-chicago-corn-falls-tracking-losses-in-crude-oil/",
+      "page_type": "dashboard",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.tradingview.com_694ab23b1755": {
+      "page_id": "page_www.tradingview.com_694ab23b1755",
+      "url": "https://www.tradingview.com/symbols/ECONOMICS-USINTR/",
+      "page_type": "dashboard",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.tradingview.com_6849a536009b": {
+      "page_id": "page_www.tradingview.com_6849a536009b",
+      "url": "https://www.tradingview.com/news/newsbtc:efbabed73094b:0-bitcoin-etfs-buy-63-000-btc-in-30-days-as-retail-panic-selling-persists/",
+      "page_type": "dashboard",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.tradingview.com_26910138807e": {
+      "page_id": "page_www.tradingview.com_26910138807e",
+      "url": "https://www.tradingview.com/news/tradingview:d8ac6c11d094b:0-meta-meta-stock-steady-after-company-pulls-the-plug-on-80-billion-metaverse-flop/",
+      "page_type": "dashboard",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.tradingview.com_4f68992b6870": {
+      "page_id": "page_www.tradingview.com_4f68992b6870",
+      "url": "https://www.tradingview.com/scripts/editors-picks/",
+      "page_type": "detail",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
     }
   },
   "journeys": {},
   "global_stats": {
-    "total_pages": 21,
+    "total_pages": 30,
     "pages_tested": 3,
-    "overall_score": 0.14285714285714285,
+    "overall_score": 0.1,
     "category_scores": {
       "functional": 1.0
     },
