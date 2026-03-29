@@ -2,7 +2,19 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
+from urllib.parse import urlparse
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.services.defect_intelligence import (
+    DefectIntelligenceService,
+    _tag_business_impact,
+    issue_dict_to_defect_mapping,
+)
+
+logger = logging.getLogger(__name__)
 
 from shared.models.site_model import SiteModel
 from shared.models.test_result import RunResult, StepResult, TestResult
@@ -91,26 +103,154 @@ def _issues_by_severity(issues: list[dict[str, Any]]) -> dict[str, list[dict[str
     return buckets
 
 
-def _risk_weight(severity: str) -> int:
-    match _normalize_severity(severity):
-        case "critical":
-            return 100
-        case "high":
-            return 70
-        case "medium":
-            return 40
-        case "low":
-            return 10
-        case _:
-            return 40
+# Severity point weights (summed, then capped at 100)
+_SEVERITY_POINTS: dict[str, int] = {
+    "critical": 40,
+    "high": 25,
+    "medium": 15,
+    "low": 5,
+}
+
+_AUTH_CHECKOUT_MULTIPLIER = 1.5
+_HOMEPAGE_MULTIPLIER = 1.2
+_DEFECT_COUNT_PENALTY = 10
+_DEFECT_COUNT_PENALTY_THRESHOLD = 10
 
 
-def _risk_level(score: int) -> str:
-    if score > 200:
-        return "HIGH RISK"
-    if score > 100:
-        return "MEDIUM RISK"
-    return "LOW RISK"
+def _is_homepage_url(page_url: str | None) -> bool:
+    """Path is empty or '/' only (site root)."""
+    u = (page_url or "").strip()
+    if not u:
+        return False
+    try:
+        p = urlparse(u)
+        segs = [s for s in (p.path or "").split("/") if s]
+        return len(segs) == 0
+    except Exception:
+        return False
+
+
+def _is_auth_or_checkout_url(page_url: str | None) -> bool:
+    u = (page_url or "").lower()
+    if not u:
+        return False
+    keys = (
+        "login", "signin", "sign-in", "signup", "sign-up", "register",
+        "auth", "checkout", "cart", "payment", "billing", "order", "account",
+    )
+    return any(k in u for k in keys)
+
+
+def _page_risk_multiplier(page_url: str | None) -> float:
+    """Auth/checkout → ×1.5; homepage → ×1.2; take max applicable."""
+    m = 1.0
+    if _is_auth_or_checkout_url(page_url):
+        m = max(m, _AUTH_CHECKOUT_MULTIPLIER)
+    if _is_homepage_url(page_url):
+        m = max(m, _HOMEPAGE_MULTIPLIER)
+    return m
+
+
+def _test_id_to_url(
+    run_result: RunResult | None,
+    site_model: SiteModel | None,
+) -> dict[str, str]:
+    """Map test_id → best-effort page URL for journey classification."""
+    out: dict[str, str] = {}
+    if not run_result:
+        return out
+    page_by_id: dict[str, str] = {}
+    if site_model:
+        for p in site_model.pages:
+            if p.page_id and p.url:
+                page_by_id[p.page_id] = p.url
+    for tr in run_result.test_results:
+        url = (tr.actual_url or "").strip()
+        if not url and tr.target_page_id:
+            url = (page_by_id.get(tr.target_page_id) or "").strip()
+        if url:
+            out[tr.test_id] = url
+    return out
+
+
+def _issue_page_url(
+    issue: dict[str, Any],
+    test_id_to_url: dict[str, str],
+    fallback_url: str,
+) -> str:
+    tid = issue.get("test_id")
+    if tid and isinstance(tid, str) and tid in test_id_to_url:
+        return test_id_to_url[tid]
+    pu = issue.get("page_url")
+    if pu:
+        return str(pu).strip()
+    return fallback_url
+
+
+def _risk_band_from_score(score: int) -> str:
+    """CRITICAL / HIGH / MEDIUM / LOW."""
+    s = max(0, min(100, int(score)))
+    if s >= 75:
+        return "CRITICAL"
+    if s >= 50:
+        return "HIGH"
+    if s >= 25:
+        return "MEDIUM"
+    return "LOW"
+
+
+def _risk_display_and_legacy(band: str) -> tuple[str, str]:
+    """Display title + legacy string for API consumers."""
+    return {
+        "CRITICAL": ("Critical", "CRITICAL RISK"),
+        "HIGH": ("High", "HIGH RISK"),
+        "MEDIUM": ("Medium", "MEDIUM RISK"),
+        "LOW": ("Low", "LOW RISK"),
+    }.get(band, ("Low", "LOW RISK"))
+
+
+def _compute_aggregate_risk_score(
+    issues: list[dict[str, Any]],
+    run_result: RunResult | None,
+    site_model: SiteModel | None,
+) -> tuple[int, str, str, dict[str, Any]]:
+    """
+    Sum per issue: severity_points × page_multiplier; cap at 100.
+    If defect count > 10, add +10 penalty (then cap).
+    Returns (score, risk_level display, risk_level_legacy, risk dict with score + level).
+    """
+    empty_risk = {"score": 0, "level": "LOW"}
+    if not issues:
+        return 0, "Low", "LOW RISK", empty_risk
+
+    test_id_to_url = _test_id_to_url(run_result, site_model)
+    fallback_url = ""
+    try:
+        if run_result and getattr(run_result, "target_url", None):
+            fallback_url = str(run_result.target_url).strip()
+    except Exception:
+        fallback_url = ""
+
+    total = 0.0
+    for issue in issues:
+        try:
+            sev = _normalize_severity(issue.get("severity"))
+            pts = float(_SEVERITY_POINTS.get(sev, 15))
+            url = _issue_page_url(issue, test_id_to_url, fallback_url)
+            m = _page_risk_multiplier(url)
+            total += pts * m
+        except Exception:
+            continue
+
+    n_defects = len(issues)
+    if n_defects > _DEFECT_COUNT_PENALTY_THRESHOLD:
+        total += float(_DEFECT_COUNT_PENALTY)
+
+    score = int(min(100, round(total)))
+    band = _risk_band_from_score(score)
+    display, legacy = _risk_display_and_legacy(band)
+    risk_detail: dict[str, Any] = {"score": score, "level": band}
+    return score, display, legacy, risk_detail
 
 
 def _build_rule_based_issues(
@@ -216,6 +356,180 @@ def _build_rule_based_issues(
                 )
 
     return issues, console_errors_flat, failed_actions, missing_elements
+
+
+def _severity_from_qa_defect_dict(d: dict[str, Any]) -> str:
+    """Map active-QA defect payload to severity for risk scoring."""
+    raw = d.get("severity")
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip().lower()
+    t = f"{d.get('defect', '')} {d.get('type', '')}".lower()
+    if "slow" in t or "performance" in t:
+        return "medium"
+    if "console" in t:
+        return "high"
+    if "broken" in t or "navigation" in t or "form" in t:
+        return "medium"
+    return "medium"
+
+
+def _issues_from_qa_defects(run_result: RunResult | None) -> list[dict[str, Any]]:
+    """Turn per-page active QA defect dicts into risk issues."""
+    out: list[dict[str, Any]] = []
+    if not run_result:
+        return out
+    for tr in run_result.test_results:
+        for block in tr.qa_defects_by_page or []:
+            page_url = str(block.get("page_url") or "")
+            for d in block.get("defects") or []:
+                if not isinstance(d, dict):
+                    continue
+                dtype = str(d.get("defect") or d.get("type") or "qa_defect")
+                msg = str(d.get("description") or "")[:2000]
+                out.append(
+                    {
+                        "type": dtype,
+                        "defect": dtype,
+                        "severity": _normalize_severity(_severity_from_qa_defect_dict(d)),
+                        "message": msg or dtype,
+                        "test_id": tr.test_id,
+                        "page_url": page_url,
+                    }
+                )
+    return out
+
+
+def _fallback_console_extra(line: str) -> bool:
+    """Console signals not already covered by _console_error_lines (second pass)."""
+    low = (line or "").lower()
+    if not low.strip() or "favicon" in low:
+        return False
+    if line in _console_error_lines([line]):
+        return False
+    needles = (
+        "net::err",
+        "failed to fetch",
+        "load failed",
+        "content security policy",
+        "mixed content",
+        "blocked by",
+        "cors policy",
+        "chunkloaderror",
+        "loading chunk",
+        "refused to execute",
+        "refused to apply",
+    )
+    return any(n in low for n in needles)
+
+
+def _fallback_detection_issues(
+    run_result: RunResult,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """
+    Second pass when primary issue list is empty: console, performance/network, broken assets.
+    Returns (issues, extra console lines for structured payload).
+    """
+    issues: list[dict[str, Any]] = []
+    extra_console: list[str] = []
+    seen: set[tuple[str, str, str]] = set()
+
+    def _add_issue(
+        defect: str,
+        itype: str,
+        severity: str,
+        message: str,
+        test_id: str,
+    ) -> None:
+        key = (test_id, defect, message[:160])
+        if key in seen:
+            return
+        seen.add(key)
+        issues.append(
+            {
+                "type": itype,
+                "defect": defect,
+                "severity": _normalize_severity(severity),
+                "message": message[:2000],
+                "test_id": test_id,
+            }
+        )
+
+    for tr in run_result.test_results:
+        tid = tr.test_id
+        # --- Console (broader than first pass) ---
+        for raw in tr.evidence.console_logs or []:
+            if _fallback_console_extra(raw):
+                _add_issue("console_error_fallback", "console_error", "high", raw, tid)
+                extra_console.append(raw)
+
+        # --- Performance / HTTP errors from network log ---
+        for entry in tr.evidence.network_log or []:
+            url = str(entry.get("url") or "")
+            try:
+                st = int(entry.get("status") or 0)
+            except (TypeError, ValueError):
+                st = 0
+            if st < 400:
+                continue
+            low_u = url.lower()
+            asset_exts = (
+                ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico", ".css", ".js", ".woff", ".woff2",
+            )
+            if st == 404 and any(low_u.endswith(ext) for ext in asset_exts):
+                _add_issue(
+                    "broken_asset_404",
+                    "broken_element",
+                    "medium",
+                    f"404 for asset {url[:800]}",
+                    tid,
+                )
+            else:
+                _add_issue(
+                    "http_error",
+                    "network_failure",
+                    "high" if st >= 500 else "medium",
+                    f"HTTP {st} {url[:800]}",
+                    tid,
+                )
+
+    return issues, extra_console
+
+
+NO_DETECTION_GAP_ISSUE: dict[str, Any] = {
+    "type": "no_detection_fallback",
+    "defect": "no_detection_fallback",
+    "severity": "low",
+    "business_impact": "trust",
+    "message": "No issues detected — possible detection gap",
+}
+
+
+def _apply_risk_detection_fallbacks(
+    issues: list[dict[str, Any]],
+    run_result: RunResult | None,
+    pipeline_error: str | None,
+    console_errors_flat: list[str],
+) -> None:
+    """
+    If total defects == 0 after rule-based + QA defects: run fallback detection.
+    If still 0 and we have a run: inject low-severity detection-gap issue.
+    Mutates ``issues`` and ``console_errors_flat`` in place.
+    Caller must extend ``issues`` with :func:`_issues_from_qa_defects` before this.
+    """
+    if pipeline_error or not run_result:
+        return
+
+    if len(issues) > 0:
+        return
+
+    fb_issues, fb_console = _fallback_detection_issues(run_result)
+    issues.extend(fb_issues)
+    console_errors_flat.extend(fb_console)
+
+    if len(issues) > 0:
+        return
+
+    issues.append(dict(NO_DETECTION_GAP_ISSUE))
 
 
 def _emit_step_defects(
@@ -330,6 +644,12 @@ def _page_summaries(site_model: SiteModel | None) -> list[dict[str, Any]]:
     ]
 
 
+def site_pages_payload(site_model: SiteModel | None) -> dict[str, Any]:
+    """Authoritative crawl page list and count for orchestrator payloads (matches ``len(pages)``)."""
+    pages = _page_summaries(site_model)
+    return {"pages": pages, "pages_scanned": len(pages)}
+
+
 def _flatten_actions_run(run_result: RunResult | None) -> list[dict[str, Any]]:
     if not run_result:
         return []
@@ -365,7 +685,74 @@ def _steps_for_test(
     return rows
 
 
-def build_structured_output(
+async def _enrich_issues_with_intelligence(
+    issues: list[dict[str, Any]],
+    run_result: RunResult | None,
+    site_model: SiteModel | None,
+) -> list[dict[str, Any]]:
+    """Attach recurring, fix_suggestion, business_impact via DefectIntelligenceService."""
+    if not issues:
+        return []
+
+    test_id_to_url = _test_id_to_url(run_result, site_model)
+    fallback_url = ""
+    try:
+        if run_result and getattr(run_result, "target_url", None):
+            fallback_url = str(run_result.target_url).strip()
+    except Exception:
+        fallback_url = ""
+
+    service = DefectIntelligenceService()
+
+    async def _enrich_one(issue: dict[str, Any], session: AsyncSession | None) -> dict[str, Any]:
+        tid = issue.get("test_id")
+        url = ""
+        if tid and isinstance(tid, str) and tid in test_id_to_url:
+            url = test_id_to_url[tid]
+        elif fallback_url:
+            url = fallback_url
+        mapping = issue_dict_to_defect_mapping(issue, url)
+        try:
+            enriched = await service.enrich_defect(mapping, session)
+            merged: dict[str, Any] = {**issue}
+            merged["severity"] = _normalize_severity(enriched.get("severity"))
+            merged["recurring"] = bool(enriched.get("recurring", False))
+            merged["fix_suggestion"] = str(enriched.get("fix_suggestion") or "")
+            merged["business_impact"] = str(enriched.get("business_impact") or "general")
+            return merged
+        except Exception as e:
+            logger.debug("enrich_defect failed: %s", e)
+            return {
+                **issue,
+                "recurring": False,
+                "fix_suggestion": "",
+                "business_impact": _tag_business_impact(
+                    url,
+                    str(issue.get("type") or issue.get("defect") or ""),
+                    str(issue.get("message") or ""),
+                ),
+            }
+
+    try:
+        from backend.db.session import get_async_session_maker
+
+        session_maker = get_async_session_maker()
+    except Exception as e:
+        logger.debug("Database session factory unavailable: %s", e)
+        session_maker = None
+
+    if session_maker is not None:
+        try:
+            async with session_maker() as session:
+                return [await _enrich_one(issue, session) for issue in issues]
+        except Exception as e:
+            logger.warning("Defect intelligence DB session failed; using offline enrichment: %s", e)
+            return [await _enrich_one(issue, None) for issue in issues]
+
+    return [await _enrich_one(issue, None) for issue in issues]
+
+
+async def build_structured_output(
     *,
     site_model: SiteModel | None,
     run_result: RunResult | None,
@@ -373,40 +760,78 @@ def build_structured_output(
     extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Demo-friendly payload: summary counts, issues by severity, flat issues, crawl/actions."""
+    merged_extra = dict(extra or {})
+    pages_override = merged_extra.pop("pages", None)
+    pages_scanned_override = merged_extra.pop("pages_scanned", None)
+    summary_extra = merged_extra.pop("summary", None)
+
+    if pages_override is not None:
+        pages_list: list[dict[str, Any]] = list(pages_override)
+        pages_scanned = len(pages_list)
+    elif site_model is not None:
+        pages_list = _page_summaries(site_model)
+        pages_scanned = len(pages_list)
+    else:
+        pages_list = []
+        pages_scanned = 0
+
+    if pages_scanned_override is not None and pages_override is None:
+        try:
+            pages_scanned = int(pages_scanned_override)
+        except (TypeError, ValueError):
+            pass
+
     issues, console_errors, failed_actions, missing_elements = _build_rule_based_issues(
         run_result, pipeline_error
     )
+    if not pipeline_error and run_result:
+        issues.extend(_issues_from_qa_defects(run_result))
+        _apply_risk_detection_fallbacks(issues, run_result, pipeline_error, console_errors)
+
     issues_normalized = [{**i, "severity": _normalize_severity(i.get("severity"))} for i in issues]
+    issues_enriched = await _enrich_issues_with_intelligence(
+        issues_normalized, run_result, site_model
+    )
     actions_run = _flatten_actions_run(run_result)
 
-    risk_score = sum(_risk_weight(i.get("severity", "medium")) for i in issues_normalized)
-    risk_level = _risk_level(risk_score)
-    auth_failed = any(i.get("defect") == "auth_login_failed" for i in issues_normalized)
+    risk_score, risk_level, risk_level_legacy = _compute_aggregate_risk_score(
+        issues_enriched, run_result, site_model
+    )
+    auth_failed = any(i.get("defect") == "auth_login_failed" for i in issues_enriched)
     auth_succeeded = bool(
         run_result
         and any(tr.test_id == "auth_login" and tr.result == "pass" for tr in run_result.test_results)
     )
 
-    summary = {
-        "total_pages_scanned": len(site_model.pages) if site_model else 0,
-        "total_actions_run": len(actions_run),
-        "total_issues_found": len(issues_normalized),
-    }
-
     base: dict[str, Any] = {
-        "summary": summary,
         "risk_score": risk_score,
         "risk_level": risk_level,
+        "risk_level_legacy": risk_level_legacy,
+        "risk": risk_detail,
         "partial": auth_failed,
         "auth_status": "failed" if auth_failed else ("success" if auth_succeeded else "not_attempted"),
-        "issues_by_severity": _issues_by_severity(issues_normalized),
-        "issues": issues_normalized,
-        "pages": _page_summaries(site_model),
+        "issues_by_severity": _issues_by_severity(issues_enriched),
+        "issues": issues_enriched,
+        "pages": pages_list,
+        "pages_scanned": pages_scanned,
         "actions_run": actions_run,
         "console_errors": console_errors,
         "failed_actions": failed_actions,
         "missing_elements": missing_elements,
     }
-    if extra:
-        base.update(extra)
+    base.update(merged_extra)
+    base["risk_score"] = risk_score
+    base["risk_level"] = risk_level
+    base["risk_level_legacy"] = risk_level_legacy
+    base["risk"] = risk_detail
+    base["pages"] = pages_list
+    base["pages_scanned"] = pages_scanned
+    summary_out = {
+        "total_pages_scanned": pages_scanned,
+        "total_actions_run": len(actions_run),
+        "total_issues_found": len(issues_enriched),
+    }
+    if isinstance(summary_extra, dict):
+        summary_out = {**summary_extra, **summary_out}
+    base["summary"] = summary_out
     return base

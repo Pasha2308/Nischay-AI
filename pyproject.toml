@@ -21,16 +21,25 @@ dependencies = [
   # Synthetic data generation
   "faker>=24.0.0,<26.0.0",
 
+  # HTTP client (LLM OpenAI-compatible APIs)
+  "httpx>=0.27.0,<1.0.0",
+
+  # Load .env before reading LLM_* and DATABASE_URL
+  "python-dotenv>=1.0.0,<2.0.0",
+
   # API server
   "fastapi>=0.115.0,<1.0.0",
   "uvicorn[standard]>=0.30.0,<1.0.0",
-  "anthropic>=0.40.0,<1.0.0",
 
   # Async file IO (useful for uploads/log streaming)
   "aiofiles>=24.1.0,<25.0.0",
 
   # Better CLI/log formatting
   "rich>=13.7.0,<14.0.0",
+
+  # PostgreSQL (async)
+  "sqlalchemy[asyncio]>=2.0.0,<3.0.0",
+  "asyncpg>=0.29.0,<1.0.0",
 ]
 
 [project.optional-dependencies]

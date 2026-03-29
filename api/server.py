@@ -3,15 +3,33 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import sys
+
+if sys.platform.startswith("win"):
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
+import json
+import logging
+import os
 import time
 import uuid
-from typing import Any, Optional
+from uuid import UUID
+from contextlib import asynccontextmanager
+from typing import Any, Literal, Optional
 
-# Windows Playwright reliability: use Proactor event loop policy.
-if sys.platform.startswith("win") and hasattr(asyncio, "WindowsProactorEventLoopPolicy"):
-    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# After .env: visible proof that API key is present (masked).
+_llm_key_preview = (os.getenv("LLM_API_KEY") or "").strip()
+print(
+    "LLM CONFIG:",
+    (_llm_key_preview[:5] if _llm_key_preview else "NOT SET"),
+    flush=True,
+)
+
+from backend.services.llm_client import LLMClient, _is_placeholder_api_key
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,9 +37,75 @@ from pydantic import BaseModel, Field
 
 from shared.models.config import FrameworkConfig
 
+_logger = logging.getLogger(__name__)
+
+
+def _coerce_scan_mode(v: str) -> Literal["fast", "deep"]:
+    s = (v or "fast").strip().lower()
+    return "deep" if s == "deep" else "fast"
+
+
+def _llm_configured() -> bool:
+    key = (os.environ.get("LLM_API_KEY") or "").strip()
+    if not key or _is_placeholder_api_key(key):
+        return False
+    if not (os.environ.get("LLM_MODEL") or "").strip():
+        return False
+    if not (os.environ.get("LLM_BASE_URL") or "").strip():
+        return False
+    return True
+
+
+async def _llm_verify_models_at_startup() -> None:
+    """Confirm configured model ids exist on the provider (GET /models)."""
+    try:
+        llm = LLMClient()
+        if not llm.api_key or not llm.base_url or _is_placeholder_api_key(llm.api_key):
+            return
+        await llm.verify_models()
+    except Exception as e:
+        print(f"WARNING: LLM model verification failed: {e}", flush=True)
+        _logger.warning("LLM model verification failed: %s", e)
+
+
+async def _llm_startup_smoke() -> None:
+    """Optional one-shot completion (set LLM_STARTUP_SMOKE=1 to run)."""
+    if (os.getenv("LLM_STARTUP_SMOKE") or "0").strip().lower() not in ("1", "true", "yes"):
+        _logger.debug("LLM startup smoke skipped (set LLM_STARTUP_SMOKE=1 to enable)")
+        return
+    if not _llm_configured():
+        _logger.info("LLM startup smoke skipped (LLM_API_KEY not set or placeholder)")
+        return
+    try:
+        llm = LLMClient()
+        if not (llm.api_key and llm.model and llm.base_url):
+            print("LLM startup smoke: LLMClient missing env fields", flush=True)
+            return
+        out = await llm.complete(
+            "You are a test assistant. Reply briefly.",
+            'Reply with exactly one word: "pong"',
+        )
+        print("LLM startup smoke OK:", (out or "")[:300], flush=True)
+    except Exception as e:
+        print("LLM startup smoke FAILED:", e, flush=True)
+        _logger.exception("LLM startup smoke failed")
+
+
+@asynccontextmanager
+async def _app_lifespan(app: FastAPI):
+    await _llm_verify_models_at_startup()
+    await _llm_startup_smoke()
+    yield
+    try:
+        from backend.db.session import dispose_engine
+
+        await dispose_engine()
+    except Exception:
+        pass
+
 
 # App must be defined before middleware is applied.
-app = FastAPI(title="Reqon AI API", version="0.1.0")
+app = FastAPI(title="Reqon AI API", version="0.1.0", lifespan=_app_lifespan)
 
 # CORS for local dev / demo (frontend on a different port).
 app.add_middleware(
@@ -33,20 +117,21 @@ app.add_middleware(
 )
 
 
-class AuthPayload(BaseModel):
-    username: str = Field(..., min_length=1)
-    password: str = Field(..., min_length=1)
-
-
-class TestRunRequest(BaseModel):
+class ScanRequest(BaseModel):
     url: str = Field(..., min_length=1)
-    auth: Optional[AuthPayload] = None
+    scan_mode: str = "fast"
+    scan_task: str = "full_app"
+    auth: Optional[dict[str, Any]] = None
+    requires_login: bool = False
+    credentials: Optional[dict[str, Any]] = None
 
 
 class TestRunResponse(BaseModel):
     status: str = "started"
     job_id: str
     message: str = "Scan started"
+    scan_mode: Literal["fast", "deep"] = "fast"
+    scan_task: str = "full_app"
 
 
 class ResultsResponse(BaseModel):
@@ -56,6 +141,8 @@ class ResultsResponse(BaseModel):
     completed_at: Optional[float] = None
     result: Optional[dict] = None
     error: Optional[str] = None
+    scan_mode: Optional[Literal["fast", "deep"]] = None
+    scan_task: Optional[str] = None
 
 
 class JobStatusResponse(BaseModel):
@@ -65,48 +152,19 @@ class JobStatusResponse(BaseModel):
     progress: int
 
 
+class ShareableReportResponse(BaseModel):
+    """Minimal scan payload for shareable demo links."""
+
+    report_id: str
+    summary: Any = None
+    issues: list[Any] = Field(default_factory=list)
+    risk_score: float | int | None = None
+    delta: dict[str, Any] | None = None
+
+
 class SyntheticGenerateRequest(BaseModel):
     domain: str = Field(..., description="ecommerce | healthcare | finance | auth")
     count: int = Field(10, ge=1, le=1000)
-
-
-def _build_failed_result(error_message: str, defect: str = "runtime_error") -> dict[str, Any]:
-    return {
-        "summary": {
-            "total_pages_scanned": 0,
-            "total_actions_run": 0,
-            "total_issues_found": 1,
-        },
-        "risk_score": 100,
-        "risk_level": "LOW RISK",
-        "issues_by_severity": {
-            "critical": [
-                {
-                    "type": "error",
-                    "defect": defect,
-                    "severity": "critical",
-                    "message": error_message,
-                }
-            ],
-            "high": [],
-            "medium": [],
-            "low": [],
-        },
-        "issues": [
-            {
-                "type": "error",
-                "defect": defect,
-                "severity": "critical",
-                "message": error_message,
-            }
-        ],
-        "pages": [],
-        "actions_run": [],
-        "console_errors": [],
-        "failed_actions": [],
-        "missing_elements": [],
-        "mode": "failed_runtime",
-    }
 
 
 # ---------------------------------------------------------------------
@@ -127,6 +185,81 @@ _STATUS_PROGRESS = {
     "FAILED": 100,
 }
 
+# Real pipeline stage events advance progress (no fake timer).
+_STAGE_PROGRESS_FROM_NAME: dict[str, int] = {
+    "crawl_start": 18,
+    "phase_1_crawling": 15,
+    "crawl_complete": 35,
+    "phase_2_execution": 40,
+    "execution_start": 48,
+    "execution_complete": 72,
+    "phase_3_ai_analysis": 88,
+    "phase_4_report": 95,
+}
+
+
+def _pipeline_event_message(kind: str, name: str, payload: dict[str, Any] | None) -> str:
+    p = payload or {}
+    if kind == "action" and name == "auth_message":
+        return str(p.get("message") or "")
+    if kind == "stage":
+        if name == "phase_1_crawling":
+            return str(p.get("banner") or "━━━ PHASE 1: CRAWLING ━━━")
+        if name == "phase_2_execution":
+            return str(p.get("banner") or "━━━ PHASE 2: EXECUTION ━━━")
+        if name == "phase_3_ai_analysis":
+            return str(p.get("banner") or "━━━ PHASE 3: AI ANALYSIS ━━━")
+        if name == "phase_4_report":
+            return str(p.get("banner") or "━━━ PHASE 4: REPORT ━━━")
+        if name == "crawl_start":
+            return "Starting site crawl"
+        if name == "crawl_complete":
+            n = p.get("pages")
+            return f"Crawl complete ({n} pages)" if n is not None else "Crawl complete"
+        if name == "execution_start":
+            t = p.get("tests")
+            return f"Running tests ({t} cases)" if t is not None else "Running tests"
+        if name == "execution_complete":
+            return (
+                f"Tests finished — passed {p.get('passed', '?')}, failed {p.get('failed', '?')}"
+            )
+    if kind == "crawler":
+        if name == "log":
+            return str(p.get("message") or "")
+        if name == "started":
+            return "Crawler started"
+        if name == "finished":
+            n = p.get("pages")
+            return f"Crawler finished ({n} pages)" if n is not None else "Crawler finished"
+    if kind == "execution":
+        if name == "test_start":
+            return f"Test: {p.get('name', p.get('test_id', 'test'))}"
+        if name == "qa_action":
+            return str(p.get("message") or "")
+        if name == "step":
+            if p.get("message"):
+                return str(p.get("message"))
+            ph = p.get("phase", "step")
+            at = p.get("action_type", "")
+            return f"Step ({ph}) — {at}"
+    if kind == "evaluator" and name == "retry":
+        return (
+            f"Evaluator retry — step {p.get('step_index', '')} "
+            f"({p.get('phase', '')}) attempt {p.get('attempt', '')}"
+        )
+    return f"{kind}:{name}"
+
+
+def _pipeline_timeout_seconds() -> float:
+    """Max wall time for crawl+plan+execute (default 180s = 3 min)."""
+    raw = (os.environ.get("SCAN_PIPELINE_TIMEOUT_SECONDS") or "").strip()
+    if not raw:
+        return 180.0
+    try:
+        return max(30.0, float(raw))
+    except ValueError:
+        return 180.0
+
 
 async def _set_job_state(job_id: str, status: str, message: str) -> None:
     async with _lock:
@@ -135,222 +268,332 @@ async def _set_job_state(job_id: str, status: str, message: str) -> None:
             _jobs[job_id]["status_message"] = message
             _jobs[job_id]["progress"] = _STATUS_PROGRESS.get(status, 0)
 
-try:
-    from anthropic import AsyncAnthropic
-except Exception:
-    AsyncAnthropic = None  # type: ignore[assignment]
+def _normalize_scan_task(raw: str | None) -> str:
+    st = (raw or "full_app").strip().lower()
+    if st in ("full_app", "auth", "checkout", "forms"):
+        return st
+    return "full_app"
 
 
-def _fallback_executive_summary(risk_level: str, issues: list[dict[str, Any]]) -> str:
-    top = issues[0]["message"] if issues else "No major issues were detected."
+def _executive_summary_system_prompt(scan_task: str | None) -> str:
+    """Task-aware system prompt for executive summary (exactly three sentences)."""
+    st = _normalize_scan_task(scan_task)
+    core = (
+        "You write an executive scan summary for stakeholders. "
+        "Output exactly three sentences total, in plain text only (no headings, bullets, markdown, or extra lines). "
+        "Use only the facts provided in the user message; do not invent URLs, page counts, or defect counts. "
+        "You must explicitly include all of: pages scanned, number of issues found, the most critical issue and its page, "
+        "business impact, and a recommended fix — using the three-line structure supplied verbatim in the user message. "
+        "Do not use stock phrases (e.g. 'it is important to', 'robust', 'leverage', 'holistic', "
+        "'in today's landscape', 'moving forward', 'delve', 'synergy', 'paradigm').\n\n"
+    )
+    focus = {
+        "full_app": (
+            "Task context: FULL APP — describe overall breadth of coverage and site health implied by the facts.\n"
+        ),
+        "auth": (
+            "Task context: AUTH — when facts support it, tie the top issue to sign-in, session, or access-control risk.\n"
+        ),
+        "checkout": (
+            "Task context: CHECKOUT — when facts support it, tie the top issue to cart, payment, or purchase flow risk.\n"
+        ),
+        "forms": (
+            "Task context: FORMS — when facts support it, tie the top issue to form validation, submission, or input risk.\n"
+        ),
+    }
+    return core + focus[st]
+
+
+_SEVERITY_ORDER = ("critical", "high", "medium", "low")
+
+
+def _issue_sort_key(issue: dict[str, Any]) -> tuple[int, str]:
+    s = str(issue.get("severity") or "medium").strip().lower()
+    try:
+        idx = _SEVERITY_ORDER.index(s)
+    except ValueError:
+        idx = 2
+    msg = str(issue.get("message") or "")
+    return (idx, msg)
+
+
+def _top_issues_for_summary(issues: list[dict[str, Any]], n: int = 3) -> list[dict[str, Any]]:
+    ranked = sorted(issues, key=_issue_sort_key)
+    return ranked[:n]
+
+
+def _resolve_pages_scanned(result: dict[str, Any]) -> int:
+    """Authoritative crawl page count: prefer ``pages`` length; never report 0 when that list is non-empty."""
+    pages_list = result.get("pages")
+    if isinstance(pages_list, list) and len(pages_list) > 0:
+        return len(pages_list)
+    summ = result.get("summary") or {}
+    if not isinstance(summ, dict):
+        summ = {}
+    if result.get("pages_scanned") is not None:
+        try:
+            return max(0, int(result["pages_scanned"]))
+        except (TypeError, ValueError):
+            pass
+    try:
+        return max(0, int(summ.get("total_pages_scanned") or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _summary_target_url(result: dict[str, Any], fallback: str) -> str:
+    u = str(result.get("target_url") or "").strip()
+    if u:
+        return u
+    pages = result.get("pages")
+    if isinstance(pages, list) and pages:
+        u0 = str((pages[0] or {}).get("url") or "").strip()
+        if u0:
+            return u0
+    return (fallback or "").strip() or "unknown URL"
+
+
+def _executive_summary_template_fields(
+    issues: list[dict[str, Any]], url: str
+) -> tuple[str, str, str, str]:
+    """top_issue, page, business_impact, fix for the executive summary template."""
+    top = _top_issues_for_summary(issues, 1)
+    if not top:
+        return (
+            "no issues detected",
+            url,
+            "no material impact identified from automated findings",
+            "No remediation required from this scan",
+        )
+    iss = top[0]
+    top_issue = str(iss.get("message") or iss.get("type") or "issue")[:500]
+    page = str(iss.get("page_url") or "").strip() or url
+    business_impact = str(iss.get("business_impact") or "").strip() or "product quality and user trust"
+    fix = str(iss.get("fix_suggestion") or "").strip() or "Review and remediate the reported defect"
+    return (top_issue, page, business_impact, fix)
+
+
+def _render_executive_summary(
+    url: str, pages_scanned: int, total_defects: int, issues: list[dict[str, Any]]
+) -> str:
+    top_issue, page, business_impact, fix = _executive_summary_template_fields(issues, url)
     return (
-        f"Overall risk is {risk_level}. "
-        f"The biggest issue observed is: {top} "
-        "Recommended action: prioritize fixing the top issue first, then rerun the scan to verify risk reduction."
+        f"{url} scan covered {pages_scanned} pages and found {total_defects} issues.\n"
+        f"The most critical issue is {top_issue} on {page}.\n"
+        f"This impacts {business_impact}. Recommended action: {fix}."
     )
 
 
-def _extract_text_from_anthropic_response(resp: Any) -> str:
-    parts: list[str] = []
-    for block in getattr(resp, "content", []) or []:
-        txt = getattr(block, "text", None)
-        if txt:
-            parts.append(txt)
-    return " ".join(parts).strip()
-
-
-def _build_executive_prompt(risk_level: str, risk_score: int, issues: list[dict[str, Any]]) -> str:
-    top_issue = issues[0] if issues else {"message": "No issues found", "severity": "low", "defect": "none"}
-    return (
-        "You are a QA risk analyst. Write a 3-sentence summary explaining:\n"
-        "- overall risk level\n"
-        "- biggest issue\n"
-        "- recommended action\n\n"
-        f"Risk level: {risk_level}\n"
-        f"Risk score: {risk_score}\n"
-        f"Top issue severity: {top_issue.get('severity')}\n"
-        f"Top issue defect: {top_issue.get('defect')}\n"
-        f"Top issue message: {top_issue.get('message')}\n"
+def _executive_summary_facts(
+    result: dict[str, Any],
+) -> tuple[int, int, dict[str, int], list[str]]:
+    """Pages scanned, defect total, per-severity counts, distinct business_impact tags."""
+    summ = result.get("summary") or {}
+    if not isinstance(summ, dict):
+        summ = {}
+    pages = _resolve_pages_scanned(result)
+    issues = list(result.get("issues") or [])
+    raw_total = summ.get("total_issues_found")
+    if raw_total is not None:
+        try:
+            n_defects = int(raw_total)
+        except (TypeError, ValueError):
+            n_defects = len(issues)
+    else:
+        n_defects = len(issues)
+    ibs = result.get("issues_by_severity") or {}
+    if not isinstance(ibs, dict):
+        ibs = {}
+    sev_counts: dict[str, int] = {}
+    for k in ("critical", "high", "medium", "low"):
+        v = ibs.get(k)
+        sev_counts[k] = len(v) if isinstance(v, list) else 0
+    impacts = sorted(
+        {
+            str(i.get("business_impact") or "").strip()
+            for i in issues
+            if (i.get("business_impact") or "").strip()
+        }
     )
+    return pages, n_defects, sev_counts, impacts
 
 
-async def _generate_executive_summary(job_id: str) -> None:
+def _trend_context(result: dict[str, Any]) -> str:
+    dr = result.get("delta_report")
+    if isinstance(dr, dict) and dr.get("compared_to_scan_id") is not None:
+        rc = dr.get("risk_change")
+        ni = dr.get("new_issues")
+        ri = dr.get("resolved_issues")
+        td = dr.get("trend_direction")
+        pr = dr.get("previous_risk_score")
+        cr = dr.get("current_risk_score")
+        parts = [
+            f"Versus last scan: risk {pr}→{cr} (change {rc!r})",
+            f"; defect churn: +{ni} new signatures, −{ri} resolved",
+        ]
+        if td == "worse":
+            parts.append(" — APP REGRESSED vs last scan (higher risk; treat as urgent).")
+        elif td == "better":
+            parts.append(" — risk improved vs last scan.")
+        elif td == "stable":
+            parts.append(" — risk flat vs last scan.")
+        return "".join(parts)
+    if isinstance(dr, dict) and dr.get("recent_scans") and dr.get("compared_to_scan_id") is None:
+        return (
+            "No prior scan in database to compare; this payload may be the first stored run for this URL."
+        )
+    if result.get("trend") is not None:
+        return str(result["trend"])
+    prev = result.get("previous_risk_score")
+    if prev is not None and result.get("risk_score") is not None:
+        try:
+            delta = int(result["risk_score"]) - int(prev)
+            return f"Risk score changed by {delta:+d} vs prior run (approximate trend)."
+        except (TypeError, ValueError):
+            pass
+    cov = result.get("coverage")
+    if isinstance(cov, dict) and cov.get("overall") is not None:
+        return (
+            f"Coverage health snapshot: {cov.get('overall')} "
+            "(no historical comparison in this payload)."
+        )
+    return "No trend or prior-run comparison available for this scan."
+
+
+def _build_executive_summary_user_prompt(
+    result: dict[str, Any], url: str, *, scan_task: str | None = None
+) -> str:
+    issues = list(result.get("issues") or [])
+    pages, n_def, sev, impact_tags = _executive_summary_facts(result)
+    top_issue, page, bi, fix = _executive_summary_template_fields(issues, url)
+    st = _normalize_scan_task(scan_task or str(result.get("scan_task") or ""))
+    lines: list[str] = [
+        f"Scan task: {st}.",
+        "",
+        "Produce exactly three sentences using this exact three-line structure (same line breaks, same facts):",
+        "",
+        f"{url} scan covered {pages} pages and found {n_def} issues.",
+        f"The most critical issue is {top_issue} on {page}.",
+        f"This impacts {bi}. Recommended action: {fix}.",
+        "",
+        "Placeholder meanings (do not contradict these numbers or URLs):",
+        f"- pages scanned: {pages}",
+        f"- issues (defects) count: {n_def}",
+        f"- top_issue text: {top_issue}",
+        f"- page: {page}",
+        f"- business_impact: {bi}",
+        f"- recommended fix: {fix}",
+        "",
+        f"Severity breakdown: critical={sev['critical']}, high={sev['high']}, "
+        f"medium={sev['medium']}, low={sev['low']}; "
+        f"distinct business_impact tags: {', '.join(impact_tags) if impact_tags else '(none)'}",
+        f"Trend / delta (if relevant): {_trend_context(result)}",
+    ]
+    return "\n".join(lines)
+
+
+def _fallback_executive_summary(result: dict[str, Any], issues: list[dict[str, Any]], url: str) -> str:
+    pages, n_def, _, _ = _executive_summary_facts(result)
+    if pages == 0:
+        return ""
+    return _render_executive_summary(url, pages, n_def, issues)
+
+
+async def _generate_executive_summary(job_id: str, request_url: str = "") -> None:
     async with _lock:
         job = _jobs.get(job_id)
         result = (job or {}).get("result") if job else None
         if not isinstance(result, dict):
             return
         issues = list(result.get("issues") or [])
-        risk_score = int(result.get("risk_score") or 0)
-        risk_level = str(result.get("risk_level") or "LOW RISK")
+        result_snapshot = dict(result)
+        url = _summary_target_url(result_snapshot, request_url)
+        scan_task = _normalize_scan_task(
+            str((job or {}).get("scan_task") or result_snapshot.get("scan_task") or "")
+        )
 
-    if AsyncAnthropic is None or not os.environ.get("ANTHROPIC_API_KEY"):
-        summary = _fallback_executive_summary(risk_level, issues)
+    if _resolve_pages_scanned(result_snapshot) == 0:
+        async with _lock:
+            if job_id in _jobs:
+                _jobs[job_id]["status"] = "FAILED"
+                _jobs[job_id]["status_message"] = "Scan failed: no pages were crawled"
+                if not str(_jobs[job_id].get("error") or "").strip():
+                    _jobs[job_id]["error"] = "No pages scanned"
+                res = _jobs[job_id].get("result")
+                if isinstance(res, dict):
+                    res.pop("executive_summary", None)
+        return
+
+    if not _llm_configured():
+        summary = _fallback_executive_summary(result_snapshot, issues, url)
     else:
         try:
-            client = AsyncAnthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-            prompt = _build_executive_prompt(risk_level, risk_score, issues)
-            resp = await client.messages.create(
-                model="claude-3-5-haiku-latest",
-                max_tokens=220,
-                temperature=0.2,
-                system="You produce concise executive QA risk summaries.",
-                messages=[{"role": "user", "content": prompt}],
+            llm = LLMClient()
+            user_prompt = _build_executive_summary_user_prompt(
+                result_snapshot, url, scan_task=scan_task
             )
-            summary = _extract_text_from_anthropic_response(resp) or _fallback_executive_summary(
-                risk_level, issues
+            summary = await llm.complete(
+                system_prompt=_executive_summary_system_prompt(scan_task),
+                user_prompt=user_prompt,
+            )
+            summary = (summary or "").strip() or _fallback_executive_summary(
+                result_snapshot, issues, url
             )
         except Exception:
-            summary = _fallback_executive_summary(risk_level, issues)
+            summary = _fallback_executive_summary(result_snapshot, issues, url)
 
     async with _lock:
         if job_id in _jobs and isinstance(_jobs[job_id].get("result"), dict):
             _jobs[job_id]["result"]["executive_summary"] = summary
 
 
-async def _push_event(job_id: str, event_type: str, message: str) -> None:
+async def _push_event(
+    job_id: str,
+    event_type: str,
+    message: str,
+    *,
+    name: str | None = None,
+    payload: dict[str, Any] | None = None,
+) -> None:
     async with _lock:
         if job_id not in _jobs_events:
             _jobs_events[job_id] = []
-        _jobs_events[job_id].append(
-            {
-                "time": time.time(),
-                "type": event_type,
-                "message": message,
-            }
-        )
-
-
-async def _emit_scan_progress(job_id: str, pipeline_task: "asyncio.Task[dict[str, Any]]") -> None:
-    steps = [
-        "Checking page performance...",
-        "Scanning for console errors...",
-        "Detecting interactive elements...",
-        "Testing form interactions...",
-        "Checking for missing elements...",
-        "Crawling linked pages...",
-        "Calculating risk score...",
-    ]
-    for step in steps:
-        if pipeline_task.done():
-            return
-        await _push_event(job_id, "action", step)
-        await asyncio.sleep(1.2)
-
-_DEMO_RESULT: dict[str, Any] = {
-    "summary": {
-        "total_pages_scanned": 3,
-        "total_actions_run": 4,
-        "total_issues_found": 3,
-    },
-    "risk_score": 210,
-    "risk_level": "HIGH RISK",
-    "issues_by_severity": {
-        "critical": [
-            {
-                "type": "assertion_failure",
-                "defect": "page_load_failure",
-                "severity": "critical",
-                "message": "Page appears blank (no title, no body text)",
-                "test_id": "deterministic_smoke",
-            }
-        ],
-        "high": [
-            {
-                "type": "console_error",
-                "defect": "console_error",
-                "severity": "high",
-                "message": "[error] TypeError: Cannot read properties of undefined",
-                "test_id": "deterministic_smoke",
-            }
-        ],
-        "medium": [
-            {
-                "type": "failed_action",
-                "defect": "missing_element",
-                "severity": "medium",
-                "message": "Timeout 10000ms exceeded while waiting for selector \"button:visible\"",
-                "test_id": "deterministic_smoke",
-                "phase": "step",
-                "step_index": 2,
-                "action_type": "click",
-                "selector": "button:visible",
-            }
-        ],
-        "low": [],
-    },
-    "issues": [
-        {
-            "type": "assertion_failure",
-            "defect": "page_load_failure",
-            "severity": "critical",
-            "message": "Page appears blank (no title, no body text)",
-            "test_id": "deterministic_smoke",
-        },
-        {
-            "type": "console_error",
-            "defect": "console_error",
-            "severity": "high",
-            "message": "[error] TypeError: Cannot read properties of undefined",
-            "test_id": "deterministic_smoke",
-        },
-        {
-            "type": "failed_action",
-            "defect": "missing_element",
-            "severity": "medium",
-            "message": "Timeout 10000ms exceeded while waiting for selector \"button:visible\"",
-            "test_id": "deterministic_smoke",
-            "phase": "step",
-            "step_index": 2,
-            "action_type": "click",
-            "selector": "button:visible",
-        },
-    ],
-    "pages": [
-        {"page_id": "page_demo_1", "url": "https://example.com", "title": "Home", "page_type": "static"},
-        {"page_id": "page_demo_2", "url": "https://example.com/login", "title": "Login", "page_type": "form"},
-        {"page_id": "page_demo_3", "url": "https://example.com/profile", "title": "Profile", "page_type": "detail"},
-    ],
-    "actions_run": [
-        {"test_id": "deterministic_smoke", "phase": "step", "step_index": 0, "action_type": "navigate", "status": "pass"},
-        {"test_id": "deterministic_smoke", "phase": "step", "step_index": 1, "action_type": "wait", "status": "pass"},
-        {"test_id": "deterministic_smoke", "phase": "step", "step_index": 2, "action_type": "click", "status": "fail"},
-        {"test_id": "deterministic_smoke", "phase": "step", "step_index": 3, "action_type": "fill", "status": "pass"},
-    ],
-    "console_errors": ["[error] TypeError: Cannot read properties of undefined"],
-    "failed_actions": [
-        {
-            "test_id": "deterministic_smoke",
-            "phase": "step",
-            "step_index": 2,
-            "action_type": "click",
-            "selector": "button:visible",
-            "error_message": "Timeout 10000ms exceeded while waiting for selector \"button:visible\"",
+        entry: dict[str, Any] = {
+            "time": time.time(),
+            "type": event_type,
+            "message": message,
         }
-    ],
-    "missing_elements": [
-        {
-            "test_id": "deterministic_smoke",
-            "phase": "step",
-            "step_index": 2,
-            "action_type": "click",
-            "selector": "button:visible",
-            "message": "Timeout 10000ms exceeded while waiting for selector \"button:visible\"",
-        }
-    ],
-    "run_id": "run_demo_0001",
-    "duration": 2.4,
-    "mode": "demo_preloaded",
-    "executive_summary": (
-        "Overall risk is HIGH RISK due to concentrated critical and high-severity defects. "
-        "The biggest issue is a page-load failure path that can block key user flows. "
-        "Recommended action: fix load blockers first, then address console/runtime errors and re-scan."
-    ),
-}
+        if name is not None:
+            entry["name"] = name
+        if payload:
+            entry["payload"] = payload
+        _jobs_events[job_id].append(entry)
+
+
+async def _apply_stage_progress(job_id: str, kind: str, name: str) -> None:
+    if kind != "stage":
+        return
+    pct = _STAGE_PROGRESS_FROM_NAME.get(name)
+    if pct is None:
+        return
+    async with _lock:
+        if job_id in _jobs:
+            cur = int(_jobs[job_id].get("progress", 0))
+            _jobs[job_id]["progress"] = max(cur, pct)
+
+
+async def _pipeline_emit(
+    job_id: str, kind: str, name: str, payload: dict[str, Any] | None = None
+) -> None:
+    msg = _pipeline_event_message(kind, name, payload)
+    await _push_event(job_id, kind, msg, name=name, payload=payload)
+    await _apply_stage_progress(job_id, kind, name)
+    if kind == "stage" and name in ("crawl_start", "phase_1_crawling"):
+        await _set_job_state(job_id, "SCANNING", "Crawling site")
 
 
 @app.post("/jobs/test.run", response_model=TestRunResponse)
-async def trigger_test_run(req: TestRunRequest) -> Any:
+async def trigger_test_run(req: ScanRequest) -> Any:
     """Kick off a run and return a job handle immediately."""
     global _latest_job_id
 
@@ -367,6 +610,8 @@ async def trigger_test_run(req: TestRunRequest) -> Any:
             "completed_at": None,
             "result": None,
             "error": None,
+            "scan_mode": _coerce_scan_mode(req.scan_mode),
+            "scan_task": (req.scan_task or "full_app").strip() or "full_app",
         }
         _jobs_events[job_id] = []
         _latest_job_id = job_id
@@ -382,8 +627,23 @@ async def trigger_test_run(req: TestRunRequest) -> Any:
             # Lazy import so the API can start even if Playwright isn't installed yet.
             from backend.orchestrator import Orchestrator
 
-            config = FrameworkConfig(target_url=req.url)
-            if req.auth and req.auth.username and req.auth.password:
+            sm = _coerce_scan_mode(req.scan_mode)
+            st = (req.scan_task or "full_app").strip() or "full_app"
+            creds: dict[str, Any] | None = None
+            if req.requires_login and req.credentials and isinstance(req.credentials, dict):
+                creds = {str(k): str(v) for k, v in req.credentials.items() if v is not None}
+            config = FrameworkConfig(
+                target_url=req.url,
+                scan_mode=sm,
+                scan_task=st,
+                requires_login=bool(req.requires_login),
+                credentials=creds,
+            )
+            auth_username = auth_password = ""
+            if req.auth and isinstance(req.auth, dict):
+                auth_username = str(req.auth.get("username") or "").strip()
+                auth_password = str(req.auth.get("password") or "").strip()
+            if auth_username and auth_password:
                 await _set_job_state(
                     job_id,
                     "WAITING_FOR_LOGIN",
@@ -391,20 +651,25 @@ async def trigger_test_run(req: TestRunRequest) -> Any:
                 )
                 config.auth = {
                     "login_url": req.url,
-                    "username": req.auth.username,
-                    "password": req.auth.password,
+                    "username": auth_username,
+                    "password": auth_password,
                     "auto_detect": True,
                 }
                 await _push_event(job_id, "detection", "Login page detected")
                 await _push_event(job_id, "action", "⏸ Waiting for you to login in the browser window...")
-            orch = Orchestrator(config)
+
+            async def emit_bridge(
+                kind: str, name: str, payload: dict[str, Any] | None = None
+            ) -> None:
+                await _pipeline_emit(job_id, kind, name, payload)
+
+            orch = Orchestrator(config, emit=emit_bridge, job_id=job_id)
 
             # Guard against stalled pipelines.
-            pipeline_task = asyncio.create_task(asyncio.wait_for(orch._run_pipeline(), timeout=120))
-            progress_task = asyncio.create_task(_emit_scan_progress(job_id, pipeline_task))
-            result = await pipeline_task
-            if not progress_task.done():
-                progress_task.cancel()
+            result = await asyncio.wait_for(
+                orch._run_pipeline(),
+                timeout=_pipeline_timeout_seconds(),
+            )
             issues_found = int(((result or {}).get("summary") or {}).get("total_issues_found") or 0)
             if issues_found > 0:
                 await _push_event(job_id, "success", f"Found {issues_found} issues")
@@ -423,38 +688,75 @@ async def trigger_test_run(req: TestRunRequest) -> Any:
                 )
             if bool((result or {}).get("partial")):
                 await _push_event(job_id, "detection", "Scan marked as partial")
-            await _push_event(job_id, "action", "Generating AI summary...")
-            await _push_event(job_id, "success", "Scan complete")
 
-            async with _lock:
-                if job_id in _jobs:
-                    _jobs[job_id]["completed_at"] = time.time()
-                    _jobs[job_id]["result"] = result
-            await _set_job_state(
-                job_id,
-                "PARTIAL" if bool((result or {}).get("partial")) else "COMPLETE",
-                "Scan finished with partial results"
-                if bool((result or {}).get("partial"))
-                else "Scan completed successfully",
-            )
-            # Non-blocking executive summary generation.
-            asyncio.create_task(_generate_executive_summary(job_id))
+            pages_n = _resolve_pages_scanned(result or {})
+            if pages_n == 0:
+                await _push_event(job_id, "error", "No pages were crawled — scan failed")
+                async with _lock:
+                    if job_id in _jobs:
+                        _jobs[job_id]["completed_at"] = time.time()
+                        _jobs[job_id]["result"] = result
+                        _jobs[job_id]["error"] = "No pages scanned"
+                await _set_job_state(job_id, "FAILED", "Scan failed: no pages were crawled")
+            else:
+                await _push_event(job_id, "action", "Generating AI summary...")
+                await _push_event(job_id, "success", "Scan complete")
+
+                async with _lock:
+                    if job_id in _jobs:
+                        _jobs[job_id]["completed_at"] = time.time()
+                        _jobs[job_id]["result"] = result
+                await _set_job_state(
+                    job_id,
+                    "PARTIAL" if bool((result or {}).get("partial")) else "COMPLETE",
+                    "Scan finished with partial results"
+                    if bool((result or {}).get("partial"))
+                    else "Scan completed successfully",
+                )
+                asyncio.create_task(_generate_executive_summary(job_id, req.url))
         except asyncio.TimeoutError:
             await _push_event(job_id, "error", "Scan timeout")
-            partial_result = orch.build_partial_result("Scan timed out — showing partial results")
+            partial_result = await orch.build_partial_result("Scan timed out — showing partial results")
+            try:
+                from backend.db.persistence import persist_pipeline_result
+
+                _sid, delta_report, _rid = await persist_pipeline_result(
+                    req.url,
+                    partial_result,
+                    orch._last_site_model,
+                    orch._last_run_result,
+                )
+                if delta_report is not None:
+                    partial_result["delta_report"] = delta_report
+            except Exception:
+                pass
+            try:
+                from backend.services.decision_insights import attach_decision_insights
+                from backend.services.risk_explanation import attach_risk_explanation
+
+                await attach_risk_explanation(partial_result)
+                await attach_decision_insights(partial_result)
+            except Exception:
+                pass
             async with _lock:
                 if job_id in _jobs:
                     _jobs[job_id]["completed_at"] = time.time()
                     _jobs[job_id]["error"] = "Scan timeout"
                     _jobs[job_id]["result"] = partial_result
-            await _set_job_state(job_id, "PARTIAL", "Scan timed out — showing partial results")
+            if _resolve_pages_scanned(partial_result) == 0:
+                async with _lock:
+                    if job_id in _jobs:
+                        _jobs[job_id]["error"] = "Scan timed out — no pages crawled"
+                await _set_job_state(job_id, "FAILED", "Scan failed: no pages were crawled")
+            else:
+                await _set_job_state(job_id, "PARTIAL", "Scan timed out — showing partial results")
         except Exception as e:
             await _push_event(job_id, "error", f"Scan failed: {e}")
             async with _lock:
                 if job_id in _jobs:
                     _jobs[job_id]["completed_at"] = time.time()
                     _jobs[job_id]["error"] = str(e)
-                    _jobs[job_id]["result"] = _build_failed_result(str(e))
+                    _jobs[job_id]["result"] = None
             await _set_job_state(job_id, "FAILED", "Scan failed")
         finally:
             # Never leave a job in pending/running forever.
@@ -464,17 +766,14 @@ async def trigger_test_run(req: TestRunRequest) -> Any:
                 if job and job.get("status") in {"QUEUED", "RUNNING"}:
                     job["completed_at"] = time.time()
                     job["error"] = job.get("error") or "Scan ended unexpectedly"
-                    job["result"] = job.get("result") or _build_failed_result(
-                        str(job["error"]),
-                        defect="unexpected_termination",
-                    )
+                    # No fabricated scan payload — result stays unset/None unless a real pipeline wrote it.
                     forced_failed = True
             if forced_failed:
                 await _set_job_state(job_id, "FAILED", "Scan ended unexpectedly")
             async with _lock:
                 status = (_jobs.get(job_id) or {}).get("status")
             if status == "COMPLETE":
-                await _push_event(job_id, "success", "Job completed")
+                await _push_event(job_id, "success", "SCAN COMPLETE")
             elif status == "PARTIAL":
                 await _push_event(job_id, "detection", "Job completed with partial results")
             elif status == "FAILED":
@@ -482,13 +781,28 @@ async def trigger_test_run(req: TestRunRequest) -> Any:
 
     asyncio.create_task(_run_job())
 
-    return TestRunResponse(job_id=job_id)
+    return TestRunResponse(
+        job_id=job_id,
+        scan_mode=_coerce_scan_mode(req.scan_mode),
+        scan_task=(req.scan_task or "full_app").strip() or "full_app",
+    )
 
 
-@app.get("/demo")
-async def demo() -> dict[str, Any]:
-    """Instant demo payload for presentations (no waiting)."""
-    return _DEMO_RESULT
+@app.get("/report/{report_id}", response_model=ShareableReportResponse)
+async def get_shareable_report(report_id: UUID) -> ShareableReportResponse:
+    """Load a persisted scan snapshot by id (shareable demo link). Requires DATABASE_URL."""
+    from backend.db.persistence import fetch_report_by_id
+
+    payload = await fetch_report_by_id(str(report_id))
+    if not payload:
+        raise HTTPException(status_code=404, detail="report not found")
+    return ShareableReportResponse(
+        report_id=str(payload.get("report_id") or report_id),
+        summary=payload.get("summary"),
+        issues=list(payload.get("issues") or []),
+        risk_score=payload.get("risk_score"),
+        delta=payload.get("delta"),
+    )
 
 
 @app.post("/synthetic/generate")
@@ -580,6 +894,8 @@ async def get_latest_results() -> Any:
             completed_at=data.get("completed_at"),
             result=data.get("result"),
             error=data.get("error"),
+            scan_mode=data.get("scan_mode"),
+            scan_task=data.get("scan_task"),
         )
 
 
@@ -597,6 +913,8 @@ async def get_results(job_id: str) -> Any:
             completed_at=data.get("completed_at"),
             result=data.get("result"),
             error=data.get("error"),
+            scan_mode=data.get("scan_mode"),
+            scan_task=data.get("scan_task"),
         )
 
 

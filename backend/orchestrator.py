@@ -6,28 +6,64 @@ import asyncio
 import json
 import logging
 import time
+import uuid
+from collections.abc import Awaitable, Callable
 from pathlib import Path
+from typing import Any, TypeVar
 
+from playwright.async_api import Browser, BrowserContext, Page, async_playwright
+
+from backend.models.action_log import (
+    new_action_record,
+    should_capture_before_after_pair,
+    should_capture_error_after_screenshot,
+)
+
+_T = TypeVar("_T")
+
+from backend.core.action_engine import (
+    collect_active_qa_defects_after_navigation,
+)
+from backend.core.login_handler import perform_programmatic_login
 from backend.crawler.crawler import Crawler
 from backend.deterministic_plan import build_deterministic_smoke_plan
-from backend.executor.executor import Executor
 from backend.reporter.reporter import Reporter
-from backend.structured_run_output import build_structured_output
+from backend.services.decision_insights import attach_decision_insights
+from backend.services.risk_explanation import attach_risk_explanation
+from backend.structured_run_output import build_structured_output, site_pages_payload
 from shared.models.config import FrameworkConfig
-from shared.models.site_model import SiteModel
+from shared.models.site_model import AuthFlow, SiteModel
+from shared.utils.auth import perform_smart_auth
+from shared.utils.browser_stealth import create_stealth_context
 from shared.models.test_plan import TestPlan
-from shared.models.test_result import RunResult
+from shared.models.test_result import RunResult, TestResult
+from shared.utils.url_utils import page_id_from_url
+from shared.pipeline_emit import PipelineEmit
 from shared.utils.coverage.registry import CoverageRegistryManager
 from shared.utils.coverage.visual_baseline_registry import VisualBaselineRegistryManager
 
 logger = logging.getLogger(__name__)
 
+# Pipeline phase banners (streamed to API / live log)
+PHASE_1_CRAWLING = "━━━ PHASE 1: CRAWLING ━━━"
+PHASE_2_EXECUTION = "━━━ PHASE 2: EXECUTION ━━━"
+PHASE_3_AI_ANALYSIS = "━━━ PHASE 3: AI ANALYSIS ━━━"
+PHASE_4_REPORT = "━━━ PHASE 4: REPORT ━━━"
+
 
 class Orchestrator:
     """Coordinates crawl → deterministic plan → execute (+ optional report/coverage)."""
 
-    def __init__(self, config: FrameworkConfig):
+    def __init__(
+        self,
+        config: FrameworkConfig,
+        emit: PipelineEmit | None = None,
+        *,
+        job_id: str | None = None,
+    ):
         self.config = config
+        self._pipeline_emit = emit
+        self._action_job_id = (job_id or "").strip() or None
         self.framework_dir = Path(".qa-framework")
         self.framework_dir.mkdir(exist_ok=True)
         self.runs_dir = Path("runs")
@@ -50,6 +86,202 @@ class Orchestrator:
         self._last_site_model: SiteModel | None = None
         self._last_run_result: RunResult | None = None
         self._started_at: float = time.time()
+        self.action_trail: list[dict[str, Any]] = []
+        self._session_id: str = ""
+
+    def _screenshot_dir(self) -> Path:
+        return Path("screenshots") / self._session_id
+
+    def _login_nav_url(self) -> str:
+        creds = self.config.credentials or {}
+        lu = str(creds.get("login_url") or "").strip()
+        return lu or self.config.target_url
+
+    async def log_action_bracketed(
+        self,
+        page: Page | None,
+        *,
+        phase: str,
+        action_type: str,
+        description: str,
+        coro: Callable[[], Awaitable[_T]],
+        target_url: str = "",
+        target_element: str = "",
+        input_value: str | None = None,
+    ) -> _T:
+        """Run ``coro`` with optional before/after screenshots for navigate/click/submit; errors get after shot."""
+        aid = str(uuid.uuid4())
+        root = self._screenshot_dir()
+        before_path = ""
+        after_path = ""
+        pair = bool(page) and should_capture_before_after_pair(action_type)
+        t0 = time.perf_counter()
+        outcome = "success"
+        detail = ""
+        result: _T | None = None
+        try:
+            if pair:
+                root.mkdir(parents=True, exist_ok=True)
+                before_path = str(root / f"{aid}_before.png")
+                await page.screenshot(path=before_path, full_page=False)  # type: ignore[union-attr]
+            result = await coro()
+        except Exception as e:
+            outcome = "failed"
+            detail = str(e)[:500]
+            raise
+        finally:
+            dur = int((time.perf_counter() - t0) * 1000)
+            tu = target_url
+            if not tu and page is not None:
+                try:
+                    tu = page.url or ""
+                except Exception:
+                    tu = ""
+            take_after = bool(page) and (
+                pair or should_capture_error_after_screenshot(outcome)
+            )
+            if take_after:
+                root.mkdir(parents=True, exist_ok=True)
+                after_path = str(root / f"{aid}_after.png")
+                try:
+                    await page.screenshot(path=after_path, full_page=False)  # type: ignore[union-attr]
+                except Exception as e:
+                    logger.debug("Action after screenshot failed: %s", e)
+                    after_path = ""
+            rec = new_action_record(
+                phase=phase,
+                action_type=action_type,
+                description=description,
+                target_url=tu,
+                target_element=target_element,
+                input_value=input_value,
+                outcome=outcome,
+                outcome_detail=detail,
+                screenshot_path_before=before_path,
+                screenshot_path_after=after_path,
+                duration_ms=dur,
+                action_id=aid,
+            )
+            self.action_trail.append(rec.to_dict())
+        return result  # type: ignore[return-value]
+
+    async def log_action(
+        self,
+        page: Page | None,
+        *,
+        phase: str,
+        action_type: str,
+        description: str,
+        target_url: str = "",
+        target_element: str = "",
+        input_value: str | None = None,
+        outcome: str = "success",
+        outcome_detail: str = "",
+        duration_ms: int = 0,
+        defect_triggered: str | None = None,
+    ) -> str:
+        """Append an ActionRecord. Screenshots only for error outcomes (after-only)."""
+        aid = str(uuid.uuid4())
+        before_path = ""
+        after_path = ""
+        if page is not None and should_capture_error_after_screenshot(outcome):
+            try:
+                root = self._screenshot_dir()
+                root.mkdir(parents=True, exist_ok=True)
+                after_path = str(root / f"{aid}_after.png")
+                await page.screenshot(path=after_path, full_page=False)
+            except Exception as e:
+                logger.debug("Action error screenshot failed: %s", e)
+                after_path = ""
+        tu = target_url
+        if not tu and page is not None:
+            try:
+                tu = page.url or ""
+            except Exception:
+                tu = ""
+        rec = new_action_record(
+            phase=phase,
+            action_type=action_type,
+            description=description,
+            target_url=tu,
+            target_element=target_element,
+            input_value=input_value,
+            outcome=outcome,
+            outcome_detail=outcome_detail,
+            screenshot_path_before=before_path,
+            screenshot_path_after=after_path,
+            duration_ms=duration_ms,
+            defect_triggered=defect_triggered,
+            action_id=aid,
+        )
+        self.action_trail.append(rec.to_dict())
+        return aid
+
+    async def emit(self, kind: str, name: str, payload: dict[str, Any] | None = None) -> None:
+        """Notify pipeline observers (e.g. API job event stream). Best-effort; never raises."""
+        if self._pipeline_emit is None:
+            return
+        try:
+            await self._pipeline_emit(kind, name, payload)
+        except Exception as e:
+            logger.debug("Pipeline emit failed (ignored): %s", e)
+
+    async def _persist_scan(
+        self,
+        structured: dict,
+        site_model: SiteModel | None,
+        run_result: RunResult | None,
+    ) -> None:
+        """Best-effort PostgreSQL persistence; no-op if DATABASE_URL is unset."""
+        structured.setdefault("report_id", str(uuid.uuid4()))
+        try:
+            from backend.db.persistence import persist_pipeline_result
+
+            _scan_id, delta_report, report_id = await persist_pipeline_result(
+                self.config.target_url,
+                structured,
+                site_model,
+                run_result,
+            )
+            if report_id:
+                structured["report_id"] = report_id
+            if delta_report is not None:
+                structured["delta_report"] = delta_report
+        except Exception as e:
+            logger.debug("Scan DB persistence skipped: %s", e)
+
+    def _pipeline_metrics(
+        self,
+        *,
+        total_scan_time: float,
+        crawl_time: float | None,
+        execution_time: float | None,
+        run_result: RunResult | None,
+        pages_scanned: int | None,
+    ) -> dict[str, Any]:
+        retries = int(run_result.step_retries if run_result else 0)
+        return {
+            "total_scan_time": round(float(total_scan_time), 2),
+            "crawl_time": round(float(crawl_time), 2) if crawl_time is not None else None,
+            "execution_time": round(float(execution_time), 2)
+            if execution_time is not None
+            else None,
+            "retries_count": retries,
+            "step_retries": retries,
+            "pages_scanned": int(pages_scanned) if pages_scanned is not None else None,
+        }
+
+    @staticmethod
+    def _log_pipeline_metrics(pm: dict[str, Any]) -> None:
+        line = (
+            f"PIPELINE_METRICS total_scan_time={pm['total_scan_time']}s "
+            f"crawl_time={pm.get('crawl_time')}s "
+            f"execution_time={pm.get('execution_time')}s "
+            f"retries_count={pm.get('retries_count')} "
+            f"pages_scanned={pm.get('pages_scanned')}"
+        )
+        print(line, flush=True)
+        logger.info("%s", line)
 
     def run_full_pipeline(self) -> dict:
         """Execute the pipeline and return structured JSON (always, even on failure)."""
@@ -58,79 +290,234 @@ class Orchestrator:
     async def _run_pipeline(self) -> dict:
         start = time.time()
         self._started_at = start
+        self.action_trail = []
+        self._session_id = self._action_job_id or f"pipeline_{uuid.uuid4().hex[:12]}"
         site_model: SiteModel | None = None
         run_result: RunResult | None = None
         reports: dict[str, str] = {}
         registry_summary: dict = {}
+        crawl_time_s: float | None = None
+        execution_time_s: float | None = None
+        pages_scanned: int | None = None
 
         logger.info("=== Starting deterministic pipeline (no AI) for %s ===", self.config.target_url)
 
         try:
-            # Stage 1: Crawl
-            logger.info("--- Stage 1: Crawl ---")
-            t0 = time.time()
-            site_model = await self._crawl()
-            self._last_site_model = site_model
-            self._save_site_model(site_model)
-            logger.info(
-                "--- Stage 1 complete: %d pages in %.1fs ---",
-                len(site_model.pages),
-                time.time() - t0,
-            )
-
-            # Stage 2: Deterministic plan
-            logger.info("--- Stage 2: Deterministic plan ---")
-            t0 = time.time()
-            plan = self._deterministic_plan(site_model)
-            self._save_plan(plan)
-            logger.info(
-                "--- Stage 2 complete: %d test cases in %.1fs ---",
-                len(plan.test_cases),
-                time.time() - t0,
-            )
-
-            # Stage 3: Execute (tool-based executor)
-            logger.info("--- Stage 3: Execute ---")
-            t0 = time.time()
-            run_result = await self._execute(plan)
-            self._last_run_result = run_result
-            self._save_run_result(run_result)
-            logger.info(
-                "--- Stage 3 complete: %d passed, %d failed in %.1fs ---",
-                run_result.passed,
-                run_result.failed,
-                time.time() - t0,
-            )
-
-            # Stage 4: Coverage (best-effort)
-            try:
-                logger.info("--- Stage 4: Coverage ---")
-                registry = self.registry_manager.load()
-                registry = self.registry_manager.update_from_run(
-                    registry, run_result, site_model=site_model
+            async with async_playwright() as playwright:
+                print("🚀 PLAYWRIGHT LAUNCH TRIGGERED", flush=True)
+                browser = await playwright.chromium.launch(
+                    headless=False,
+                    slow_mo=80,
+                    args=["--start-maximized", "--disable-blink-features=AutomationControlled"]
                 )
-                self.registry_manager.save(registry)
-                registry_summary = {
-                    "overall": registry.global_stats.overall_score,
-                    "categories": registry.global_stats.category_scores,
-                }
-            except Exception as e:
-                logger.warning("Coverage update skipped: %s", e)
-                registry_summary = {}
+                browser_context = await create_stealth_context(
+                    browser,
+                    viewport={
+                        "width": self.config.crawl.viewport.width,
+                        "height": self.config.crawl.viewport.height,
+                    },
+                    user_agent=self.config.crawl.user_agent,
+                )
+                try:
+                    auth_flow: AuthFlow | None = None
+                    post_login_url: str | None = None
+                    pipeline_auth_ok = True
+                    if self.config.auth:
+                        logger.info(
+                            "--- Pipeline: authenticating shared browser context ---",
+                        )
+                        async def _emit_auth_message(msg: str) -> None:
+                            await self.emit("action", "auth_message", {"message": msg})
 
-            # Stage 5: Reports (best-effort, no AI summary)
-            try:
-                logger.info("--- Stage 5: Report ---")
-                previous_run = self._load_previous_run_result(run_result.run_id)
-                registry = self.registry_manager.load()
-                reports = self._report(run_result, registry, previous_run=previous_run)
-            except Exception as e:
-                logger.warning("Report generation skipped: %s", e)
+                        ar = await perform_smart_auth(
+                            browser_context,
+                            self.config.auth,
+                            ai_client=None,
+                            emit_event=_emit_auth_message,
+                        )
+                        pipeline_auth_ok = ar.success
+                        if ar.success:
+                            auth_flow = ar.auth_flow
+                            post_login_url = ar.post_login_url
+                            logger.info("Pipeline authentication succeeded")
+                        else:
+                            logger.warning(
+                                "Pipeline authentication failed: %s; continuing crawl "
+                                "with unauthenticated context",
+                                ar.error,
+                            )
+
+                    if self.config.requires_login:
+                        logger.info("--- Pipeline: pre-crawl programmatic login (requires_login) ---")
+                        _login_url = self._login_nav_url()
+                        await self.emit(
+                            "stage",
+                            "pre_crawl_login",
+                            {"message": "Logging in before crawl", "target_url": _login_url},
+                        )
+                        pre_page = await browser_context.new_page()
+                        try:
+                            async def _pre_login_goto() -> None:
+                                await pre_page.goto(
+                                    _login_url,
+                                    wait_until="domcontentloaded",
+                                    timeout=60_000,
+                                )
+
+                            await self.log_action_bracketed(
+                                pre_page,
+                                phase="login",
+                                action_type="navigate",
+                                description="Navigate to target for pre-crawl login",
+                                target_url=_login_url,
+                                coro=_pre_login_goto,
+                            )
+
+                            async def _emit_login_handler(msg: str) -> None:
+                                await self.emit("action", "login_handler", {"message": msg})
+
+                            creds = self.config.credentials or {}
+                            login_ok = await perform_programmatic_login(
+                                pre_page,
+                                creds,
+                                _emit_login_handler,
+                                log_action=self.log_action,
+                                log_bracketed=self.log_action_bracketed,
+                            )
+                            pipeline_auth_ok = pipeline_auth_ok and login_ok
+                            if login_ok:
+                                logger.info("Pre-crawl login succeeded")
+                                await self.emit(
+                                    "success",
+                                    "pre_crawl_login",
+                                    {"ok": True},
+                                )
+                            else:
+                                logger.warning(
+                                    "Pre-crawl login did not complete successfully; continuing with context state",
+                                )
+                                await self.emit(
+                                    "error",
+                                    "pre_crawl_login",
+                                    {"ok": False},
+                                )
+                        finally:
+                            await pre_page.close()
+
+                    # Stage 1: Crawl
+                    logger.info("--- Stage 1: Crawl ---")
+                    await self.emit(
+                        "stage",
+                        "phase_1_crawling",
+                        {"banner": PHASE_1_CRAWLING},
+                    )
+                    t_crawl0 = time.time()
+                    site_model = await self._crawl(
+                        browser=browser,
+                        browser_context=browser_context,
+                        post_login_url=post_login_url,
+                        auth_flow=auth_flow,
+                        log_action=self.log_action,
+                        log_bracketed=self.log_action_bracketed,
+                    )
+                    crawl_time_s = round(time.time() - t_crawl0, 2)
+                    pages_scanned = len(site_model.pages)
+                    self._last_site_model = site_model
+                    self._save_site_model(site_model)
+                    logger.info(
+                        "--- Stage 1 complete: %d pages in %.1fs ---",
+                        len(site_model.pages),
+                        crawl_time_s,
+                    )
+                    await self.emit(
+                        "stage",
+                        "crawl_complete",
+                        {"pages": pages_scanned, "duration_s": crawl_time_s},
+                    )
+
+                    await self.emit(
+                        "stage",
+                        "phase_2_execution",
+                        {"banner": PHASE_2_EXECUTION},
+                    )
+
+                    # Stage 2: Deterministic plan
+                    logger.info("--- Stage 2: Deterministic plan ---")
+                    t_plan0 = time.time()
+                    plan = self._deterministic_plan(site_model)
+                    self._save_plan(plan)
+                    logger.info(
+                        "--- Stage 2 complete: %d test cases in %.1fs ---",
+                        len(plan.test_cases),
+                        time.time() - t_plan0,
+                    )
+
+                    # Stage 3: Execute (tool-based executor)
+                    logger.info("--- Stage 3: Execute ---")
+                    await self.emit("stage", "execution_start", {"tests": len(site_model.pages)})
+                    t_exec0 = time.time()
+                    run_result = await self._execute(
+                        site_model,
+                        plan,
+                        browser=browser,
+                        browser_context=browser_context,
+                        pipeline_auth_satisfied=pipeline_auth_ok,
+                        log_action=self.log_action,
+                        log_bracketed=self.log_action_bracketed,
+                    )
+                    execution_time_s = round(time.time() - t_exec0, 2)
+                    self._last_run_result = run_result
+                    self._save_run_result(run_result)
+                    logger.info(
+                        "--- Stage 3 complete: %d passed, %d failed in %.1fs ---",
+                        run_result.passed,
+                        run_result.failed,
+                        execution_time_s,
+                    )
+                    await self.emit(
+                        "stage",
+                        "execution_complete",
+                        {
+                            "passed": run_result.passed,
+                            "failed": run_result.failed,
+                            "duration_s": execution_time_s,
+                        },
+                    )
+
+                    # Stage 4: Coverage (best-effort)
+                    try:
+                        logger.info("--- Stage 4: Coverage ---")
+                        registry = self.registry_manager.load()
+                        registry = self.registry_manager.update_from_run(
+                            registry, run_result, site_model=site_model
+                        )
+                        self.registry_manager.save(registry)
+                        registry_summary = {
+                            "overall": registry.global_stats.overall_score,
+                            "categories": registry.global_stats.category_scores,
+                        }
+                    except Exception as e:
+                        logger.warning("Coverage update skipped: %s", e)
+                        registry_summary = {}
+
+                    # HTML reports run after structured output + AI (see success path below).
+                finally:
+                    await browser.close()
 
         except Exception as e:
             logger.exception("Pipeline failed: %s", e)
             duration = round(time.time() - start, 2)
-            return build_structured_output(
+            print(f"PIPELINE total duration: {duration}s", flush=True)
+            logger.info("PIPELINE total duration: %.2fs", duration)
+            pm = self._pipeline_metrics(
+                total_scan_time=duration,
+                crawl_time=crawl_time_s,
+                execution_time=execution_time_s,
+                run_result=run_result,
+                pages_scanned=pages_scanned,
+            )
+            self._log_pipeline_metrics(pm)
+            out = await build_structured_output(
                 site_model=site_model,
                 run_result=run_result,
                 pipeline_error=str(e),
@@ -138,17 +525,76 @@ class Orchestrator:
                     "run_id": run_result.run_id if run_result else None,
                     "duration": duration,
                     "mode": "deterministic_no_ai",
+                    "scan_mode": self.config.scan_mode,
+                    "scan_task": self.config.scan_task,
+                    "target_url": self.config.target_url,
                     "results": None,
                     "coverage": registry_summary,
                     "reports": reports,
+                    "pipeline_metrics": pm,
+                    "action_trail": list(self.action_trail),
+                    **site_pages_payload(site_model),
                 },
             )
+            await self._persist_scan(out, site_model, run_result)
+            await self.emit(
+                "stage",
+                "phase_3_ai_analysis",
+                {"banner": PHASE_3_AI_ANALYSIS},
+            )
+            await attach_risk_explanation(out)
+            await self.log_action(
+                None,
+                phase="analyze",
+                action_type="evaluate",
+                description="attach_risk_explanation",
+                outcome="success",
+            )
+            await attach_decision_insights(out)
+            await self.log_action(
+                None,
+                phase="analyze",
+                action_type="evaluate",
+                description="attach_decision_insights",
+                outcome="success",
+            )
+            await self.emit(
+                "stage",
+                "phase_4_report",
+                {"banner": PHASE_4_REPORT},
+            )
+            try:
+                logger.info("--- Stage 5: Report ---")
+                if run_result:
+                    previous_run = self._load_previous_run_result(run_result.run_id)
+                    registry = self.registry_manager.load()
+                    reports = self._report(run_result, registry, previous_run=previous_run)
+                else:
+                    reports = {}
+            except Exception as e:
+                logger.warning("Report generation skipped: %s", e)
+                reports = {}
+            out["reports"] = reports
+            return out
 
         duration = round(time.time() - start, 2)
+        print(f"PIPELINE total duration: {duration}s", flush=True)
+        logger.info("PIPELINE total duration: %.2fs", duration)
+        pm = self._pipeline_metrics(
+            total_scan_time=duration,
+            crawl_time=crawl_time_s,
+            execution_time=execution_time_s,
+            run_result=run_result,
+            pages_scanned=pages_scanned,
+        )
+        self._log_pipeline_metrics(pm)
         extra = {
             "run_id": run_result.run_id if run_result else None,
             "duration": duration,
             "mode": "deterministic_no_ai",
+            "scan_mode": self.config.scan_mode,
+            "scan_task": self.config.scan_task,
+            "target_url": self.config.target_url,
             "results": {
                 "total": run_result.total_tests,
                 "passed": run_result.passed,
@@ -160,17 +606,70 @@ class Orchestrator:
             else None,
             "coverage": registry_summary,
             "reports": reports,
+            "pipeline_metrics": pm,
+            "action_trail": list(self.action_trail),
+            **site_pages_payload(site_model),
         }
-        return build_structured_output(
+        out = await build_structured_output(
             site_model=site_model,
             run_result=run_result,
             pipeline_error=None,
             extra=extra,
         )
+        await self._persist_scan(out, site_model, run_result)
+        await self.emit(
+            "stage",
+            "phase_3_ai_analysis",
+            {"banner": PHASE_3_AI_ANALYSIS},
+        )
+        await attach_risk_explanation(out)
+        await self.log_action(
+            None,
+            phase="analyze",
+            action_type="evaluate",
+            description="attach_risk_explanation",
+            outcome="success",
+        )
+        await attach_decision_insights(out)
+        await self.log_action(
+            None,
+            phase="analyze",
+            action_type="evaluate",
+            description="attach_decision_insights",
+            outcome="success",
+        )
+        await self.emit(
+            "stage",
+            "phase_4_report",
+            {"banner": PHASE_4_REPORT},
+        )
+        try:
+            logger.info("--- Stage 5: Report ---")
+            if run_result:
+                previous_run = self._load_previous_run_result(run_result.run_id)
+                registry = self.registry_manager.load()
+                reports = self._report(run_result, registry, previous_run=previous_run)
+            else:
+                reports = {}
+        except Exception as e:
+            logger.warning("Report generation skipped: %s", e)
+            reports = {}
+        out["reports"] = reports
+        return out
 
-    def build_partial_result(self, warning_message: str) -> dict[str, object]:
+    async def build_partial_result(self, warning_message: str) -> dict[str, object]:
         duration = round(time.time() - self._started_at, 2)
-        return build_structured_output(
+        sm = self._last_site_model
+        pages = len(sm.pages) if sm else None
+        pm = self._pipeline_metrics(
+            total_scan_time=duration,
+            crawl_time=None,
+            execution_time=None,
+            run_result=self._last_run_result,
+            pages_scanned=pages,
+        )
+        self._log_pipeline_metrics(pm)
+        out = await build_structured_output(
             site_model=self._last_site_model,
             run_result=self._last_run_result,
             pipeline_error=None,
@@ -178,15 +677,44 @@ class Orchestrator:
                 "run_id": self._last_run_result.run_id if self._last_run_result else None,
                 "duration": duration,
                 "mode": "deterministic_no_ai",
+                "scan_mode": self.config.scan_mode,
+                "scan_task": self.config.scan_task,
+                "target_url": self.config.target_url,
                 "status": "partial",
                 "warning": warning_message,
+                "pipeline_metrics": pm,
+                "action_trail": list(self.action_trail),
+                **site_pages_payload(self._last_site_model),
             },
         )
+        # Caller attaches risk_explanation after persist + delta_report merge (see api/server.py timeout path).
+        return out
 
-    async def _crawl(self) -> SiteModel:
+    async def _crawl(
+        self,
+        *,
+        browser: Browser | None = None,
+        browser_context: BrowserContext | None = None,
+        post_login_url: str | None = None,
+        auth_flow: AuthFlow | None = None,
+        log_action: Any | None = None,
+        log_bracketed: Any | None = None,
+    ) -> SiteModel:
         site_model_dir = self.framework_dir / "site_model"
         crawler = Crawler(self.config, site_model_dir, ai_client=None)
-        return await crawler.crawl()
+        emit = self.emit
+        if browser is not None and browser_context is not None:
+            return await crawler.crawl(
+                browser_context=browser_context,
+                browser=browser,
+                skip_auth=True,
+                post_login_url=post_login_url,
+                auth_flow_override=auth_flow,
+                emit=emit,
+                log_action=log_action,
+                log_bracketed=log_bracketed,
+            )
+        return await crawler.crawl(emit=emit, log_action=log_action, log_bracketed=log_bracketed)
 
     def run_crawl_only(self) -> SiteModel:
         return asyncio.run(self._crawl())
@@ -198,22 +726,177 @@ class Orchestrator:
         site_model = self._load_site_model()
         return self._deterministic_plan(site_model)
 
-    async def _execute(self, plan: TestPlan) -> RunResult:
-        baseline_dir = self.framework_dir / "site_model" / "baselines"
-        visual_registry = self.visual_baseline_manager.load()
-        executor = Executor(
-            self.config,
-            None,
-            self.runs_dir,
-            visual_registry=visual_registry,
-            visual_registry_manager=self.visual_baseline_manager,
-        )
-        result = await executor.execute(plan, baseline_dir if baseline_dir.exists() else None)
-        self.visual_baseline_manager.save(visual_registry)
-        return result
+    async def _execute(
+        self,
+        site_model: SiteModel,
+        plan: TestPlan,
+        *,
+        browser: Browser | None = None,
+        browser_context: BrowserContext | None = None,
+        pipeline_auth_satisfied: bool = True,
+        log_action: Any | None = None,
+        log_bracketed: Any | None = None,
+    ) -> RunResult:
+        """Run active QA on each crawled page (forms, DOM, navigation, performance)."""
+        _ = pipeline_auth_satisfied  # pipeline auth already applied to shared context
+        started_at = time.strftime("%Y-%m-%dT%H:%M:%SZ")
+        t0 = time.time()
+        run_id = f"run_{uuid.uuid4().hex[:8]}"
+
+        async def emit_event(msg: str) -> None:
+            await self.emit("execution", "qa_action", {"message": msg})
+
+        async def run_on_context(bc: BrowserContext) -> RunResult:
+            page = await bc.new_page()
+            all_defects: list[dict[str, Any]] = []
+            test_results: list[TestResult] = []
+            goto_timeout = min(
+                120_000,
+                max(15_000, int(self.config.selector_timeout_seconds * 1000)),
+            )
+            try:
+                for p_model in site_model.pages:
+                    url = p_model.url
+                    t_page = time.time()
+                    try:
+                        if log_bracketed:
+                            async def _qa_goto() -> None:
+                                await page.goto(
+                                    url,
+                                    wait_until="domcontentloaded",
+                                    timeout=goto_timeout,
+                                )
+
+                            await log_bracketed(
+                                page,
+                                phase="execute",
+                                action_type="navigate",
+                                description="Active QA navigation to page",
+                                target_url=url,
+                                coro=_qa_goto,
+                            )
+                        else:
+                            await page.goto(
+                                url,
+                                wait_until="domcontentloaded",
+                                timeout=goto_timeout,
+                            )
+                        await emit_event("⚡ Running tests on " + url)
+
+                        defects = await collect_active_qa_defects_after_navigation(
+                            page,
+                            emit_event,
+                            log_action=log_action,
+                            log_bracketed=log_bracketed,
+                        )
+
+                        all_defects.extend(defects)
+                        pid = page_id_from_url(page.url)
+                        test_results.append(
+                            TestResult(
+                                test_id=f"qa_{pid}",
+                                test_name=f"Active QA — {url[:120]}",
+                                description=(
+                                    "Per-page active QA (forms, DOM, navigation, performance)"
+                                ),
+                                category="functional",
+                                priority=1,
+                                target_page_id=p_model.page_id,
+                                actual_page_id=pid,
+                                actual_url=page.url,
+                                coverage_signature="active_qa_v1",
+                                result="fail" if defects else "pass",
+                                duration_seconds=round(time.time() - t_page, 2),
+                                qa_defects_by_page=[
+                                    {"page_url": url, "defects": defects},
+                                ],
+                            )
+                        )
+                    except Exception as e:
+                        logger.warning("Active QA failed for %s: %s", url, e)
+                        if log_action:
+                            await log_action(
+                                page,
+                                phase="execute",
+                                action_type="navigate",
+                                description=f"Active QA navigation failed: {url[:200]}",
+                                target_url=url,
+                                outcome="failed",
+                                outcome_detail=str(e)[:500],
+                            )
+                        pid = page_id_from_url(url)
+                        test_results.append(
+                            TestResult(
+                                test_id=f"qa_{pid}",
+                                test_name=f"Active QA — {url[:120]}",
+                                description="Per-page active QA",
+                                category="functional",
+                                priority=1,
+                                target_page_id=p_model.page_id,
+                                actual_page_id=pid,
+                                actual_url=url,
+                                coverage_signature="active_qa_v1",
+                                result="error",
+                                duration_seconds=round(time.time() - t_page, 2),
+                                failure_reason=str(e),
+                                qa_defects_by_page=[{"page_url": url, "defects": []}],
+                            )
+                        )
+
+                n_issues = len(all_defects)
+                await emit_event(f"Execution complete — {n_issues} issues detected")
+
+                completed_at = time.strftime("%Y-%m-%dT%H:%M:%SZ")
+                passed = sum(1 for tr in test_results if tr.result == "pass")
+                failed = sum(1 for tr in test_results if tr.result == "fail")
+                errors = sum(1 for tr in test_results if tr.result == "error")
+                return RunResult(
+                    run_id=run_id,
+                    plan_id=plan.plan_id,
+                    started_at=started_at,
+                    completed_at=completed_at,
+                    target_url=plan.target_url,
+                    total_tests=len(test_results),
+                    passed=passed,
+                    failed=failed,
+                    skipped=0,
+                    errors=errors,
+                    duration_seconds=round(time.time() - t0, 2),
+                    test_results=test_results,
+                    step_retries=0,
+                )
+            finally:
+                await page.close()
+
+        if browser is not None and browser_context is not None:
+            return await run_on_context(browser_context)
+
+        async with async_playwright() as playwright:
+            print("🚀 PLAYWRIGHT LAUNCH TRIGGERED", flush=True)
+            browser_launched = await playwright.chromium.launch(
+                headless=False,
+                slow_mo=80,
+                args=[
+                    "--start-maximized",
+                    "--disable-blink-features=AutomationControlled",
+                ],
+            )
+            bc = await create_stealth_context(
+                browser_launched,
+                viewport={
+                    "width": self.config.crawl.viewport.width,
+                    "height": self.config.crawl.viewport.height,
+                },
+                user_agent=self.config.crawl.user_agent,
+            )
+            try:
+                return await run_on_context(bc)
+            finally:
+                await browser_launched.close()
 
     def run_execute_only(self, plan: TestPlan) -> RunResult:
-        return asyncio.run(self._execute(plan))
+        site_model = self._load_site_model()
+        return asyncio.run(self._execute(site_model, plan))
 
     def _report(
         self,

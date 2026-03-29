@@ -1,0 +1,581 @@
+{
+  "run_id": "run_ace92790",
+  "plan_id": "plan_det_b40c8b53",
+  "started_at": "2026-03-28T21:27:03Z",
+  "completed_at": "2026-03-28T21:28:05Z",
+  "target_url": "https://www.ecell.in/",
+  "total_tests": 5,
+  "passed": 0,
+  "failed": 5,
+  "skipped": 0,
+  "errors": 0,
+  "duration_seconds": 62.73,
+  "test_results": [
+    {
+      "test_id": "qa_page_www.ecell.in_e949cb61629c",
+      "test_name": "Active QA \u2014 https://www.ecell.in/",
+      "description": "Per-page active QA (forms, DOM, navigation, performance)",
+      "category": "functional",
+      "priority": 1,
+      "target_page_id": "page_www.ecell.in_e949cb61629c",
+      "actual_page_id": "page_www.ecell.in_e949cb61629c",
+      "actual_url": "https://www.ecell.in/",
+      "coverage_signature": "active_qa_v1",
+      "result": "fail",
+      "duration_seconds": 16.88,
+      "failure_reason": null,
+      "evidence": {
+        "screenshots": [],
+        "console_logs": [],
+        "network_log": [],
+        "dom_snapshot_path": null,
+        "video_path": null
+      },
+      "fallback_records": [],
+      "precondition_results": [],
+      "step_results": [],
+      "assertion_results": [],
+      "assertions_passed": 0,
+      "assertions_failed": 0,
+      "assertions_total": 0,
+      "potentially_flaky": false,
+      "qa_defects_by_page": [
+        {
+          "page_url": "https://www.ecell.in/",
+          "defects": [
+            {
+              "defect": "broken_element",
+              "type": "img_empty_src",
+              "page_url": "https://www.ecell.in/",
+              "description": "{'kind': 'img_empty_src', 'index': 46}"
+            },
+            {
+              "defect": "broken_element",
+              "type": "anchor_empty_href",
+              "page_url": "https://www.ecell.in/",
+              "description": "{'kind': 'anchor_empty_href', 'index': 6}"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/",
+              "description": "Button index 0 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/",
+              "description": "Button index 1 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/",
+              "description": "Button index 2 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/",
+              "description": "Button index 3 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/",
+              "description": "Button index 4 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/",
+              "description": "Button index 5 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/",
+              "description": "Button index 6 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/",
+              "description": "Button index 7 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/",
+              "description": "Button index 8 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "navigation_empty_hrefs",
+              "type": "navigation",
+              "page_url": "https://www.ecell.in/",
+              "description": "1 link(s) with empty or # href"
+            },
+            {
+              "defect": "missing_primary_action",
+              "type": "cta",
+              "severity": "high",
+              "page_url": "https://www.ecell.in/",
+              "description": "No button/link text contains \"buy\", \"checkout\", or \"submit\""
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://www.ecell.in/",
+              "description": "ERROR TypeError: Cannot read properties of undefined (reading 'style')\n    at t.showSlides (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:3823)\n    at t.ngOnInit (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:2052)\n    at uf (https://www.ecell.in/main.a890ddc39c519cf9.js:1:327207)\n    at hv (https://www.ecell.in/main.a890ddc39c519cf9.js:1:327354)\n    at cf (https://www.ecell.in/main.a890ddc39c519cf9.js:1:327111)\n    at wl (https://www.ecell.in/main.a890ddc39c519cf9.js:1:326836)\n    at Dp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:365972)\n    at Sp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:367059)\n    at Mp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:366894)\n    at Dp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:366123)"
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://www.ecell.in/",
+              "description": "ERROR TypeError: Cannot read properties of undefined (reading 'style')\n    at t.showSlides (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:3823)\n    at Object.next (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:2727)\n    at $e.next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:146400)\n    at ot._next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:146067)\n    at ot.next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:145752)\n    at https://www.ecell.in/main.a890ddc39c519cf9.js:1:153638\n    at K._next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:152615)\n    at K.next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:145752)\n    at https://www.ecell.in/main.a890ddc39c519cf9.js:1:153638\n    at K._next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:152615)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "test_id": "qa_page_www.ecell.in_c297d85e3121",
+      "test_name": "Active QA \u2014 https://www.ecell.in/login",
+      "description": "Per-page active QA (forms, DOM, navigation, performance)",
+      "category": "functional",
+      "priority": 1,
+      "target_page_id": "page_www.ecell.in_c297d85e3121",
+      "actual_page_id": "page_www.ecell.in_c297d85e3121",
+      "actual_url": "https://www.ecell.in/login",
+      "coverage_signature": "active_qa_v1",
+      "result": "fail",
+      "duration_seconds": 7.53,
+      "failure_reason": null,
+      "evidence": {
+        "screenshots": [],
+        "console_logs": [],
+        "network_log": [],
+        "dom_snapshot_path": null,
+        "video_path": null
+      },
+      "fallback_records": [],
+      "precondition_results": [],
+      "step_results": [],
+      "assertion_results": [],
+      "assertions_passed": 0,
+      "assertions_failed": 0,
+      "assertions_total": 0,
+      "potentially_flaky": false,
+      "qa_defects_by_page": [
+        {
+          "page_url": "https://www.ecell.in/login",
+          "defects": [
+            {
+              "defect": "form_submission_failed",
+              "type": "form",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/login",
+              "description": "Form #1: no URL change and no obvious success message after submit"
+            },
+            {
+              "defect": "broken_element",
+              "type": "img_empty_src",
+              "page_url": "https://www.ecell.in/login",
+              "description": "{'kind': 'img_empty_src', 'index': 2}"
+            },
+            {
+              "defect": "broken_element",
+              "type": "anchor_empty_href",
+              "page_url": "https://www.ecell.in/login",
+              "description": "{'kind': 'anchor_empty_href', 'index': 6}"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/login",
+              "description": "Button index 0 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/login",
+              "description": "Button index 1 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "navigation_empty_hrefs",
+              "type": "navigation",
+              "page_url": "https://www.ecell.in/login",
+              "description": "1 link(s) with empty or # href"
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://www.ecell.in/login",
+              "description": "ERROR TypeError: Cannot read properties of undefined (reading 'style')\n    at t.showSlides (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:3823)\n    at t.ngOnInit (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:2052)\n    at uf (https://www.ecell.in/main.a890ddc39c519cf9.js:1:327207)\n    at hv (https://www.ecell.in/main.a890ddc39c519cf9.js:1:327354)\n    at cf (https://www.ecell.in/main.a890ddc39c519cf9.js:1:327111)\n    at wl (https://www.ecell.in/main.a890ddc39c519cf9.js:1:326836)\n    at Dp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:365972)\n    at Sp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:367059)\n    at Mp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:366894)\n    at Dp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:366123)"
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://www.ecell.in/login",
+              "description": "ERROR TypeError: Cannot read properties of undefined (reading 'style')\n    at t.showSlides (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:3823)\n    at Object.next (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:2727)\n    at $e.next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:146400)\n    at ot._next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:146067)\n    at ot.next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:145752)\n    at https://www.ecell.in/main.a890ddc39c519cf9.js:1:153638\n    at K._next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:152615)\n    at K.next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:145752)\n    at https://www.ecell.in/main.a890ddc39c519cf9.js:1:153638\n    at K._next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:152615)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "test_id": "qa_page_www.ecell.in_0fad5dd1bb7c",
+      "test_name": "Active QA \u2014 https://www.ecell.in/about",
+      "description": "Per-page active QA (forms, DOM, navigation, performance)",
+      "category": "functional",
+      "priority": 1,
+      "target_page_id": "page_www.ecell.in_0fad5dd1bb7c",
+      "actual_page_id": "page_www.ecell.in_0fad5dd1bb7c",
+      "actual_url": "https://www.ecell.in/about",
+      "coverage_signature": "active_qa_v1",
+      "result": "fail",
+      "duration_seconds": 7.51,
+      "failure_reason": null,
+      "evidence": {
+        "screenshots": [],
+        "console_logs": [],
+        "network_log": [],
+        "dom_snapshot_path": null,
+        "video_path": null
+      },
+      "fallback_records": [],
+      "precondition_results": [],
+      "step_results": [],
+      "assertion_results": [],
+      "assertions_passed": 0,
+      "assertions_failed": 0,
+      "assertions_total": 0,
+      "potentially_flaky": false,
+      "qa_defects_by_page": [
+        {
+          "page_url": "https://www.ecell.in/about",
+          "defects": [
+            {
+              "defect": "broken_element",
+              "type": "img_empty_src",
+              "page_url": "https://www.ecell.in/about",
+              "description": "{'kind': 'img_empty_src', 'index': 19}"
+            },
+            {
+              "defect": "broken_element",
+              "type": "anchor_empty_href",
+              "page_url": "https://www.ecell.in/about",
+              "description": "{'kind': 'anchor_empty_href', 'index': 6}"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/about",
+              "description": "Button index 0 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "navigation_empty_hrefs",
+              "type": "navigation",
+              "page_url": "https://www.ecell.in/about",
+              "description": "1 link(s) with empty or # href"
+            },
+            {
+              "defect": "missing_primary_action",
+              "type": "cta",
+              "severity": "high",
+              "page_url": "https://www.ecell.in/about",
+              "description": "No button/link text contains \"buy\", \"checkout\", or \"submit\""
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://www.ecell.in/about",
+              "description": "ERROR TypeError: Cannot read properties of undefined (reading 'style')\n    at t.showSlides (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:3823)\n    at t.ngOnInit (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:2052)\n    at uf (https://www.ecell.in/main.a890ddc39c519cf9.js:1:327207)\n    at hv (https://www.ecell.in/main.a890ddc39c519cf9.js:1:327354)\n    at cf (https://www.ecell.in/main.a890ddc39c519cf9.js:1:327111)\n    at wl (https://www.ecell.in/main.a890ddc39c519cf9.js:1:326836)\n    at Dp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:365972)\n    at Sp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:367059)\n    at Mp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:366894)\n    at Dp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:366123)"
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://www.ecell.in/about",
+              "description": "ERROR TypeError: Cannot read properties of undefined (reading 'style')\n    at t.showSlides (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:3823)\n    at Object.next (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:2727)\n    at $e.next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:146400)\n    at ot._next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:146067)\n    at ot.next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:145752)\n    at https://www.ecell.in/main.a890ddc39c519cf9.js:1:153638\n    at K._next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:152615)\n    at K.next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:145752)\n    at https://www.ecell.in/main.a890ddc39c519cf9.js:1:153638\n    at K._next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:152615)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "test_id": "qa_page_www.ecell.in_06acfddca618",
+      "test_name": "Active QA \u2014 https://www.ecell.in/initiatives",
+      "description": "Per-page active QA (forms, DOM, navigation, performance)",
+      "category": "functional",
+      "priority": 1,
+      "target_page_id": "page_www.ecell.in_06acfddca618",
+      "actual_page_id": "page_www.ecell.in_06acfddca618",
+      "actual_url": "https://www.ecell.in/initiatives",
+      "coverage_signature": "active_qa_v1",
+      "result": "fail",
+      "duration_seconds": 19.71,
+      "failure_reason": null,
+      "evidence": {
+        "screenshots": [],
+        "console_logs": [],
+        "network_log": [],
+        "dom_snapshot_path": null,
+        "video_path": null
+      },
+      "fallback_records": [],
+      "precondition_results": [],
+      "step_results": [],
+      "assertion_results": [],
+      "assertions_passed": 0,
+      "assertions_failed": 0,
+      "assertions_total": 0,
+      "potentially_flaky": false,
+      "qa_defects_by_page": [
+        {
+          "page_url": "https://www.ecell.in/initiatives",
+          "defects": [
+            {
+              "defect": "broken_element",
+              "type": "img_empty_src",
+              "page_url": "https://www.ecell.in/initiatives",
+              "description": "{'kind': 'img_empty_src', 'index': 18}"
+            },
+            {
+              "defect": "broken_element",
+              "type": "anchor_empty_href",
+              "page_url": "https://www.ecell.in/initiatives",
+              "description": "{'kind': 'anchor_empty_href', 'index': 6}"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/initiatives",
+              "description": "Button index 0 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/initiatives",
+              "description": "Button index 1 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/initiatives",
+              "description": "Button index 2 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/initiatives",
+              "description": "Button index 3 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/initiatives",
+              "description": "Button index 4 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/initiatives",
+              "description": "Button index 5 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/initiatives",
+              "description": "Button index 6 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/initiatives",
+              "description": "Button index 7 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/initiatives",
+              "description": "Button index 8 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/initiatives",
+              "description": "Button index 9 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/initiatives",
+              "description": "Button index 10 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/initiatives",
+              "description": "Button index 11 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "navigation_empty_hrefs",
+              "type": "navigation",
+              "page_url": "https://www.ecell.in/initiatives",
+              "description": "1 link(s) with empty or # href"
+            },
+            {
+              "defect": "missing_primary_action",
+              "type": "cta",
+              "severity": "high",
+              "page_url": "https://www.ecell.in/initiatives",
+              "description": "No button/link text contains \"buy\", \"checkout\", or \"submit\""
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://www.ecell.in/initiatives",
+              "description": "ERROR TypeError: Cannot read properties of undefined (reading 'style')\n    at t.showSlides (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:3823)\n    at t.ngOnInit (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:2052)\n    at uf (https://www.ecell.in/main.a890ddc39c519cf9.js:1:327207)\n    at hv (https://www.ecell.in/main.a890ddc39c519cf9.js:1:327354)\n    at cf (https://www.ecell.in/main.a890ddc39c519cf9.js:1:327111)\n    at wl (https://www.ecell.in/main.a890ddc39c519cf9.js:1:326836)\n    at Dp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:365972)\n    at Sp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:367059)\n    at Mp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:366894)\n    at Dp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:366123)"
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://www.ecell.in/initiatives",
+              "description": "ERROR TypeError: Cannot read properties of undefined (reading 'style')\n    at t.showSlides (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:3823)\n    at Object.next (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:2727)\n    at $e.next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:146400)\n    at ot._next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:146067)\n    at ot.next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:145752)\n    at https://www.ecell.in/main.a890ddc39c519cf9.js:1:153638\n    at K._next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:152615)\n    at K.next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:145752)\n    at https://www.ecell.in/main.a890ddc39c519cf9.js:1:153638\n    at K._next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:152615)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "test_id": "qa_page_www.ecell.in_ff4131f0be76",
+      "test_name": "Active QA \u2014 https://www.ecell.in/gallery",
+      "description": "Per-page active QA (forms, DOM, navigation, performance)",
+      "category": "functional",
+      "priority": 1,
+      "target_page_id": "page_www.ecell.in_ff4131f0be76",
+      "actual_page_id": "page_www.ecell.in_ff4131f0be76",
+      "actual_url": "https://www.ecell.in/gallery",
+      "coverage_signature": "active_qa_v1",
+      "result": "fail",
+      "duration_seconds": 10.94,
+      "failure_reason": null,
+      "evidence": {
+        "screenshots": [],
+        "console_logs": [],
+        "network_log": [],
+        "dom_snapshot_path": null,
+        "video_path": null
+      },
+      "fallback_records": [],
+      "precondition_results": [],
+      "step_results": [],
+      "assertion_results": [],
+      "assertions_passed": 0,
+      "assertions_failed": 0,
+      "assertions_total": 0,
+      "potentially_flaky": false,
+      "qa_defects_by_page": [
+        {
+          "page_url": "https://www.ecell.in/gallery",
+          "defects": [
+            {
+              "defect": "broken_element",
+              "type": "img_empty_src",
+              "page_url": "https://www.ecell.in/gallery",
+              "description": "{'kind': 'img_empty_src', 'index': 26}"
+            },
+            {
+              "defect": "broken_element",
+              "type": "anchor_empty_href",
+              "page_url": "https://www.ecell.in/gallery",
+              "description": "{'kind': 'anchor_empty_href', 'index': 6}"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/gallery",
+              "description": "Button index 0 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/gallery",
+              "description": "Button index 1 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "unresponsive_button",
+              "type": "interaction",
+              "severity": "medium",
+              "page_url": "https://www.ecell.in/gallery",
+              "description": "Button index 2 did not respond to click within 1000ms"
+            },
+            {
+              "defect": "navigation_empty_hrefs",
+              "type": "navigation",
+              "page_url": "https://www.ecell.in/gallery",
+              "description": "1 link(s) with empty or # href"
+            },
+            {
+              "defect": "missing_primary_action",
+              "type": "cta",
+              "severity": "high",
+              "page_url": "https://www.ecell.in/gallery",
+              "description": "No button/link text contains \"buy\", \"checkout\", or \"submit\""
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://www.ecell.in/gallery",
+              "description": "ERROR TypeError: Cannot read properties of undefined (reading 'style')\n    at t.showSlides (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:3823)\n    at t.ngOnInit (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:2052)\n    at uf (https://www.ecell.in/main.a890ddc39c519cf9.js:1:327207)\n    at hv (https://www.ecell.in/main.a890ddc39c519cf9.js:1:327354)\n    at cf (https://www.ecell.in/main.a890ddc39c519cf9.js:1:327111)\n    at wl (https://www.ecell.in/main.a890ddc39c519cf9.js:1:326836)\n    at Dp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:365972)\n    at Sp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:367059)\n    at Mp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:366894)\n    at Dp (https://www.ecell.in/main.a890ddc39c519cf9.js:1:366123)"
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://www.ecell.in/gallery",
+              "description": "ERROR TypeError: Cannot read properties of undefined (reading 'style')\n    at t.showSlides (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:3823)\n    at Object.next (https://www.ecell.in/552.bfe6dc828424cd3a.js:1:2727)\n    at $e.next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:146400)\n    at ot._next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:146067)\n    at ot.next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:145752)\n    at https://www.ecell.in/main.a890ddc39c519cf9.js:1:153638\n    at K._next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:152615)\n    at K.next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:145752)\n    at https://www.ecell.in/main.a890ddc39c519cf9.js:1:153638\n    at K._next (https://www.ecell.in/main.a890ddc39c519cf9.js:1:152615)"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "ai_summary": "",
+  "step_retries": 0
+}

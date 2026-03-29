@@ -44,7 +44,11 @@ class EvidenceCollector:
             await page.screenshot(path=str(path), full_page=False)
             return str(path)
         except Exception as e:
-            logger.warning("Screenshot failed: %s", e)
+            err = str(e).lower()
+            if "closed" in err or "target" in err:
+                logger.debug("Screenshot skipped: %s", e)
+            else:
+                logger.warning("Screenshot failed: %s", e)
             return ""
 
     async def capture_dom_snapshot(self, page: Page) -> str:

@@ -64,14 +64,21 @@ export function ScanDetailPage() {
       </div>
       <div className="card">
         <div className="card-title">Defects</div>
-        <ul className="issue-list">
-          {issues.map((i, idx) => (
-            <li key={`${idx}-${i.message}`} className={`issue ${i.severity ?? "medium"}`}>
-              <span className={`badge ${i.severity ?? "medium"}`}>{i.severity ?? "medium"}</span>
-              <span>{i.message}</span>
-            </li>
-          ))}
-        </ul>
+        {issues.length === 0 ? (
+          <div className="issues-empty">
+            <p className="issues-empty-title">No issues found</p>
+            <p className="issues-empty-sub">Your app looks healthy</p>
+          </div>
+        ) : (
+          <ul className="issue-list">
+            {issues.map((i, idx) => (
+              <li key={`${idx}-${i.message}`} className={`issue ${i.severity ?? "medium"}`}>
+                <span className={`badge ${i.severity ?? "medium"}`}>{i.severity ?? "medium"}</span>
+                <span>{i.message}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       {toast && <div className="toast success">{toast}</div>}
     </div>

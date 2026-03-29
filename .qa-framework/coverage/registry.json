@@ -1,6 +1,6 @@
 {
   "target_url": "https://example.com",
-  "last_updated": "2026-03-27T11:22:43Z",
+  "last_updated": "2026-03-28T21:28:06Z",
   "pages": {
     "page_example.com_0f115db062b7": {
       "page_id": "page_example.com_0f115db062b7",
@@ -45,6 +45,77 @@
                   "failure_reason": null
                 }
               ]
+            },
+            {
+              "signature": "deterministic_smoke_generic_flow_v1",
+              "last_tested": "2026-03-28T13:29:45Z",
+              "last_result": "pass",
+              "test_count": 9,
+              "history": [
+                {
+                  "run_id": "run_e0563855",
+                  "timestamp": "2026-03-28T10:22:03Z",
+                  "result": "pass",
+                  "duration_seconds": 152.32,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_26c562ee",
+                  "timestamp": "2026-03-28T10:33:23Z",
+                  "result": "pass",
+                  "duration_seconds": 150.34,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_d0710ad8",
+                  "timestamp": "2026-03-28T10:41:37Z",
+                  "result": "pass",
+                  "duration_seconds": 150.76,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_1e36783d",
+                  "timestamp": "2026-03-28T10:44:57Z",
+                  "result": "pass",
+                  "duration_seconds": 150.83,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_ad4530b1",
+                  "timestamp": "2026-03-28T10:54:26Z",
+                  "result": "pass",
+                  "duration_seconds": 150.81,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_c7e258b4",
+                  "timestamp": "2026-03-28T12:07:43Z",
+                  "result": "pass",
+                  "duration_seconds": 100.42,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_6d9eb308",
+                  "timestamp": "2026-03-28T12:19:45Z",
+                  "result": "pass",
+                  "duration_seconds": 46.55,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_903f3120",
+                  "timestamp": "2026-03-28T13:01:56Z",
+                  "result": "pass",
+                  "duration_seconds": 48.79,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_1af7e6e5",
+                  "timestamp": "2026-03-28T13:29:45Z",
+                  "result": "pass",
+                  "duration_seconds": 52.31,
+                  "failure_reason": null
+                }
+              ]
             }
           ],
           "coverage_score": 0.0,
@@ -52,8 +123,8 @@
         }
       },
       "elements_tested": {},
-      "last_tested": "2026-03-26T22:39:23Z",
-      "test_count": 4
+      "last_tested": "2026-03-28T13:29:45Z",
+      "test_count": 13
     },
     "page_www.amazon.com_77b186a30235": {
       "page_id": "page_www.amazon.com_77b186a30235",
@@ -361,13 +432,433 @@
       "elements_tested": {},
       "last_tested": "",
       "test_count": 0
+    },
+    "page_httpbin.org_8badbcb95530": {
+      "page_id": "page_httpbin.org_8badbcb95530",
+      "url": "https://httpbin.org/html",
+      "page_type": "static",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "deterministic_smoke_generic_flow_v1",
+              "last_tested": "2026-03-28T12:09:28Z",
+              "last_result": "pass",
+              "test_count": 5,
+              "history": [
+                {
+                  "run_id": "run_bf4ea222",
+                  "timestamp": "2026-03-28T10:25:05Z",
+                  "result": "fail",
+                  "duration_seconds": 19.04,
+                  "failure_reason": "Page has basic content after steps: Assertion error: Page.title: Target page, context or browser has been closed"
+                },
+                {
+                  "run_id": "run_49050e91",
+                  "timestamp": "2026-03-28T10:36:02Z",
+                  "result": "pass",
+                  "duration_seconds": 150.79,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_a8a8766a",
+                  "timestamp": "2026-03-28T10:47:37Z",
+                  "result": "pass",
+                  "duration_seconds": 151.79,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_d30e3b84",
+                  "timestamp": "2026-03-28T10:57:06Z",
+                  "result": "pass",
+                  "duration_seconds": 151.45,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_8b17a01b",
+                  "timestamp": "2026-03-28T12:09:28Z",
+                  "result": "pass",
+                  "duration_seconds": 100.75,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-28T12:09:28Z",
+      "test_count": 5
+    },
+    "page_www.wikipedia.org_8450556cac6f": {
+      "page_id": "page_www.wikipedia.org_8450556cac6f",
+      "url": "https://www.wikipedia.org/wiki/Wikipedia",
+      "page_type": "form",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.wikipedia.org_de3f111d98da": {
+      "page_id": "page_www.wikipedia.org_de3f111d98da",
+      "url": "https://www.wikipedia.org/w/index.php",
+      "page_type": "form",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_en.wikipedia.org_5f5492c28823": {
+      "page_id": "page_en.wikipedia.org_5f5492c28823",
+      "url": "https://en.wikipedia.org/wiki/Wikipedia",
+      "page_type": "",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "deterministic_smoke_generic_flow_v1",
+              "last_tested": "2026-03-28T10:31:21Z",
+              "last_result": "pass",
+              "test_count": 1,
+              "history": [
+                {
+                  "run_id": "run_ef690671",
+                  "timestamp": "2026-03-28T10:31:21Z",
+                  "result": "pass",
+                  "duration_seconds": 39.27,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-28T10:31:21Z",
+      "test_count": 1
+    },
+    "page_www.iana.org_7630c14a6e2b": {
+      "page_id": "page_www.iana.org_7630c14a6e2b",
+      "url": "https://www.iana.org/help/example-domains",
+      "page_type": "listing",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "deterministic_smoke_generic_flow_v1",
+              "last_tested": "2026-03-28T12:11:18Z",
+              "last_result": "pass",
+              "test_count": 3,
+              "history": [
+                {
+                  "run_id": "run_6996a81b",
+                  "timestamp": "2026-03-28T10:39:05Z",
+                  "result": "pass",
+                  "duration_seconds": 164.9,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_4d22068e",
+                  "timestamp": "2026-03-28T10:50:58Z",
+                  "result": "pass",
+                  "duration_seconds": 163.56,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_119c76ec",
+                  "timestamp": "2026-03-28T12:11:18Z",
+                  "result": "pass",
+                  "duration_seconds": 105.97,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-28T12:11:18Z",
+      "test_count": 3
+    },
+    "page_www.ecell.in_e949cb61629c": {
+      "page_id": "page_www.ecell.in_e949cb61629c",
+      "url": "https://www.ecell.in/",
+      "page_type": "static",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "deterministic_smoke_generic_flow_v1",
+              "last_tested": "2026-03-28T18:44:20Z",
+              "last_result": "pass",
+              "test_count": 4,
+              "history": [
+                {
+                  "run_id": "run_28894652",
+                  "timestamp": "2026-03-28T17:57:22Z",
+                  "result": "pass",
+                  "duration_seconds": 5.65,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_8bb296fd",
+                  "timestamp": "2026-03-28T18:01:49Z",
+                  "result": "pass",
+                  "duration_seconds": 5.44,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_2b5a87a6",
+                  "timestamp": "2026-03-28T18:43:44Z",
+                  "result": "pass",
+                  "duration_seconds": 6.88,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_0f8b1203",
+                  "timestamp": "2026-03-28T18:44:20Z",
+                  "result": "pass",
+                  "duration_seconds": 7.43,
+                  "failure_reason": null
+                }
+              ]
+            },
+            {
+              "signature": "active_qa_v1",
+              "last_tested": "2026-03-28T21:28:05Z",
+              "last_result": "fail",
+              "test_count": 2,
+              "history": [
+                {
+                  "run_id": "run_3627441c",
+                  "timestamp": "2026-03-28T20:42:25Z",
+                  "result": "fail",
+                  "duration_seconds": 0.48,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_ace92790",
+                  "timestamp": "2026-03-28T21:28:05Z",
+                  "result": "fail",
+                  "duration_seconds": 16.88,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-28T21:28:05Z",
+      "test_count": 6
+    },
+    "page_www.ecell.in_0fad5dd1bb7c": {
+      "page_id": "page_www.ecell.in_0fad5dd1bb7c",
+      "url": "https://www.ecell.in/about",
+      "page_type": "static",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "deterministic_smoke_generic_flow_v1",
+              "last_tested": "2026-03-28T19:09:05Z",
+              "last_result": "pass",
+              "test_count": 1,
+              "history": [
+                {
+                  "run_id": "run_cdedfcaa",
+                  "timestamp": "2026-03-28T19:09:05Z",
+                  "result": "pass",
+                  "duration_seconds": 8.66,
+                  "failure_reason": null
+                }
+              ]
+            },
+            {
+              "signature": "active_qa_v1",
+              "last_tested": "2026-03-28T21:28:05Z",
+              "last_result": "fail",
+              "test_count": 2,
+              "history": [
+                {
+                  "run_id": "run_3627441c",
+                  "timestamp": "2026-03-28T20:42:25Z",
+                  "result": "fail",
+                  "duration_seconds": 0.22,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_ace92790",
+                  "timestamp": "2026-03-28T21:28:05Z",
+                  "result": "fail",
+                  "duration_seconds": 7.51,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-28T21:28:05Z",
+      "test_count": 3
+    },
+    "page_www.ecell.in_06acfddca618": {
+      "page_id": "page_www.ecell.in_06acfddca618",
+      "url": "https://www.ecell.in/initiatives",
+      "page_type": "static",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "active_qa_v1",
+              "last_tested": "2026-03-28T21:28:05Z",
+              "last_result": "fail",
+              "test_count": 2,
+              "history": [
+                {
+                  "run_id": "run_3627441c",
+                  "timestamp": "2026-03-28T20:42:25Z",
+                  "result": "fail",
+                  "duration_seconds": 0.26,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_ace92790",
+                  "timestamp": "2026-03-28T21:28:05Z",
+                  "result": "fail",
+                  "duration_seconds": 19.71,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-28T21:28:05Z",
+      "test_count": 2
+    },
+    "page_www.ecell.in_ff4131f0be76": {
+      "page_id": "page_www.ecell.in_ff4131f0be76",
+      "url": "https://www.ecell.in/gallery",
+      "page_type": "static",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "active_qa_v1",
+              "last_tested": "2026-03-28T21:28:05Z",
+              "last_result": "fail",
+              "test_count": 1,
+              "history": [
+                {
+                  "run_id": "run_ace92790",
+                  "timestamp": "2026-03-28T21:28:05Z",
+                  "result": "fail",
+                  "duration_seconds": 10.94,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-28T21:28:05Z",
+      "test_count": 1
+    },
+    "page_www.ecell.in_e6915a11c74e": {
+      "page_id": "page_www.ecell.in_e6915a11c74e",
+      "url": "https://www.ecell.in/contact",
+      "page_type": "form",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "active_qa_v1",
+              "last_tested": "2026-03-28T20:42:25Z",
+              "last_result": "fail",
+              "test_count": 1,
+              "history": [
+                {
+                  "run_id": "run_3627441c",
+                  "timestamp": "2026-03-28T20:42:25Z",
+                  "result": "fail",
+                  "duration_seconds": 0.2,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-28T20:42:25Z",
+      "test_count": 1
+    },
+    "page_www.ecell.in_c297d85e3121": {
+      "page_id": "page_www.ecell.in_c297d85e3121",
+      "url": "https://www.ecell.in/login",
+      "page_type": "form",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "active_qa_v1",
+              "last_tested": "2026-03-28T21:28:05Z",
+              "last_result": "fail",
+              "test_count": 1,
+              "history": [
+                {
+                  "run_id": "run_ace92790",
+                  "timestamp": "2026-03-28T21:28:05Z",
+                  "result": "fail",
+                  "duration_seconds": 7.53,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-28T21:28:05Z",
+      "test_count": 1
     }
   },
   "journeys": {},
   "global_stats": {
-    "total_pages": 30,
-    "pages_tested": 3,
-    "overall_score": 0.1,
+    "total_pages": 41,
+    "pages_tested": 12,
+    "overall_score": 0.2926829268292683,
     "category_scores": {
       "functional": 1.0
     },

@@ -33,6 +33,7 @@ class StepResult(BaseModel):
     status: str = "pass"  # pass, fail, skip
     error_message: Optional[str] = None
     screenshot_path: Optional[str] = None
+    evaluation_reason: Optional[str] = None
 
 
 class AssertionResult(BaseModel):
@@ -69,6 +70,8 @@ class TestResult(BaseModel):
     assertions_failed: int = 0
     assertions_total: int = 0
     potentially_flaky: bool = False
+    # Active QA (post-navigation): one entry per navigated URL with merged defect dicts
+    qa_defects_by_page: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class RunResult(BaseModel):
@@ -85,3 +88,5 @@ class RunResult(BaseModel):
     duration_seconds: float = 0.0
     test_results: list[TestResult] = Field(default_factory=list)
     ai_summary: str = ""
+    # Step-level evaluator retries (sum across parallel tests)
+    step_retries: int = 0

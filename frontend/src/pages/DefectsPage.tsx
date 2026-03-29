@@ -7,7 +7,10 @@ export function DefectsPage() {
       <div className="page">
         <h2>Defects</h2>
         <div className="card empty-state">
-          <p>No defects to show yet. Run a scan or load demo data.</p>
+          <div className="issues-empty issues-empty--in-card">
+            <p className="issues-empty-title">No issues found</p>
+            <p className="issues-empty-sub">Your app looks healthy</p>
+          </div>
         </div>
       </div>
     );

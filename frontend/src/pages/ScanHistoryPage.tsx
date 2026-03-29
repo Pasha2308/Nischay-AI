@@ -10,7 +10,10 @@ export function ScanHistoryPage() {
       <div className="page">
         <h2>Scan History</h2>
         <div className="card empty-state">
-          <p>No scans yet. Start your first scan from the Dashboard.</p>
+          <p className="empty-state-title">No scans yet</p>
+          <button type="button" className="btn-primary" onClick={() => navigate("/")}>
+            Start your first scan
+          </button>
         </div>
       </div>
     );

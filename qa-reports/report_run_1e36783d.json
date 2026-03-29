@@ -1,0 +1,117 @@
+{
+  "run_id": "run_1e36783d",
+  "plan_id": "plan_det_fd40fbaf",
+  "started_at": "2026-03-28T10:42:24Z",
+  "completed_at": "2026-03-28T10:44:57Z",
+  "target_url": "https://example.com",
+  "total_tests": 1,
+  "passed": 1,
+  "failed": 0,
+  "skipped": 0,
+  "errors": 0,
+  "duration_seconds": 153.46,
+  "test_results": [
+    {
+      "test_id": "deterministic_smoke",
+      "test_name": "Deterministic smoke (generic_flow)",
+      "description": "No-AI deterministic flow using tool-based executor.",
+      "category": "functional",
+      "priority": 1,
+      "target_page_id": "page_example.com_0f115db062b7",
+      "actual_page_id": "page_example.com_0f115db062b7",
+      "actual_url": "https://example.com/",
+      "coverage_signature": "deterministic_smoke_generic_flow_v1",
+      "result": "pass",
+      "duration_seconds": 150.83,
+      "failure_reason": null,
+      "evidence": {
+        "screenshots": [
+          "runs\\run_1e36783d\\evidence\\deterministic_smoke\\screenshot_step_0_1.png",
+          "runs\\run_1e36783d\\evidence\\deterministic_smoke\\screenshot_step_1_2.png",
+          "runs\\run_1e36783d\\evidence\\deterministic_smoke\\screenshot_step_2_fail_5.png",
+          "runs\\run_1e36783d\\evidence\\deterministic_smoke\\screenshot_step_3_fail_8.png",
+          "runs\\run_1e36783d\\evidence\\deterministic_smoke\\screenshot_final_9.png"
+        ],
+        "console_logs": [
+          "[error] Failed to load resource: the server responded with a status of 404 ()"
+        ],
+        "network_log": [
+          {
+            "url": "https://example.com/",
+            "method": "GET",
+            "status": 200,
+            "resource_type": "document"
+          }
+        ],
+        "dom_snapshot_path": null,
+        "video_path": null
+      },
+      "fallback_records": [],
+      "precondition_results": [],
+      "step_results": [
+        {
+          "step_index": 0,
+          "action_type": "navigate",
+          "selector": null,
+          "value": "https://example.com",
+          "description": "Open target page",
+          "status": "pass",
+          "error_message": null,
+          "screenshot_path": "runs\\run_1e36783d\\evidence\\deterministic_smoke\\screenshot_step_0_1.png",
+          "evaluation_reason": "No failure signals in actual result."
+        },
+        {
+          "step_index": 1,
+          "action_type": "wait",
+          "selector": null,
+          "value": "900",
+          "description": "Settle after navigation",
+          "status": "pass",
+          "error_message": null,
+          "screenshot_path": "runs\\run_1e36783d\\evidence\\deterministic_smoke\\screenshot_step_1_2.png",
+          "evaluation_reason": "No failure signals in actual result."
+        },
+        {
+          "step_index": 2,
+          "action_type": "click",
+          "selector": "button:visible, input[type='submit']:visible, input[type='button']:visible, [role='button']:visible, a[role='button']:visible",
+          "value": null,
+          "description": "Click visible primary action if present",
+          "status": "fail",
+          "error_message": "Page.click: Timeout 10000ms exceeded.\nCall log:\n  - waiting for locator(\"button:visible, input[type='submit']:visible, input[type='button']:visible, [role='button']:visible, a[role='button']:visible\")\n",
+          "screenshot_path": "runs\\run_1e36783d\\evidence\\deterministic_smoke\\screenshot_step_2_fail_5.png",
+          "evaluation_reason": null
+        },
+        {
+          "step_index": 3,
+          "action_type": "fill",
+          "selector": "input[type='text']:visible, input:not([type]):visible, textarea:visible",
+          "value": "Joseph Callahan",
+          "description": "Fill first visible text input if present",
+          "status": "fail",
+          "error_message": "Page.fill: Timeout 10000ms exceeded.\nCall log:\n  - waiting for locator(\"input[type='text']:visible, input:not([type]):visible, textarea:visible\")\n",
+          "screenshot_path": "runs\\run_1e36783d\\evidence\\deterministic_smoke\\screenshot_step_3_fail_8.png",
+          "evaluation_reason": null
+        }
+      ],
+      "assertion_results": [
+        {
+          "assertion_type": "page_loaded",
+          "selector": null,
+          "expected_value": null,
+          "description": "Page has basic content after steps",
+          "passed": true,
+          "actual_value": null,
+          "message": "Page loaded (title: 'Example Domain')"
+        }
+      ],
+      "assertions_passed": 1,
+      "assertions_failed": 0,
+      "assertions_total": 1,
+      "potentially_flaky": false
+    }
+  ],
+  "ai_summary": "",
+  "step_retries": 4,
+  "regressions": []
+}

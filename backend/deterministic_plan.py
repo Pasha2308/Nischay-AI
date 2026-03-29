@@ -71,7 +71,7 @@ def build_deterministic_smoke_plan(config: FrameworkConfig, site_model: SiteMode
     flow_type = "generic_flow"
     steps: list[Action] = [
         Action(action_type="navigate", value=target, description="Open target page"),
-        Action(action_type="wait", value="900", description="Settle after navigation"),
+        Action(action_type="wait", value="500", description="Settle after navigation"),
     ]
 
     if _has_login_form(site_model):
@@ -97,7 +97,7 @@ def build_deterministic_smoke_plan(config: FrameworkConfig, site_model: SiteMode
                 ),
                 Action(
                     action_type="wait",
-                    value="1200",
+                    value="800",
                     description="Wait for post-login navigation",
                 ),
             ]
@@ -138,7 +138,7 @@ def build_deterministic_smoke_plan(config: FrameworkConfig, site_model: SiteMode
         preconditions=[],
         steps=steps,
         assertions=assertions,
-        timeout_seconds=max(60, config.selector_timeout_seconds * 3),
+        timeout_seconds=max(45, config.selector_timeout_seconds * 8),
     )
 
     return TestPlan(

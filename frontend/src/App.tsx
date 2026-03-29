@@ -6,6 +6,7 @@ import { ScanHistoryPage } from "./pages/ScanHistoryPage";
 import { DefectsPage } from "./pages/DefectsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { ScanDetailPage } from "./pages/ScanDetailPage";
+import { JobResultsPage } from "./pages/JobResultsPage";
 import { SyntheticDataPage } from "./pages/SyntheticDataPage";
 
 export default function App() {
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/synthetic" element={<SyntheticDataPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/scans/:id" element={<ScanDetailPage />} />
+          <Route path="/results/:jobId" element={<JobResultsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

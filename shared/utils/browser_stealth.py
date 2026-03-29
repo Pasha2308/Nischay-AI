@@ -10,18 +10,6 @@ import random
 from typing import Any
 
 
-async def launch_stealth_browser(playwright: Any):
-    """Launch Chromium with sensible defaults."""
-    return await playwright.chromium.launch(
-        headless=False,
-        args=[
-            "--start-maximized",
-            "--disable-dev-shm-usage",
-            "--no-sandbox",
-        ],
-    )
-
-
 async def create_stealth_context(
     browser: Any,
     viewport: dict[str, int] | None = None,

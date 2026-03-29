@@ -10,7 +10,7 @@ export type ScanRecord = {
   date: string;
   status: ScanStatus;
   riskScore: number;
-  riskLevel: "HIGH RISK" | "MEDIUM RISK" | "LOW RISK";
+  riskLevel: string;
   defectCount: number;
   result: ScanResultPayload;
 };
@@ -35,7 +35,7 @@ export function toScanRecord(
     date: input.date ?? new Date().toISOString(),
     status: input.status ?? "completed",
     riskScore,
-    riskLevel: result.risk_level ?? "LOW RISK",
+    riskLevel: result.risk?.level ?? result.risk_level ?? result.risk_level_legacy ?? "LOW",
     defectCount,
     result,
   };

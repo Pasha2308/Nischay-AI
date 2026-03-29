@@ -1,0 +1,113 @@
+{
+  "run_id": "run_bf4ea222",
+  "plan_id": "plan_det_7af1340f",
+  "started_at": "2026-03-28T10:22:08Z",
+  "completed_at": "2026-03-28T10:25:05Z",
+  "target_url": "https://httpbin.org/html",
+  "total_tests": 1,
+  "passed": 0,
+  "failed": 1,
+  "skipped": 0,
+  "errors": 0,
+  "duration_seconds": 177.47,
+  "test_results": [
+    {
+      "test_id": "deterministic_smoke",
+      "test_name": "Deterministic smoke (generic_flow)",
+      "description": "No-AI deterministic flow using tool-based executor.",
+      "category": "functional",
+      "priority": 1,
+      "target_page_id": "page_httpbin.org_8badbcb95530",
+      "actual_page_id": "page_httpbin.org_8badbcb95530",
+      "actual_url": "https://httpbin.org/html",
+      "coverage_signature": "deterministic_smoke_generic_flow_v1",
+      "result": "fail",
+      "duration_seconds": 19.04,
+      "failure_reason": "Page has basic content after steps: Assertion error: Page.title: Target page, context or browser has been closed",
+      "evidence": {
+        "screenshots": [
+          "runs\\run_bf4ea222\\evidence\\deterministic_smoke\\screenshot_step_0_1.png",
+          "runs\\run_bf4ea222\\evidence\\deterministic_smoke\\screenshot_step_1_2.png"
+        ],
+        "console_logs": [
+          "[error] Failed to load resource: the server responded with a status of 404 ()"
+        ],
+        "network_log": [
+          {
+            "url": "https://httpbin.org/html",
+            "method": "GET",
+            "status": 200,
+            "resource_type": "document"
+          }
+        ],
+        "dom_snapshot_path": null,
+        "video_path": "runs\\run_bf4ea222\\evidence\\deterministic_smoke\\video_rerun\\video\\6c3496a865fbbb4f82cce0146fc2bde2.webm"
+      },
+      "fallback_records": [],
+      "precondition_results": [],
+      "step_results": [
+        {
+          "step_index": 0,
+          "action_type": "navigate",
+          "selector": null,
+          "value": "https://httpbin.org/html",
+          "description": "Open target page",
+          "status": "pass",
+          "error_message": null,
+          "screenshot_path": "runs\\run_bf4ea222\\evidence\\deterministic_smoke\\screenshot_step_0_1.png",
+          "evaluation_reason": "No failure signals in actual result."
+        },
+        {
+          "step_index": 1,
+          "action_type": "wait",
+          "selector": null,
+          "value": "900",
+          "description": "Settle after navigation",
+          "status": "pass",
+          "error_message": null,
+          "screenshot_path": "runs\\run_bf4ea222\\evidence\\deterministic_smoke\\screenshot_step_1_2.png",
+          "evaluation_reason": "No failure signals in actual result."
+        },
+        {
+          "step_index": 2,
+          "action_type": "click",
+          "selector": "button:visible, input[type='submit']:visible, input[type='button']:visible, [role='button']:visible, a[role='button']:visible",
+          "value": null,
+          "description": "Click visible primary action if present",
+          "status": "fail",
+          "error_message": "Page.wait_for_timeout: Target page, context or browser has been closed",
+          "screenshot_path": "",
+          "evaluation_reason": null
+        },
+        {
+          "step_index": 3,
+          "action_type": "fill",
+          "selector": "input[type='text']:visible, input:not([type]):visible, textarea:visible",
+          "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "description": "Fill first visible text input if present",
+          "status": "fail",
+          "error_message": "Page.wait_for_timeout: Target page, context or browser has been closed",
+          "screenshot_path": "",
+          "evaluation_reason": null
+        }
+      ],
+      "assertion_results": [
+        {
+          "assertion_type": "page_loaded",
+          "selector": null,
+          "expected_value": null,
+          "description": "Page has basic content after steps",
+          "passed": false,
+          "actual_value": null,
+          "message": "Assertion error: Page.title: Target page, context or browser has been closed"
+        }
+      ],
+      "assertions_passed": 0,
+      "assertions_failed": 1,
+      "assertions_total": 1,
+      "potentially_flaky": true
+    }
+  ],
+  "ai_summary": "",
+  "step_retries": 8
+}

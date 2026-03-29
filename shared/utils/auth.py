@@ -7,10 +7,18 @@ configured with selectors, and failures are non-fatal.
 
 from __future__ import annotations
 
+import asyncio
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
+from playwright.async_api import Page
+
 from shared.models.site_model import AuthFlow
+
+
+def is_login_page(url: str) -> bool:
+    return any(x in url.lower() for x in ["login", "signin", "auth"])
 
 
 @dataclass
@@ -27,9 +35,44 @@ class LoginAttemptResult:
     message: str
 
 
+async def wait_for_human_login(
+    page: Page,
+    emit_event: Callable[[str], Awaitable[None]],
+    timeout_seconds: int = 180,
+) -> None:
+    await emit_event("🔐 Browser opened — please log in")
+    await emit_event("⏳ Waiting for login (3 minutes)...")
+
+    login_url = page.url
+    start_time = asyncio.get_event_loop().time()
+
+    while True:
+        elapsed = asyncio.get_event_loop().time() - start_time
+
+        if elapsed > timeout_seconds:
+            await emit_event("❌ Login timeout")
+            raise TimeoutError("Human login timeout")
+
+        current_url = page.url
+
+        if current_url != login_url:
+            await emit_event("✅ Login detected via URL change")
+            return
+
+        login_form = await page.query_selector("input[type='password']")
+        if not login_form:
+            await emit_event("✅ Login form disappeared")
+            return
+
+        if int(elapsed) % 30 == 0:
+            remaining = int(timeout_seconds - elapsed)
+            await emit_event(f"⏳ Waiting... {remaining}s left")
+
+        await asyncio.sleep(1)
+
+
 async def detect_login_page(page: Any) -> bool:
-    url = (page.url or "").lower()
-    if "login" in url or "signin" in url:
+    if is_login_page(page.url or ""):
         return True
     try:
         password_inputs = page.locator("input[type='password']")
@@ -89,19 +132,24 @@ async def attempt_login(page: Any, username: str, password: str) -> LoginAttempt
 
     try:
         await page.wait_for_url(
-            lambda u: ("login" not in str(u).lower()) and ("signin" not in str(u).lower()),
+            lambda u: not is_login_page(str(u)),
             timeout=15000,
         )
     except Exception:
         pass
 
-    final_url = (page.url or "").lower()
-    if "login" in final_url or "signin" in final_url:
+    if is_login_page(page.url or ""):
         return LoginAttemptResult(False, "Still on login page after timeout")
     return LoginAttemptResult(True, "Login successful")
 
 
-async def perform_smart_auth(context: Any, auth_config: Any, ai_client: Any | None = None) -> AuthResult:
+async def perform_smart_auth(
+    context: Any,
+    auth_config: Any,
+    ai_client: Any | None = None,
+    *,
+    emit_event: Callable[[str], Awaitable[None]] | None = None,
+) -> AuthResult:
     """Human-in-the-loop login with explicit URL-based confirmation."""
     try:
         login_url = getattr(auth_config, "login_url", "") or ""
@@ -114,25 +162,25 @@ async def perform_smart_auth(context: Any, auth_config: Any, ai_client: Any | No
         page = await context.new_page()
         await page.goto(login_url, wait_until="domcontentloaded", timeout=30000)
         if await detect_login_page(page):
-            for _ in range(90):  # 3 minutes, poll every 2 seconds
-                current = (page.url or "").lower()
-                if "login" not in current and "signin" not in current:
-                    post_login_url = page.url
-                    await page.close()
-                    return AuthResult(
-                        True,
-                        auth_flow=AuthFlow(
-                            login_url=login_url,
-                            login_method="form",
-                            requires_credentials=True,
-                            detection_method="manual_human",
-                            detected_selectors={},
-                        ),
-                        post_login_url=post_login_url,
-                    )
-                await page.wait_for_timeout(2000)
+
+            async def _default_emit(msg: str) -> None:
+                print(msg, flush=True)
+
+            emit = emit_event or _default_emit
+            await wait_for_human_login(page, emit, timeout_seconds=180)
+            post_login_url = page.url
             await page.close()
-            return AuthResult(False, "MANUAL_LOGIN_TIMEOUT: Login timeout — scan cancelled")
+            return AuthResult(
+                True,
+                auth_flow=AuthFlow(
+                    login_url=login_url,
+                    login_method="form",
+                    requires_credentials=True,
+                    detection_method="manual_human",
+                    detected_selectors={},
+                ),
+                post_login_url=post_login_url,
+            )
 
         post_login_url = page.url
         await page.close()
@@ -144,14 +192,12 @@ async def perform_smart_auth(context: Any, auth_config: Any, ai_client: Any | No
                 login_method="form",
                 requires_credentials=True,
                 detection_method="explicit",
-                detected_selectors={
-                    "username_selector": user_sel,
-                    "password_selector": pass_sel,
-                    "submit_selector": submit_sel,
-                },
+                detected_selectors={},
             ),
             post_login_url=post_login_url,
         )
+    except TimeoutError:
+        raise
     except Exception as e:
         return AuthResult(False, str(e))
 
@@ -173,4 +219,3 @@ async def authenticate_and_capture_state(
         return result, storage
     finally:
         await context.close()
-

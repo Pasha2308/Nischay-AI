@@ -1,0 +1,46 @@
+{
+  "run_id": "run_396bc67a",
+  "plan_id": "plan_det_48b6ac89",
+  "started_at": "2026-03-28T17:51:21Z",
+  "completed_at": "2026-03-28T17:51:21Z",
+  "target_url": "https://www.ecell.in/",
+  "total_tests": 1,
+  "passed": 0,
+  "failed": 0,
+  "skipped": 0,
+  "errors": 1,
+  "duration_seconds": 0.01,
+  "test_results": [
+    {
+      "test_id": "executor_bootstrap",
+      "test_name": "Executor bootstrap",
+      "description": "Playwright/browser error",
+      "category": "functional",
+      "priority": 1,
+      "target_page_id": "",
+      "actual_page_id": "",
+      "actual_url": "",
+      "coverage_signature": "executor_bootstrap",
+      "result": "error",
+      "duration_seconds": 0.0,
+      "failure_reason": "EvaluatorAgent.__init__() got an unexpected keyword argument 'scan_task'",
+      "evidence": {
+        "screenshots": [],
+        "console_logs": [],
+        "network_log": [],
+        "dom_snapshot_path": null,
+        "video_path": null
+      },
+      "fallback_records": [],
+      "precondition_results": [],
+      "step_results": [],
+      "assertion_results": [],
+      "assertions_passed": 0,
+      "assertions_failed": 0,
+      "assertions_total": 0,
+      "potentially_flaky": false
+    }
+  ],
+  "ai_summary": "",
+  "step_retries": 0
+}

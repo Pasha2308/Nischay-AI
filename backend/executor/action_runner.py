@@ -54,7 +54,7 @@ def resolve_dynamic_vars_for_test_case(actions: list[Action]) -> None:
 async def run_action(
     page: Page,
     action: Action,
-    timeout: int = 10000,
+    timeout: int = 6000,
     smart_resolve: bool = True,
 ) -> None:
     """Execute a single action via the tool registry.
@@ -62,7 +62,7 @@ async def run_action(
     Args:
         page: Playwright page instance.
         action: The action to execute.
-        timeout: Selector timeout in milliseconds (default 10000).
+        timeout: Selector timeout in milliseconds (default 6000).
         smart_resolve: When True, try alternative selectors before failing.
     """
 

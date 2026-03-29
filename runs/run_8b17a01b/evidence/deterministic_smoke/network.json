@@ -1,0 +1,8 @@
+[
+  {
+    "url": "https://httpbin.org/html",
+    "method": "GET",
+    "status": 200,
+    "resource_type": "document"
+  }
+]
