@@ -1,6 +1,6 @@
 {
   "target_url": "https://example.com",
-  "last_updated": "2026-03-29T18:44:51Z",
+  "last_updated": "2026-03-29T20:03:07Z",
   "pages": {
     "page_example.com_0f115db062b7": {
       "page_id": "page_example.com_0f115db062b7",
@@ -1080,15 +1080,29 @@
           "signatures_tested": [
             {
               "signature": "micro_task_scan_v1",
-              "last_tested": "2026-03-29T18:44:51Z",
+              "last_tested": "2026-03-29T19:35:09Z",
               "last_result": "fail",
-              "test_count": 1,
+              "test_count": 3,
               "history": [
                 {
                   "run_id": "run_70527c26",
                   "timestamp": "2026-03-29T18:44:51Z",
                   "result": "fail",
                   "duration_seconds": 2.29,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_b7dc358e",
+                  "timestamp": "2026-03-29T19:22:05Z",
+                  "result": "fail",
+                  "duration_seconds": 0.83,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_5f8acbd4",
+                  "timestamp": "2026-03-29T19:35:09Z",
+                  "result": "fail",
+                  "duration_seconds": 0.54,
                   "failure_reason": null
                 }
               ]
@@ -1099,8 +1113,8 @@
         }
       },
       "elements_tested": {},
-      "last_tested": "2026-03-29T18:44:51Z",
-      "test_count": 1
+      "last_tested": "2026-03-29T19:35:09Z",
+      "test_count": 3
     },
     "page_www.nappadori.com_deda5f4f011c": {
       "page_id": "page_www.nappadori.com_deda5f4f011c",
@@ -1128,13 +1142,125 @@
       "elements_tested": {},
       "last_tested": "",
       "test_count": 0
+    },
+    "page_www.nappadori.com_8a8dc3fe67a5": {
+      "page_id": "page_www.nappadori.com_8a8dc3fe67a5",
+      "url": "https://www.nappadori.com/products/chamber-watch-case",
+      "page_type": "",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "micro_task_scan_v1",
+              "last_tested": "2026-03-29T20:00:02Z",
+              "last_result": "fail",
+              "test_count": 2,
+              "history": [
+                {
+                  "run_id": "run_01fc401f",
+                  "timestamp": "2026-03-29T19:42:49Z",
+                  "result": "fail",
+                  "duration_seconds": 27.11,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_28a88be4",
+                  "timestamp": "2026-03-29T20:00:02Z",
+                  "result": "fail",
+                  "duration_seconds": 27.72,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-29T20:00:02Z",
+      "test_count": 2
+    },
+    "page_www.myntra.com_4f16a5950c40": {
+      "page_id": "page_www.myntra.com_4f16a5950c40",
+      "url": "https://www.myntra.com/",
+      "page_type": "static",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "micro_task_scan_v1",
+              "last_tested": "2026-03-29T19:45:09Z",
+              "last_result": "fail",
+              "test_count": 1,
+              "history": [
+                {
+                  "run_id": "run_4836527e",
+                  "timestamp": "2026-03-29T19:45:09Z",
+                  "result": "fail",
+                  "duration_seconds": 41.18,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-29T19:45:09Z",
+      "test_count": 1
+    },
+    "page_www.mochishoes.com_f126f5adc10f": {
+      "page_id": "page_www.mochishoes.com_f126f5adc10f",
+      "url": "https://www.mochishoes.com/",
+      "page_type": "static",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.mochishoes.com_aab19340b394": {
+      "page_id": "page_www.mochishoes.com_aab19340b394",
+      "url": "https://www.mochishoes.com/men-shoes",
+      "page_type": "",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "micro_task_scan_v1",
+              "last_tested": "2026-03-29T20:03:07Z",
+              "last_result": "fail",
+              "test_count": 1,
+              "history": [
+                {
+                  "run_id": "run_7ca404e7",
+                  "timestamp": "2026-03-29T20:03:07Z",
+                  "result": "fail",
+                  "duration_seconds": 48.19,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-29T20:03:07Z",
+      "test_count": 1
     }
   },
   "journeys": {},
   "global_stats": {
-    "total_pages": 50,
-    "pages_tested": 18,
-    "overall_score": 0.36,
+    "total_pages": 54,
+    "pages_tested": 21,
+    "overall_score": 0.3888888888888889,
     "category_scores": {
       "functional": 1.0
     },

@@ -1,6 +1,8 @@
 export type Severity = "critical" | "high" | "medium" | "low";
 
 export type ScanIssue = {
+  /** Clear headline when provided by the API */
+  title?: string;
   type?: string;
   defect?: string;
   severity?: Severity | string;
@@ -24,6 +26,8 @@ export type PipelineMetricsPayload = {
   retries_count?: number;
   step_retries?: number;
   pages_scanned?: number | null;
+  /** Human-readable executed scope: micro-task name, flow list, or preset group. */
+  task?: string | null;
 };
 
 export type ActionTrailEntry = {
@@ -210,6 +214,8 @@ export type TriggerTestRunOptions = {
   credentials?: ScanCredentialsPayload;
   /** Playwright browser; default chromium. */
   browser_type?: "chromium" | "firefox" | "webkit";
+  /** Optional natural-language intent, e.g. "search for shoes". */
+  task_input?: string;
 };
 
 export async function triggerTestRun(
@@ -226,6 +232,9 @@ export async function triggerTestRun(
   if (options?.requires_login !== undefined) body.requires_login = options.requires_login;
   if (options?.credentials) body.credentials = options.credentials;
   if (options?.browser_type) body.browser_type = options.browser_type;
+  if (options?.task_input != null && options.task_input.trim() !== "") {
+    body.task_input = options.task_input.trim();
+  }
   const response = await fetch(`${API_BASE}/jobs/test.run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

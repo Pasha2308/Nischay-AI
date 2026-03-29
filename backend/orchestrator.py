@@ -22,6 +22,8 @@ from backend.models.action_log import (
 _T = TypeVar("_T")
 
 from backend.core.browser import launch_browser
+from backend.core.context import create_context
+from backend.core.task_intent import extract_search_query_from_task_input
 from backend.core.decision_engine import generate_decision
 from backend.core.ecommerce_plan import expand_selected_flows, run_ecommerce_scan, run_micro_task
 from backend.core.task_registry import TASK_REGISTRY
@@ -292,6 +294,37 @@ class Orchestrator:
         except Exception as e:
             logger.debug("Scan DB persistence skipped: %s", e)
 
+    @staticmethod
+    def _humanize_task_token(s: str) -> str:
+        t = (s or "").strip()
+        if not t:
+            return "Scan"
+        return " ".join(w.capitalize() for w in t.replace("-", "_").split("_") if w)
+
+    def _execution_task_label(self) -> str:
+        """Human-readable name for metrics: single micro-task, flow bundle, or preset group."""
+        cfg = self.config
+        tt = str(getattr(cfg, "task_type", "") or "").strip().lower()
+        mt = str(getattr(cfg, "micro_task", "") or "").strip()
+        if tt == "micro" and mt:
+            return self._humanize_task_token(mt)
+        flows = getattr(cfg, "flows", None)
+        if isinstance(flows, list) and len(flows) > 0:
+            parts = [self._humanize_task_token(str(x)) for x in flows if str(x).strip()]
+            if len(parts) == 1:
+                return parts[0]
+            if len(parts) <= 4:
+                return ", ".join(parts)
+            return f"{len(parts)} micro-tasks ({', '.join(parts[:2])}, …)"
+        st = str(getattr(cfg, "scan_task", "") or "").strip() or "full_app_scan"
+        preset: dict[str, str] = {
+            "quick_scan": "Quick scan",
+            "conversion_scan": "Conversion scan",
+            "full_app_scan": "Full app scan",
+            "auth_scan": "Authentication scan",
+        }
+        return preset.get(st, self._humanize_task_token(st))
+
     def _pipeline_metrics(
         self,
         *,
@@ -311,6 +344,7 @@ class Orchestrator:
             "retries_count": retries,
             "step_retries": retries,
             "pages_scanned": int(pages_scanned) if pages_scanned is not None else None,
+            "task": self._execution_task_label(),
         }
 
     @staticmethod
@@ -320,7 +354,8 @@ class Orchestrator:
             f"crawl_time={pm.get('crawl_time')}s "
             f"execution_time={pm.get('execution_time')}s "
             f"retries_count={pm.get('retries_count')} "
-            f"pages_scanned={pm.get('pages_scanned')}"
+            f"pages_scanned={pm.get('pages_scanned')} "
+            f"task={pm.get('task')!r}"
         )
         print(line, flush=True)
         logger.info("%s", line)
@@ -812,6 +847,16 @@ class Orchestrator:
                     execution_logs.append(str(msg))
                     await self.emit("execution", "qa_action", {"message": msg})
 
+                # Single source of truth for micro tasks: shared context (not credentials).
+                context = create_context()
+                context.update(credentials or {})
+
+                ti = str(getattr(self.config, "task_input", "") or "").strip()
+                sq = extract_search_query_from_task_input(ti) if ti else None
+                if sq:
+                    context["search_query"] = sq
+                    await emit_event(f"Using user intent: {sq}")
+
                 try:
                     if log_bracketed:
 
@@ -936,7 +981,7 @@ class Orchestrator:
                                 duration_seconds=round(time.time() - t_scan, 2),
                             ),
                         )
-                    results = await run_micro_task(page, micro_task, credentials, emit_event)
+                    results = await run_micro_task(page, micro_task, context, emit_event)
                 else:
                     raw_flows = getattr(self.config, "flows", None)
                     if isinstance(raw_flows, list) and len(raw_flows) > 0:
@@ -944,7 +989,7 @@ class Orchestrator:
                     else:
                         st = str(self.config.scan_task or "full_app_scan").strip() or "full_app_scan"
                         selected_flows = expand_selected_flows([st])
-                    results = await run_ecommerce_scan(page, selected_flows, credentials, emit_event)
+                    results = await run_ecommerce_scan(page, selected_flows, context, emit_event)
 
                 defects = results.get("defects") or []
                 pid = page_id_from_url(page.url)

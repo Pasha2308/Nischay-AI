@@ -45,6 +45,7 @@ export function TestPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [browserType, setBrowserType] = useState<"chromium" | "firefox" | "webkit">("chromium");
+  const [taskInput, setTaskInput] = useState("");
 
   const toggleTask = (id: string) => {
     setSelectedTasks((prev) =>
@@ -88,6 +89,7 @@ export function TestPage() {
         requires_login: hasFullCreds,
         credentials,
         browser_type: browserType,
+        ...(taskInput.trim() ? { task_input: taskInput.trim() } : {}),
       };
 
       const started = await triggerTestRun(
@@ -132,6 +134,22 @@ export function TestPage() {
             disabled={busy}
             autoComplete="url"
             aria-invalid={error != null && error.includes("URL")}
+          />
+        </div>
+
+        <div className="launch-url-wrap" style={{ marginTop: 12 }}>
+          <label className="launch-field-label" htmlFor="test-task-input">
+            What should I test? <span className="muted">(optional)</span>
+          </label>
+          <input
+            id="test-task-input"
+            className="launch-url-input"
+            type="text"
+            value={taskInput}
+            onChange={(e) => setTaskInput(e.target.value)}
+            placeholder="e.g. search for shoes, test checkout, add product to cart"
+            disabled={busy}
+            autoComplete="off"
           />
         </div>
 

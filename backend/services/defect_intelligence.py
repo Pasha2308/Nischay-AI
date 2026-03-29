@@ -49,17 +49,32 @@ def _llm_configured() -> bool:
 
 
 def _tag_business_impact(page_url: str, issue_type: str, description: str) -> str:
+    """Human-readable business impact (avoid generic \"general\")."""
     u = (page_url or "").lower()
     t = (issue_type or "").lower()
     d = (description or "").lower()
     combined = f"{u} {t} {d}"
 
-    if "checkout" in u or "checkout" in combined:
-        return "revenue"
-    if "payment" in u or "cart" in u or "purchase" in u or "order" in combined:
-        return "revenue"
-    if "login" in u or "signin" in u or "sign-in" in u or "auth" in t:
-        return "trust"
+    if any(
+        x in combined
+        for x in (
+            "search",
+            "no_results",
+            "product listing",
+            "search_not",
+            "no results",
+        )
+    ):
+        return "Users cannot find products, reducing conversions"
+    if any(x in combined for x in ("add_to_cart", "cart", "basket")) or "cart" in t:
+        return "Users cannot complete purchase → revenue loss"
+    if any(
+        x in combined or x in u
+        for x in ("checkout", "payment", "place_order", "order", "shipping")
+    ):
+        return "Direct revenue blockage"
+    if any(x in combined for x in ("login", "signin", "sign-in", "password", "auth")):
+        return "Users cannot access accounts"
     if (
         "performance" in t
         or "performance" in d
@@ -67,9 +82,12 @@ def _tag_business_impact(page_url: str, issue_type: str, description: str) -> st
         or "latency" in d
         or "lcp" in d
         or "load time" in d
+        or "page_load" in t
     ):
-        return "performance"
-    return "general"
+        return "Slow or unstable pages increase bounce rate and erode trust"
+    if "console" in t or "console" in d:
+        return "Client-side errors may break flows and skew analytics"
+    return "Reduced confidence in release quality until verified"
 
 
 def issue_dict_to_defect_mapping(issue: Mapping[str, Any] | dict[str, Any], page_url: str) -> dict[str, Any]:

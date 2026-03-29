@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from typing import Any, Awaitable, Callable
 
 from playwright.async_api import Page
@@ -74,6 +75,19 @@ SEARCH_SUBMIT_PATTERNS: list[str] = [
     "button:has-text('Search')",
     "button:has-text('Go')",
     "button:has-text('Find')",
+]
+
+SEARCH_ICON_PATTERNS: list[str] = [
+    "button[aria-label*='search' i]",
+    "button[title*='search' i]",
+    "[role='button'][aria-label*='search' i]",
+    "[role='button'][title*='search' i]",
+    "[aria-label*='search' i][role='button']",
+    # Heuristic icon buttons often live in the header
+    "header button:has([class*='search' i])",
+    "header [role='button']:has([class*='search' i])",
+    "header button:has(svg)",
+    "header [role='button']:has(svg)",
 ]
 
 PRODUCT_RESULT_LINK_PATTERNS: list[str] = [
@@ -225,6 +239,90 @@ async def _emit_safe(emit: EmitFn, message: str) -> None:
         await emit(message)
     except Exception as e:
         logger.debug("emit failed: %s", e)
+
+
+async def _first_quick_visible_selector(
+    page: Page, patterns: list[str], *, per_selector_timeout_ms: int = 800
+) -> str | None:
+    """
+    Fast, non-blocking selector discovery for optional UI elements.
+    Never waits multi-seconds for something that might not exist.
+    """
+    for sel in patterns or []:
+        try:
+            loc = page.locator(sel).first
+            await loc.wait_for(state="visible", timeout=per_selector_timeout_ms)
+            return sel
+        except Exception:
+            continue
+    return None
+
+
+def _keyword_tokens(keyword: str) -> list[str]:
+    toks = [t.strip().lower() for t in (keyword or "").replace("-", " ").split() if t.strip()]
+    seen: set[str] = set()
+    out: list[str] = []
+    for t in toks:
+        if t not in seen:
+            seen.add(t)
+            out.append(t)
+    return out
+
+
+async def _try_open_search_ui(page: Page, emit: EmitFn, tid: str) -> bool:
+    """
+    Best-effort: if the page hides search behind an icon/button, click it then retry input discovery.
+    Must be fast and never throw.
+    """
+    try:
+        icon_sel = await _first_quick_visible_selector(page, SEARCH_ICON_PATTERNS, per_selector_timeout_ms=800)
+        if not icon_sel:
+            return False
+        await _emit_safe(emit, f"[micro:{tid}] found search icon/button — clicking to reveal input")
+        return bool(await safe_click(page, icon_sel, timeout_ms=3500))
+    except Exception:
+        return False
+
+
+async def _attempt_text_click_fallback(
+    page: Page, *, keyword: str, emit: EmitFn, tid: str, budget_ms: int
+) -> bool:
+    """
+    Goal-based fallback: click visible text matches that may lead to the product/results.
+    Used when search input isn't accessible or yields no results.
+    """
+    url_before = page.url or ""
+    t0 = time.monotonic()
+
+    def remaining_ms() -> int:
+        return max(0, int(budget_ms - (time.monotonic() - t0) * 1000))
+
+    await _emit_safe(emit, "Trying text match fallback")
+    if remaining_ms() > 0:
+        try:
+            sel = f"text={keyword}"
+            clicked = await safe_click(page, sel, timeout_ms=min(4500, remaining_ms()), nth=0)
+            if clicked:
+                await page.wait_for_timeout(800)
+                if (page.url or "") != url_before:
+                    return True
+        except Exception:
+            pass
+
+    await _emit_safe(emit, "Trying partial match fallback")
+    for tok in _keyword_tokens(keyword):
+        if remaining_ms() <= 0:
+            break
+        try:
+            sel = f"text={tok}"
+            clicked = await safe_click(page, sel, timeout_ms=min(4000, remaining_ms()), nth=0)
+            if clicked:
+                await page.wait_for_timeout(800)
+                if (page.url or "") != url_before:
+                    return True
+        except Exception:
+            continue
+    return False
 
 
 async def _snapshot_page_signals(page: Page) -> dict[str, Any]:
@@ -463,16 +561,51 @@ async def task_search_product(page: Page, context: dict[str, Any], emit: EmitFn)
     context = ensure_shared_context(context)
     tid = "search_product"
     defects: list[dict[str, Any]] = []
-    if not str(context.get("search_query") or context.get("query") or "").strip():
-        await _emit_safe(emit, "Using synthetic user data")
-    kw = _default_search_keyword(context)
+    keyword = str(context.get("search_query") or "").strip()
+    if keyword:
+        await _emit_safe(emit, f"Using provided search query: {keyword}")
+    else:
+        keyword = generate_search_query()
+        await _emit_safe(emit, "Using synthetic search data")
+    kw = keyword
     await _emit_safe(emit, f"[micro:{tid}] before — search keyword={kw!r}")
 
     before = await _snapshot_page_signals(page)
-    search_sel = await _first_matching_visible_selector(page, SEARCH_INPUT_PATTERNS)
+    search_sel = await _first_quick_visible_selector(page, SEARCH_INPUT_PATTERNS, per_selector_timeout_ms=800)
     if not search_sel:
-        defects.append({"defect": "search_input_missing", "description": "No search input matched", "severity": "high", "page_url": page.url})
-        await _emit_safe(emit, f"[micro:{tid}] after — no search input")
+        # Improve detection: search input may be hidden behind a search icon/button.
+        await _emit_safe(emit, f"[micro:{tid}] search input not immediately visible — attempting discovery")
+        opened = await _try_open_search_ui(page, emit, tid)
+        if opened:
+            await page.wait_for_timeout(400)
+            search_sel = await _first_quick_visible_selector(page, SEARCH_INPUT_PATTERNS, per_selector_timeout_ms=800)
+
+    if not search_sel:
+        # Required: do not assume missing immediately — try goal-based fallback discovery.
+        await _emit_safe(emit, "Search input not found — trying fallback discovery")
+        navigated = await _attempt_text_click_fallback(
+            page, keyword=kw, emit=emit, tid=tid, budget_ms=9000
+        )
+        if navigated:
+            await _emit_safe(emit, f"[micro:{tid}] after — fallback navigation succeeded")
+            return _result(tid, True, [], "LOW")
+        defects.append(
+            {
+                "defect": "search_not_accessible",
+                "description": "Search functionality not accessible",
+                "severity": "high",
+                "page_url": page.url,
+            }
+        )
+        defects.append(
+            {
+                "defect": "product_not_found",
+                "description": "Product not found via search or fallback",
+                "severity": "high",
+                "page_url": page.url,
+            }
+        )
+        await _emit_safe(emit, f"[micro:{tid}] after — no search input and fallback failed")
         return _result(tid, False, defects, "HIGH")
 
     if not await safe_fill(page, search_sel, kw, timeout_ms=5000):
@@ -504,6 +637,24 @@ async def task_search_product(page: Page, context: dict[str, Any], emit: EmitFn)
     has_results = await _has_plausible_search_results(page)
     if not has_results and not empty_state:
         defects.append({"defect": "no_results", "description": "No product listing or clear empty-state after search", "severity": "high", "page_url": page.url})
+
+    # Required: keep existing search logic, but add fallbacks to behave like a real user.
+    if not has_results:
+        await _emit_safe(emit, "Search input not found — trying fallback discovery")
+        navigated = await _attempt_text_click_fallback(
+            page, keyword=kw, emit=emit, tid=tid, budget_ms=7000
+        )
+        if navigated:
+            await _emit_safe(emit, f"[micro:{tid}] after — fallback navigation succeeded")
+            return _result(tid, True, [], "LOW")
+        defects.append(
+            {
+                "defect": "product_not_found",
+                "description": "Product not found via search or fallback",
+                "severity": "high",
+                "page_url": page.url,
+            }
+        )
 
     high = [d for d in defects if d.get("severity") == "high"]
     ok = not high and has_results and not empty_state

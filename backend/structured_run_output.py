@@ -75,6 +75,70 @@ def _console_error_lines(console_logs: list[str]) -> list[str]:
     return out
 
 
+def _issue_is_meaningful(issue: dict[str, Any]) -> bool:
+    """Drop generic / unactionable issues (e.g. \"test failure\", \"unknown error\")."""
+    defect = str(issue.get("defect") or "").strip().lower()
+    msg = str(issue.get("message") or "").strip().lower()
+    if defect == "test_failure":
+        return False
+    if msg in ("unknown error", "test failure", ""):
+        return False
+    if "unknown error" in msg and len(msg) < 40:
+        return False
+    if not msg:
+        return defect in ("auth_login_failed", "pipeline_failure", "console_error", "network_failure")
+    return True
+
+
+def _issue_display_title(issue: dict[str, Any]) -> str:
+    t = str(issue.get("title") or "").strip()
+    if t:
+        return t
+    d = str(issue.get("defect") or issue.get("type") or "issue").replace("_", " ").strip() or "issue"
+    m = str(issue.get("message") or "").strip()
+    if not m:
+        return d[:1].upper() + d[1:]
+    short = m if len(m) <= 140 else f"{m[:137]}…"
+    return f"{d[:1].upper() + d[1:]} — {short}"
+
+
+def _fix_suggestion_heuristic(issue: dict[str, Any]) -> str:
+    defect = str(issue.get("defect") or issue.get("type") or "").lower()
+    if "search" in defect:
+        return "Validate search field selectors, catalog data, and that results render for representative queries."
+    if "cart" in defect or "add_to_cart" in defect:
+        return "Trace cart state (cookies/session), button handlers, and inventory APIs; retest add-to-cart on staging."
+    if "checkout" in defect or "place_order" in defect or "payment" in defect:
+        return "Review checkout funnel, payment gateway responses, and error handling; test with sandbox cards."
+    if "login" in defect or "auth" in defect:
+        return "Verify credentials flow, session cookies, and bot protection rules; align with identity provider."
+    if "contact" in defect:
+        return "Ensure contact form handlers, SMTP/API integrations, and validation messages are wired correctly."
+    if "console" in defect:
+        return "Open DevTools, fix the reported script error, and guard third-party scripts behind feature flags."
+    return "Reproduce on staging, capture console/network logs, and patch the failing interaction or assertion."
+
+
+def _finalize_issues_for_display(issues: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for i in issues:
+        if not _issue_is_meaningful(i):
+            continue
+        row = dict(i)
+        row["title"] = _issue_display_title(row)
+        if not str(row.get("fix_suggestion") or "").strip():
+            row["fix_suggestion"] = _fix_suggestion_heuristic(row)
+        bi = str(row.get("business_impact") or "").strip()
+        if not bi or bi.lower() == "general":
+            row["business_impact"] = _tag_business_impact(
+                str(row.get("page_url") or ""),
+                str(row.get("defect") or row.get("type") or ""),
+                str(row.get("message") or ""),
+            )
+        out.append(row)
+    return out
+
+
 def _normalize_severity(raw: str | None) -> str:
     """Map issue severity to one of critical | high | medium | low."""
     s = (raw or "medium").strip().lower()
@@ -336,25 +400,6 @@ def _build_rule_based_issues(
                     },
                 )
 
-        # Summary test failure if no finer-grained defect (avoid duplicate spam)
-        if tr.result in ("fail", "error") and not any(
-            i.get("test_id") == tr.test_id and i.get("defect") == "page_load_failure"
-            for i in issues
-        ):
-            step_failures = [s for s in tr.step_results + tr.precondition_results if s.status == "fail"]
-            if not step_failures and not any(
-                not ar.passed for ar in tr.assertion_results
-            ):
-                issues.append(
-                    {
-                        "type": "test_result",
-                        "defect": "test_failure",
-                        "severity": "medium",
-                        "message": tr.failure_reason or f"Test {tr.test_id} {tr.result}",
-                        "test_id": tr.test_id,
-                    },
-                )
-
     return issues, console_errors_flat, failed_actions, missing_elements
 
 
@@ -385,13 +430,15 @@ def _issues_from_qa_defects(run_result: RunResult | None) -> list[dict[str, Any]
                 if not isinstance(d, dict):
                     continue
                 dtype = str(d.get("defect") or d.get("type") or "qa_defect")
-                msg = str(d.get("description") or "")[:2000]
+                msg = str(d.get("description") or "")[:2000].strip()
+                if not msg or msg.lower() in ("unknown error", "test failure"):
+                    continue
                 out.append(
                     {
                         "type": dtype,
                         "defect": dtype,
                         "severity": _normalize_severity(_severity_from_qa_defect_dict(d)),
-                        "message": msg or dtype,
+                        "message": msg,
                         "test_id": tr.test_id,
                         "page_url": page_url,
                     }
@@ -718,7 +765,15 @@ async def _enrich_issues_with_intelligence(
             merged["severity"] = _normalize_severity(enriched.get("severity"))
             merged["recurring"] = bool(enriched.get("recurring", False))
             merged["fix_suggestion"] = str(enriched.get("fix_suggestion") or "")
-            merged["business_impact"] = str(enriched.get("business_impact") or "general")
+            bi0 = str(enriched.get("business_impact") or "").strip()
+            if not bi0 or bi0.lower() == "general":
+                merged["business_impact"] = _tag_business_impact(
+                    url,
+                    str(issue.get("type") or issue.get("defect") or ""),
+                    str(issue.get("message") or ""),
+                )
+            else:
+                merged["business_impact"] = bi0
             return merged
         except Exception as e:
             logger.debug("enrich_defect failed: %s", e)
@@ -792,12 +847,13 @@ async def build_structured_output(
     issues_enriched = await _enrich_issues_with_intelligence(
         issues_normalized, run_result, site_model
     )
+    issues_out = _finalize_issues_for_display(issues_enriched)
     actions_run = _flatten_actions_run(run_result)
 
     risk_score, risk_level, risk_level_legacy, risk_detail, *_ = _compute_aggregate_risk_score(
-        issues_enriched, run_result, site_model
+        issues_out, run_result, site_model
     )
-    auth_failed = any(i.get("defect") == "auth_login_failed" for i in issues_enriched)
+    auth_failed = any(i.get("defect") == "auth_login_failed" for i in issues_out)
     auth_succeeded = bool(
         run_result
         and any(tr.test_id == "auth_login" and tr.result == "pass" for tr in run_result.test_results)
@@ -810,8 +866,8 @@ async def build_structured_output(
         "risk": risk_detail,
         "partial": auth_failed,
         "auth_status": "failed" if auth_failed else ("success" if auth_succeeded else "not_attempted"),
-        "issues_by_severity": _issues_by_severity(issues_enriched),
-        "issues": issues_enriched,
+        "issues_by_severity": _issues_by_severity(issues_out),
+        "issues": issues_out,
         "pages": pages_list,
         "pages_scanned": pages_scanned,
         "actions_run": actions_run,
@@ -829,7 +885,7 @@ async def build_structured_output(
     summary_out = {
         "total_pages_scanned": pages_scanned,
         "total_actions_run": len(actions_run),
-        "total_issues_found": len(issues_enriched),
+        "total_issues_found": len(issues_out),
     }
     if isinstance(summary_extra, dict):
         summary_out = {**summary_extra, **summary_out}

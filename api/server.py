@@ -144,6 +144,10 @@ class ScanRequest(BaseModel):
     auth: Optional[dict[str, Any]] = None
     requires_login: bool = False
     credentials: Optional[dict[str, Any]] = None
+    task_input: Optional[str] = Field(
+        default=None,
+        description='Optional user intent, e.g. "search for shoes" → sets search_query when applicable.',
+    )
 
 
 class TestRunResponse(BaseModel):
@@ -330,38 +334,42 @@ async def _append_run_history(job_id: str, url: str) -> None:
 
 def _normalize_scan_task(raw: str | None) -> str:
     st = (raw or "full_app").strip().lower()
-    if st in ("full_app", "auth", "checkout", "forms"):
+    if st in (
+        "full_app",
+        "full_app_scan",
+        "quick_scan",
+        "conversion_scan",
+        "auth_scan",
+        "auth",
+        "checkout",
+        "forms",
+    ):
         return st
     return "full_app"
 
 
 def _executive_summary_system_prompt(scan_task: str | None) -> str:
-    """Task-aware system prompt for executive summary (exactly three sentences)."""
+    """Task-aware system prompt: 2–3 sentences, business audience, no engineering jargon."""
     st = _normalize_scan_task(scan_task)
     core = (
-        "You write an executive scan summary for stakeholders. "
-        "Output exactly three sentences total, in plain text only (no headings, bullets, markdown, or extra lines). "
-        "Use only the facts provided in the user message; do not invent URLs, page counts, or defect counts. "
-        "You must explicitly include all of: pages scanned, number of issues found, the most critical issue and its page, "
-        "business impact, and a recommended fix — using the three-line structure supplied verbatim in the user message. "
-        "Do not use stock phrases (e.g. 'it is important to', 'robust', 'leverage', 'holistic', "
-        "'in today's landscape', 'moving forward', 'delve', 'synergy', 'paradigm').\n\n"
+        "You write very short executive summaries for business readers (product, leadership, commercial). "
+        "Output 2–3 sentences only, plain text, no headings, bullets, markdown, or line breaks between sentences unless natural. "
+        "Use only facts from the user message; do not invent URLs, page counts, or issue counts. "
+        "Never mention HTML, DOM, CSS, selectors, the browser console, stack traces, or technical debugging steps. "
+        "Emphasize shopper experience, trust, and revenue or conversion risk when the facts support it. "
+        "Avoid corporate filler (e.g. robust, leverage, holistic, synergy, paradigm, moving forward, delve).\n\n"
     )
     focus = {
-        "full_app": (
-            "Task context: FULL APP — describe overall breadth of coverage and site health implied by the facts.\n"
-        ),
-        "auth": (
-            "Task context: AUTH — when facts support it, tie the top issue to sign-in, session, or access-control risk.\n"
-        ),
-        "checkout": (
-            "Task context: CHECKOUT — when facts support it, tie the top issue to cart, payment, or purchase flow risk.\n"
-        ),
-        "forms": (
-            "Task context: FORMS — when facts support it, tie the top issue to form validation, submission, or input risk.\n"
-        ),
+        "full_app": "Scope: broad site health — frame results as overall journey and revenue risk.\n",
+        "full_app_scan": "Scope: full journey — breadth of coverage matters for leadership.\n",
+        "quick_scan": "Scope: fast signal — stress timely risk to key pages, not exhaustive depth.\n",
+        "conversion_scan": "Scope: purchase funnel — tie issues to carts, checkout, and lost sales.\n",
+        "auth_scan": "Scope: sign-in and sessions — tie issues to account access and trust.\n",
+        "auth": "Scope: authentication — tie issues to sign-in, session, and access risk.\n",
+        "checkout": "Scope: checkout — tie issues to payment and order completion.\n",
+        "forms": "Scope: forms — tie issues to data entry, submission, and customer confidence.\n",
     }
-    return core + focus[st]
+    return core + focus.get(st, focus["full_app"])
 
 
 _SEVERITY_ORDER = ("critical", "high", "medium", "low")
@@ -416,20 +424,33 @@ def _summary_target_url(result: dict[str, Any], fallback: str) -> str:
 def _executive_summary_template_fields(
     issues: list[dict[str, Any]], url: str
 ) -> tuple[str, str, str, str]:
-    """top_issue, page, business_impact, fix for the executive summary template."""
+    """top_issue, page, business_impact, fix for the executive summary (plain-language)."""
     top = _top_issues_for_summary(issues, 1)
     if not top:
         return (
             "no issues detected",
             url,
-            "no material impact identified from automated findings",
+            "no material revenue or experience risk surfaced in this pass",
             "No remediation required from this scan",
         )
     iss = top[0]
-    top_issue = str(iss.get("message") or iss.get("type") or "issue")[:500]
+    title = str(iss.get("title") or "").strip()
+    msg = str(iss.get("message") or "").strip()
+    if title:
+        top_issue = title[:400]
+    elif msg:
+        first = msg.split(". ")[0].strip()
+        top_issue = first[:220] if len(first) <= 220 else msg[:180] + "…"
+    else:
+        top_issue = str(iss.get("type") or "a reported problem")[:200]
     page = str(iss.get("page_url") or "").strip() or url
-    business_impact = str(iss.get("business_impact") or "").strip() or "product quality and user trust"
-    fix = str(iss.get("fix_suggestion") or "").strip() or "Review and remediate the reported defect"
+    business_impact = (
+        str(iss.get("business_impact") or "").strip()
+        or "customer trust and conversion potential"
+    )
+    fix = str(iss.get("fix_suggestion") or "").strip() or (
+        "Confirm on staging, fix the customer-visible behavior, then re-run this check."
+    )
     return (top_issue, page, business_impact, fix)
 
 
@@ -437,10 +458,15 @@ def _render_executive_summary(
     url: str, pages_scanned: int, total_defects: int, issues: list[dict[str, Any]]
 ) -> str:
     top_issue, page, business_impact, fix = _executive_summary_template_fields(issues, url)
+    if total_defects == 0 and not issues:
+        return (
+            f"This run reviewed {pages_scanned} page(s) on your site and did not surface issues that would "
+            f"clearly hurt shoppers or revenue. Experience risk looks low from this pass; validate again after major releases."
+        )
     return (
-        f"{url} scan covered {pages_scanned} pages and found {total_defects} issues.\n"
-        f"The most critical issue is {top_issue} on {page}.\n"
-        f"This impacts {business_impact}. Recommended action: {fix}."
+        f"We reviewed {pages_scanned} page(s) and found {total_defects} issue(s) that could affect "
+        f"experience or sales if ignored. The top concern is {top_issue} (seen on {page}). "
+        f"{business_impact} Next step: {fix}"
     )
 
 
@@ -527,28 +553,35 @@ def _build_executive_summary_user_prompt(
     pages, n_def, sev, impact_tags = _executive_summary_facts(result)
     top_issue, page, bi, fix = _executive_summary_template_fields(issues, url)
     st = _normalize_scan_task(scan_task or str(result.get("scan_task") or ""))
+    pm_raw = result.get("pipeline_metrics")
+    pm = pm_raw if isinstance(pm_raw, dict) else {}
+    exec_focus = str(pm.get("task") or "").strip()
     lines: list[str] = [
-        f"Scan task: {st}.",
+        "Write 2–3 sentences for business stakeholders. Plain English; no engineering or debugging jargon.",
         "",
-        "Produce exactly three sentences using this exact three-line structure (same line breaks, same facts):",
-        "",
-        f"{url} scan covered {pages} pages and found {n_def} issues.",
-        f"The most critical issue is {top_issue} on {page}.",
-        f"This impacts {bi}. Recommended action: {fix}.",
-        "",
-        "Placeholder meanings (do not contradict these numbers or URLs):",
-        f"- pages scanned: {pages}",
-        f"- issues (defects) count: {n_def}",
-        f"- top_issue text: {top_issue}",
-        f"- page: {page}",
-        f"- business_impact: {bi}",
-        f"- recommended fix: {fix}",
-        "",
-        f"Severity breakdown: critical={sev['critical']}, high={sev['high']}, "
-        f"medium={sev['medium']}, low={sev['low']}; "
-        f"distinct business_impact tags: {', '.join(impact_tags) if impact_tags else '(none)'}",
-        f"Trend / delta (if relevant): {_trend_context(result)}",
+        f"Scan preset: {st}."
+        + (f" Executed checks: {exec_focus}." if exec_focus else ""),
+        f"Site: {url}",
+        f"Pages reviewed: {pages}",
+        f"Issues found: {n_def}",
+        f"Severity — critical: {sev['critical']}, high: {sev['high']}, "
+        f"medium: {sev['medium']}, low: {sev['low']}",
     ]
+    if issues:
+        lines.extend(
+            [
+                f"Top issue (plain language): {top_issue}",
+                f"Where: {page}",
+                f"Business impact: {bi}",
+                f"Suggested action: {fix}",
+            ]
+        )
+    lines.extend(
+        [
+            f"Business-impact tags: {', '.join(impact_tags) if impact_tags else '(none)'}",
+            f"Trend / comparison: {_trend_context(result)}",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -698,6 +731,7 @@ async def trigger_test_run(req: ScanRequest) -> Any:
             tt = (req.task_type or "").strip() or None
             mt = (req.micro_task or "").strip() or None
             bt = req.browser_type or "chromium"
+            ti = (req.task_input or "").strip() or None
             config = FrameworkConfig(
                 target_url=req.url,
                 scan_mode=sm,
@@ -707,6 +741,7 @@ async def trigger_test_run(req: ScanRequest) -> Any:
                 micro_task=mt,
                 browser_type=bt,
                 crawl_before_execution=bool(req.crawl_before_execution),
+                task_input=ti,
                 requires_login=bool(req.requires_login),
                 credentials=creds,
             )

@@ -40,6 +40,8 @@ function normalizeSeverity(s: string | undefined): string {
 }
 
 function defectTitle(issue: ScanIssue): string {
+  const headline = issue.title?.trim();
+  if (headline) return headline;
   const d = issue.defect?.trim();
   if (d) return d.replace(/_/g, " ");
   const t = issue.type?.trim();
@@ -84,6 +86,43 @@ const SCAN_STATUS_MESSAGES = [
 function isTerminalJobStatus(statusRaw: string | undefined | null): boolean {
   const s = (statusRaw ?? "unknown").toLowerCase();
   return s === "complete" || s === "completed" || s === "partial" || s === "failed";
+}
+
+function humanizeScanTaskKey(raw: string): string {
+  const s = raw.trim().toLowerCase();
+  const map: Record<string, string> = {
+    full_app: "Full app",
+    full_app_scan: "Full app scan",
+    quick_scan: "Quick scan",
+    conversion_scan: "Conversion scan",
+    auth_scan: "Authentication scan",
+    auth: "Authentication",
+    checkout: "Checkout",
+    forms: "Forms",
+  };
+  if (map[s]) return map[s];
+  if (!raw.trim()) return "Scan";
+  return raw
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function taskMetricsBlurb(scanTask: string, pipelineTask: string | null | undefined): string {
+  const taskBlurb: Record<string, string> = {
+    full_app: "End-to-end coverage across discovered routes and flows.",
+    full_app_scan: "Full user journey: auth, browse, product, cart, checkout, support, UI, navigation.",
+    quick_scan: "Fast pass: UI integrity and navigation only.",
+    conversion_scan: "Browse → product → cart → checkout funnel.",
+    auth_scan: "Authentication and session flows only.",
+    auth: "Prioritizes sign-in, session, and access-control surfaces.",
+    checkout: "Emphasizes cart, payment, and order-completion paths.",
+    forms: "Focuses on form validation, submission, and field-level defects.",
+  };
+  const preset = taskBlurb[scanTask];
+  if (preset) return preset;
+  const t = typeof pipelineTask === "string" ? pipelineTask.trim() : "";
+  if (t) return `This run focused on: ${t}.`;
+  return "Automated pass aligned to your selected scope.";
 }
 
 function useAnimatedRiskScore(target: number, active: boolean): number {
@@ -139,25 +178,17 @@ function TaskMetricsPanel({
     rows.push({ label: "Step retries", value: String(retries) });
   }
 
-  const taskBlurb: Record<string, string> = {
-    full_app: "End-to-end coverage across discovered routes and flows.",
-    full_app_scan: "Full user journey: auth, browse, product, cart, checkout, support, UI, navigation.",
-    quick_scan: "Fast pass: UI integrity and navigation only.",
-    conversion_scan: "Browse → product → cart → checkout funnel.",
-    auth_scan: "Authentication and session flows only.",
-    auth: "Prioritizes sign-in, session, and access-control surfaces.",
-    checkout: "Emphasizes cart, payment, and order-completion paths.",
-    forms: "Focuses on form validation, submission, and field-level defects.",
-  };
+  const displayTask =
+    typeof pm?.task === "string" && pm.task.trim() ? pm.task.trim() : humanizeScanTaskKey(scanTask);
 
   return (
     <div className="card job-metrics-card">
       <div className="card-title">Metrics</div>
       <p className="job-metrics-task muted">
-        Task: <strong className="job-metrics-task-name">{scanTask}</strong>
+        Task: <strong className="job-metrics-task-name">{displayTask}</strong>
       </p>
       <p className="job-metrics-blurb muted">
-        {taskBlurb[scanTask] ?? taskBlurb.full_app_scan ?? taskBlurb.full_app}
+        {taskMetricsBlurb(scanTask, pm?.task)}
       </p>
       <dl className="job-metrics-dl">
         {rows.map((r) => (
@@ -496,10 +527,10 @@ export function JobResultsPage() {
                     const page = defectPage(issue);
                     const impact =
                       issue.business_impact?.trim() ||
-                      "Affects user experience and release confidence until addressed.";
+                      "Impact not classified — review the message and page context.";
                     const fix =
                       issue.fix_suggestion?.trim() ||
-                      "Review the failing assertion or UI state on the page above.";
+                      "Investigate the failing flow on the URL above and patch before release.";
                     return (
                       <article
                         key={`${idx}-${issue.test_id ?? ""}-${issue.message?.slice(0, 24)}`}

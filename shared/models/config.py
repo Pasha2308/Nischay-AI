@@ -79,6 +79,8 @@ class FrameworkConfig(BaseModel):
     # When True, run the site crawler before execution (legacy path). When False (default),
     # execution is micro-task only: task → action → result on the target URL (no crawl gate).
     crawl_before_execution: bool = False
+    # Optional free-text intent (e.g. "search for shoes") — parsed into context by the orchestrator
+    task_input: Optional[str] = None
 
     # Authentication
     auth: Optional[AuthConfig] = None

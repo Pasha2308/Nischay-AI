@@ -3774,7 +3774,7 @@ _MICRO_TASK_ALIASES: dict[str, str] = {
 async def run_micro_task(
     page: Page,
     task: Any,
-    credentials: dict[str, Any],
+    context: dict[str, Any] | None,
     emit_event=None,
     *,
     timeout_seconds: float | None = None,
@@ -3809,9 +3809,7 @@ async def run_micro_task(
     await emit(f"⚡ Running task: {label}")
     task_fn = TASK_REGISTRY[key]
     to = float(timeout_seconds if timeout_seconds is not None else MICRO_TASK_TIMEOUT_SECONDS)
-    ctx = ensure_shared_context(create_context())
-    ctx.update(credentials or {})
-    ctx = ensure_shared_context(ctx)
+    ctx = ensure_shared_context(context or create_context())
     mr = await run_task(task_fn, page, ctx, emit, timeout=to)
     defects = list(mr.get("defects") or [])
     return _flow_result(
@@ -3824,7 +3822,7 @@ async def run_micro_task(
 async def run_ecommerce_scan(
     page: Page,
     selected_flows: list[Any],
-    credentials: dict[str, Any],
+    context: dict[str, Any] | None,
     emit_event=None,
 ) -> dict[str, Any]:
     """
@@ -3844,4 +3842,4 @@ async def run_ecommerce_scan(
         s = raw.strip()
         if s:
             toks.append(s)
-    return await run_micro_task_group_scan(page, toks, credentials, emit_event, budget_seconds=90.0)
+    return await run_micro_task_group_scan(page, toks, context, emit_event, budget_seconds=90.0)

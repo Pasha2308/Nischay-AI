@@ -25,7 +25,7 @@ DEFAULT_PER_TASK_CAP = 20.0
 async def run_micro_task_group_scan(
     page: Page,
     task_tokens: list[str] | str,
-    credentials: dict[str, Any],
+    context: dict[str, Any] | None,
     emit_event: Any = None,
     *,
     budget_seconds: float = DEFAULT_BUDGET_SECONDS,
@@ -55,10 +55,7 @@ async def run_micro_task_group_scan(
             "task_results": [],
         }
 
-    ctx = create_context()
-    if credentials:
-        ctx.update(credentials)
-    ctx = ensure_shared_context(ctx)
+    ctx = ensure_shared_context(context or create_context())
 
     all_defects: list[dict[str, Any]] = []
     all_actions: list[dict[str, Any]] = []
