@@ -1,23 +1,23 @@
 {
-  "plan_id": "plan_det_d1d09c07",
-  "generated_at": "2026-03-28T22:55:27Z",
-  "target_url": "https://www.ecell.in/",
+  "plan_id": "plan_det_e85e705b",
+  "generated_at": "2026-03-29T16:51:46Z",
+  "target_url": "https://www.nappadori.com/",
   "test_cases": [
     {
       "test_id": "deterministic_smoke",
-      "name": "Deterministic smoke (auth_flow)",
+      "name": "Deterministic smoke (generic_flow)",
       "description": "No-AI deterministic flow using tool-based executor.",
       "category": "functional",
       "priority": 1,
-      "target_page_id": "page_www.ecell.in_e949cb61629c",
-      "coverage_signature": "deterministic_smoke_auth_flow_v1",
+      "target_page_id": "page_www.nappadori.com_7375e599f857",
+      "coverage_signature": "deterministic_smoke_generic_flow_v1",
       "requires_auth": false,
       "preconditions": [],
       "steps": [
         {
           "action_type": "navigate",
           "selector": null,
-          "value": "https://www.ecell.in/",
+          "value": "https://www.nappadori.com/",
           "description": "Open target page"
         },
         {
@@ -27,28 +27,16 @@
           "description": "Settle after navigation"
         },
         {
-          "action_type": "fill",
-          "selector": "input[type='email']:visible, input[name*='email' i]:visible",
-          "value": "test@example.com",
-          "description": "Fill login email"
-        },
-        {
-          "action_type": "fill",
-          "selector": "input[type='password']:visible, input[name*='pass' i]:visible",
-          "value": "Test@123",
-          "description": "Fill login password"
-        },
-        {
           "action_type": "click",
-          "selector": "button[type='submit']:visible, input[type='submit']:visible, button:has-text('Log in'):visible, button:has-text('Login'):visible, button:has-text('Sign in'):visible, [role='button'][aria-label*='login' i]:visible",
+          "selector": "button:visible, input[type='submit']:visible, input[type='button']:visible, [role='button']:visible, a[role='button']:visible",
           "value": null,
-          "description": "Click login/submit button"
+          "description": "Click visible primary action if present"
         },
         {
-          "action_type": "wait",
-          "selector": null,
-          "value": "800",
-          "description": "Wait for post-login navigation"
+          "action_type": "fill",
+          "selector": "input[type='text']:visible, input:not([type]):visible, textarea:visible",
+          "value": "{{synthetic}}",
+          "description": "Fill first visible text input if present"
         }
       ],
       "assertions": [
@@ -60,13 +48,13 @@
           "description": "Page has basic content after steps"
         }
       ],
-      "timeout_seconds": 48
+      "timeout_seconds": 45
     }
   ],
   "estimated_duration_seconds": 60,
   "coverage_intent": {
     "mode": "deterministic_smoke",
     "no_ai": true,
-    "flow_type": "auth_flow"
+    "flow_type": "generic_flow"
   }
 }

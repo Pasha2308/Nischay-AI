@@ -120,6 +120,10 @@ function TaskMetricsPanel({
 
   const taskBlurb: Record<string, string> = {
     full_app: "End-to-end coverage across discovered routes and flows.",
+    full_app_scan: "Full user journey: auth, browse, product, cart, checkout, support, UI, navigation.",
+    quick_scan: "Fast pass: UI integrity and navigation only.",
+    conversion_scan: "Browse → product → cart → checkout funnel.",
+    auth_scan: "Authentication and session flows only.",
     auth: "Prioritizes sign-in, session, and access-control surfaces.",
     checkout: "Emphasizes cart, payment, and order-completion paths.",
     forms: "Focuses on form validation, submission, and field-level defects.",
@@ -131,7 +135,9 @@ function TaskMetricsPanel({
       <p className="job-metrics-task muted">
         Task: <strong className="job-metrics-task-name">{scanTask}</strong>
       </p>
-      <p className="job-metrics-blurb muted">{taskBlurb[scanTask] ?? taskBlurb.full_app}</p>
+      <p className="job-metrics-blurb muted">
+        {taskBlurb[scanTask] ?? taskBlurb.full_app_scan ?? taskBlurb.full_app}
+      </p>
       <dl className="job-metrics-dl">
         {rows.map((r) => (
           <div key={r.label} className="job-metrics-row">

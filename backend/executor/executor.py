@@ -35,9 +35,7 @@ from shared.utils.auth import perform_smart_auth
 from shared.utils.url_utils import page_id_from_url
 
 from backend.agents.evaluator_agent import EvaluatorAgent
-from backend.core.action_engine import (
-    collect_active_qa_defects_after_navigation,
-)
+from backend.core.action_engine import collect_console_defects_light
 
 from .action_runner import resolve_dynamic_vars_for_test_case, run_action
 from .assertion_checker import check_assertion
@@ -748,10 +746,10 @@ class Executor:
                 nonlocal qa_log_mark
                 slice_logs = collector.console_logs[qa_log_mark:]
                 qa_log_mark = len(collector.console_logs)
-                defects = await collect_active_qa_defects_after_navigation(
+                defects = await collect_console_defects_light(
                     page,
                     _qa_emit,
-                    console_log_lines=slice_logs or None,
+                    extra_console_lines=slice_logs or None,
                 )
                 qa_defects_by_page.append({
                     "page_url": page.url,

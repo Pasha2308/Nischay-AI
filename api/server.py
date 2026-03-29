@@ -120,7 +120,19 @@ app.add_middleware(
 class ScanRequest(BaseModel):
     url: str = Field(..., min_length=1)
     scan_mode: str = "fast"
-    scan_task: str = "full_app"
+    scan_task: str = "full_app_scan"
+    flows: Optional[list[str]] = Field(
+        default=None,
+        description="Explicit flow ids (overrides scan_task when non-empty), e.g. search, coupon.",
+    )
+    task_type: Optional[str] = Field(
+        default=None,
+        description='Use "micro" with micro_task for a single fast task; omit for full scan.',
+    )
+    micro_task: Optional[str] = Field(
+        default=None,
+        description="Micro task id: search_product, add_to_cart, fill_checkout, contact_support, …",
+    )
     auth: Optional[dict[str, Any]] = None
     requires_login: bool = False
     credentials: Optional[dict[str, Any]] = None
@@ -131,7 +143,7 @@ class TestRunResponse(BaseModel):
     job_id: str
     message: str = "Scan started"
     scan_mode: Literal["fast", "deep"] = "fast"
-    scan_task: str = "full_app"
+    scan_task: str = "full_app_scan"
 
 
 class ResultsResponse(BaseModel):
@@ -611,7 +623,7 @@ async def trigger_test_run(req: ScanRequest) -> Any:
             "result": None,
             "error": None,
             "scan_mode": _coerce_scan_mode(req.scan_mode),
-            "scan_task": (req.scan_task or "full_app").strip() or "full_app",
+            "scan_task": (req.scan_task or "full_app_scan").strip() or "full_app_scan",
         }
         _jobs_events[job_id] = []
         _latest_job_id = job_id
@@ -628,14 +640,22 @@ async def trigger_test_run(req: ScanRequest) -> Any:
             from backend.orchestrator import Orchestrator
 
             sm = _coerce_scan_mode(req.scan_mode)
-            st = (req.scan_task or "full_app").strip() or "full_app"
+            st = (req.scan_task or "full_app_scan").strip() or "full_app_scan"
             creds: dict[str, Any] | None = None
             if req.requires_login and req.credentials and isinstance(req.credentials, dict):
                 creds = {str(k): str(v) for k, v in req.credentials.items() if v is not None}
+            flow_list: list[str] | None = None
+            if req.flows and isinstance(req.flows, list) and len(req.flows) > 0:
+                flow_list = [str(x).strip() for x in req.flows if str(x).strip()]
+            tt = (req.task_type or "").strip() or None
+            mt = (req.micro_task or "").strip() or None
             config = FrameworkConfig(
                 target_url=req.url,
                 scan_mode=sm,
                 scan_task=st,
+                flows=flow_list,
+                task_type=tt,
+                micro_task=mt,
                 requires_login=bool(req.requires_login),
                 credentials=creds,
             )
@@ -784,7 +804,7 @@ async def trigger_test_run(req: ScanRequest) -> Any:
     return TestRunResponse(
         job_id=job_id,
         scan_mode=_coerce_scan_mode(req.scan_mode),
-        scan_task=(req.scan_task or "full_app").strip() or "full_app",
+        scan_task=(req.scan_task or "full_app_scan").strip() or "full_app_scan",
     )
 
 

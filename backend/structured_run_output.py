@@ -794,7 +794,7 @@ async def build_structured_output(
     )
     actions_run = _flatten_actions_run(run_result)
 
-    risk_score, risk_level, risk_level_legacy = _compute_aggregate_risk_score(
+    risk_score, risk_level, risk_level_legacy, risk_detail, *_ = _compute_aggregate_risk_score(
         issues_enriched, run_result, site_model
     )
     auth_failed = any(i.get("defect") == "auth_login_failed" for i in issues_enriched)

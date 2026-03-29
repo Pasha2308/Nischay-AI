@@ -9,7 +9,7 @@ EXECUTION_PLANS = {
         {"action": "checkout_flow"},
     ],
     "forms": [
-        {"action": "test_forms"},
+        {"action": "console_errors"},
     ],
     "full_app": [
         {"action": "navigation"},

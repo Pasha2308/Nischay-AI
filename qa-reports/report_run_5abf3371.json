@@ -1,0 +1,61 @@
+{
+  "run_id": "run_5abf3371",
+  "plan_id": "plan_det_e85e705b",
+  "started_at": "2026-03-29T16:51:46Z",
+  "completed_at": "2026-03-29T16:52:03Z",
+  "target_url": "https://www.nappadori.com/",
+  "total_tests": 1,
+  "passed": 1,
+  "failed": 0,
+  "skipped": 0,
+  "errors": 0,
+  "duration_seconds": 16.93,
+  "test_results": [
+    {
+      "test_id": "micro_task",
+      "test_name": "Micro task: contact_support",
+      "description": "Single micro-task run",
+      "category": "functional",
+      "priority": 1,
+      "target_page_id": "page_www.nappadori.com_8d2b27b81990",
+      "actual_page_id": "page_www.nappadori.com_8d2b27b81990",
+      "actual_url": "https://www.nappadori.com/pages/contact?contact_posted=true#contact_form",
+      "coverage_signature": "micro_task_v1",
+      "result": "pass",
+      "duration_seconds": 14.33,
+      "failure_reason": null,
+      "evidence": {
+        "screenshots": [],
+        "console_logs": [],
+        "network_log": [],
+        "dom_snapshot_path": null,
+        "video_path": null
+      },
+      "fallback_records": [],
+      "precondition_results": [],
+      "step_results": [],
+      "assertion_results": [],
+      "assertions_passed": 0,
+      "assertions_failed": 0,
+      "assertions_total": 0,
+      "potentially_flaky": false,
+      "qa_defects_by_page": [
+        {
+          "page_url": "https://www.nappadori.com/pages/contact?contact_posted=true#contact_form",
+          "defects": [],
+          "metrics": {
+            "help_page_ok": true,
+            "chat_tested": true,
+            "chat_ok": false,
+            "form_submitted": true,
+            "contact_methods_ok": true,
+            "support_defects": 0
+          }
+        }
+      ]
+    }
+  ],
+  "ai_summary": "",
+  "step_retries": 0,
+  "regressions": []
+}

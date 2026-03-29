@@ -12,12 +12,35 @@ import { LiveScanLog } from "../components/LiveScanLog";
 import { upsertScan } from "../store/scanStore";
 import { toScanRecord } from "../types";
 
-const SCAN_TASK_OPTIONS = [
-  { value: "full_app", label: "Full app" },
-  { value: "auth", label: "Auth" },
-  { value: "checkout", label: "Checkout" },
-  { value: "forms", label: "Forms" },
+/** Preset journey bundles (expanded server-side via TASK_GROUPS). */
+const SCAN_TASK_PRESETS = [
+  { value: "quick_scan", label: "Quick Scan" },
+  { value: "conversion_scan", label: "Conversion Flow" },
+  { value: "auth_scan", label: "Authentication Flow" },
+  { value: "full_app_scan", label: "Full App Scan" },
 ];
+
+/** Single fast micro-tasks (backend run_micro_task). */
+const QUICK_ACTIONS = [
+  { value: "search_product", label: "Search Product" },
+  { value: "add_to_cart", label: "Add to Cart" },
+  { value: "fill_checkout", label: "Checkout Form" },
+  { value: "contact_support", label: "Contact Support" },
+] as const;
+
+/** Individual flows for Advanced mode (matches backend ECOMMERCE_FLOWS keys). */
+const ADVANCED_FLOW_IDS = [
+  "auth",
+  "browse",
+  "product",
+  "cart",
+  "checkout",
+  "support",
+  "ui",
+  "navigation",
+  "search",
+  "coupon",
+] as const;
 
 function LoginWaitBanner() {
   return (
@@ -36,10 +59,14 @@ function LoginWaitBanner() {
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const [url, setUrl] = useState("https://example.com");
+  const [url, setUrl] = useState("https://automationexercise.com");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
-  const [scanTask, setScanTask] = useState("full_app");
+  const [scanTask, setScanTask] = useState("full_app_scan");
+  const [executionMode, setExecutionMode] = useState<"full" | "quick_action">("full");
+  const [microTask, setMicroTask] = useState<string>("search_product");
+  const [isAdvancedMode, setIsAdvancedMode] = useState(false);
+  const [advancedFlows, setAdvancedFlows] = useState<string[]>([]);
   const [scanMode, setScanMode] = useState<"fast" | "deep">("fast");
   const [requiresLogin, setRequiresLogin] = useState(false);
   const [username, setUsername] = useState("");
@@ -49,6 +76,12 @@ export function DashboardPage() {
   const [jobStatus, setJobStatus] = useState<string>("");
   const [liveJobId, setLiveJobId] = useState<string | null>(null);
   const [scanStartedAt, setScanStartedAt] = useState<number | null>(null);
+
+  const toggleFlow = (flow: string) => {
+    setAdvancedFlows((prev) =>
+      prev.includes(flow) ? prev.filter((f) => f !== flow) : [...prev, flow],
+    );
+  };
 
   async function runScan() {
     const target = url.trim();
@@ -81,12 +114,26 @@ export function DashboardPage() {
             }
           : undefined;
 
-      const started = await triggerTestRun(target, {
-        scan_task: scanTask,
-        scan_mode: scanMode,
-        requires_login: requiresLogin,
-        credentials,
-      });
+      const started =
+        executionMode === "quick_action"
+          ? await triggerTestRun(target, {
+              task_type: "micro",
+              micro_task: microTask,
+              scan_mode: scanMode,
+              requires_login: requiresLogin,
+              credentials,
+            })
+          : await triggerTestRun(target, {
+              ...(isAdvancedMode
+                ? {
+                    flows:
+                      advancedFlows.length > 0 ? advancedFlows : ["quick_scan"],
+                  }
+                : { scan_task: scanTask }),
+              scan_mode: scanMode,
+              requires_login: requiresLogin,
+              credentials,
+            });
       const jobId = started.job_id;
       setLiveJobId(jobId);
       setScanStartedAt(Date.now());
@@ -170,23 +217,97 @@ export function DashboardPage() {
         </div>
 
         <div className="launch-controls">
-          <div className="launch-control">
-            <label className="launch-field-label" htmlFor="launch-scan-task">
-              Scan task
-            </label>
-            <select
-              id="launch-scan-task"
-              className="launch-select"
-              value={scanTask}
-              onChange={(e) => setScanTask(e.target.value)}
-              disabled={busy}
-            >
-              {SCAN_TASK_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+          <div className="launch-control launch-control--wide">
+            <span className="launch-field-label">Execution mode</span>
+            <div className="launch-segment" role="group" aria-label="Execution mode">
+              <button
+                type="button"
+                className={`launch-segment-btn ${executionMode === "full" ? "is-active" : ""}`}
+                onClick={() => {
+                  setExecutionMode("full");
+                }}
+                disabled={busy}
+              >
+                Full scan
+              </button>
+              <button
+                type="button"
+                className={`launch-segment-btn ${executionMode === "quick_action" ? "is-active" : ""}`}
+                onClick={() => {
+                  setExecutionMode("quick_action");
+                  setIsAdvancedMode(false);
+                }}
+                disabled={busy}
+              >
+                Quick Action Mode
+              </button>
+            </div>
+            {executionMode === "quick_action" ? (
+              <>
+                <label className="launch-field-label launch-field-label--spaced" htmlFor="launch-micro-task">
+                  Quick action
+                </label>
+                <select
+                  id="launch-micro-task"
+                  className="launch-select"
+                  value={microTask}
+                  onChange={(e) => setMicroTask(e.target.value)}
+                  disabled={busy}
+                >
+                  {QUICK_ACTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="muted launch-micro-hint">
+                  Runs one fast task (~20s) — ideal for demos.
+                </p>
+              </>
+            ) : (
+              <>
+                <label className="launch-field-label" htmlFor="launch-scan-task">
+                  Journey preset
+                </label>
+                <select
+                  id="launch-scan-task"
+                  className="launch-select"
+                  value={scanTask}
+                  onChange={(e) => setScanTask(e.target.value)}
+                  disabled={busy || isAdvancedMode}
+                >
+                  {SCAN_TASK_PRESETS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <label className="launch-toggle launch-toggle--inline">
+                  <input
+                    type="checkbox"
+                    checked={isAdvancedMode}
+                    onChange={(e) => setIsAdvancedMode(e.target.checked)}
+                    disabled={busy}
+                  />
+                  <span>Advanced (pick flows)</span>
+                </label>
+                {isAdvancedMode && (
+                  <div className="launch-adv-flows" role="group" aria-label="Flows to run">
+                    {ADVANCED_FLOW_IDS.map((flow) => (
+                      <label key={flow} className="launch-adv-flow-chip">
+                        <input
+                          type="checkbox"
+                          checked={advancedFlows.includes(flow)}
+                          onChange={() => toggleFlow(flow)}
+                          disabled={busy}
+                        />
+                        <span>{flow}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           <div className="launch-control">
@@ -294,7 +415,11 @@ export function DashboardPage() {
             events={events}
             targetUrl={url.trim()}
             scanTaskLabel={
-              SCAN_TASK_OPTIONS.find((o) => o.value === scanTask)?.label ?? scanTask
+              executionMode === "quick_action"
+                ? `Quick: ${QUICK_ACTIONS.find((o) => o.value === microTask)?.label ?? microTask}`
+                : isAdvancedMode
+                  ? `Advanced (${advancedFlows.length} flows)`
+                  : SCAN_TASK_PRESETS.find((o) => o.value === scanTask)?.label ?? scanTask
             }
             jobId={liveJobId}
             startedAtMs={scanStartedAt}

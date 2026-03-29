@@ -1,6 +1,6 @@
 {
   "target_url": "https://example.com",
-  "last_updated": "2026-03-28T21:28:06Z",
+  "last_updated": "2026-03-29T16:52:03Z",
   "pages": {
     "page_example.com_0f115db062b7": {
       "page_id": "page_example.com_0f115db062b7",
@@ -852,13 +852,266 @@
       "elements_tested": {},
       "last_tested": "2026-03-28T21:28:05Z",
       "test_count": 1
+    },
+    "page_automationexercise.com_6136257933f5": {
+      "page_id": "page_automationexercise.com_6136257933f5",
+      "url": "https://automationexercise.com",
+      "page_type": "dashboard",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "active_qa_v1",
+              "last_tested": "2026-03-29T14:48:52Z",
+              "last_result": "fail",
+              "test_count": 4,
+              "history": [
+                {
+                  "run_id": "run_7515366f",
+                  "timestamp": "2026-03-29T13:23:23Z",
+                  "result": "error",
+                  "duration_seconds": 30.71,
+                  "failure_reason": "check_missing_cta() got an unexpected keyword argument 'log_action'"
+                },
+                {
+                  "run_id": "run_7515366f",
+                  "timestamp": "2026-03-29T13:23:23Z",
+                  "result": "error",
+                  "duration_seconds": 22.61,
+                  "failure_reason": "check_missing_cta() got an unexpected keyword argument 'log_action'"
+                },
+                {
+                  "run_id": "run_8fc2cf90",
+                  "timestamp": "2026-03-29T14:48:52Z",
+                  "result": "fail",
+                  "duration_seconds": 32.53,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_8fc2cf90",
+                  "timestamp": "2026-03-29T14:48:52Z",
+                  "result": "fail",
+                  "duration_seconds": 19.71,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-29T14:48:52Z",
+      "test_count": 4
+    },
+    "page_automationexercise.com_b50ff1d308ba": {
+      "page_id": "page_automationexercise.com_b50ff1d308ba",
+      "url": "https://automationexercise.com/products",
+      "page_type": "form",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "active_qa_v1",
+              "last_tested": "2026-03-29T14:48:52Z",
+              "last_result": "fail",
+              "test_count": 2,
+              "history": [
+                {
+                  "run_id": "run_7515366f",
+                  "timestamp": "2026-03-29T13:23:23Z",
+                  "result": "error",
+                  "duration_seconds": 18.73,
+                  "failure_reason": "check_missing_cta() got an unexpected keyword argument 'log_action'"
+                },
+                {
+                  "run_id": "run_8fc2cf90",
+                  "timestamp": "2026-03-29T14:48:52Z",
+                  "result": "fail",
+                  "duration_seconds": 17.09,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-29T14:48:52Z",
+      "test_count": 2
+    },
+    "page_automationexercise.com_30660ac98e50": {
+      "page_id": "page_automationexercise.com_30660ac98e50",
+      "url": "https://automationexercise.com/view_cart",
+      "page_type": "dashboard",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "active_qa_v1",
+              "last_tested": "2026-03-29T13:23:23Z",
+              "last_result": "error",
+              "test_count": 1,
+              "history": [
+                {
+                  "run_id": "run_7515366f",
+                  "timestamp": "2026-03-29T13:23:23Z",
+                  "result": "error",
+                  "duration_seconds": 12.82,
+                  "failure_reason": "check_missing_cta() got an unexpected keyword argument 'log_action'"
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-29T13:23:23Z",
+      "test_count": 1
+    },
+    "page_automationexercise.com_50ddce0bac44": {
+      "page_id": "page_automationexercise.com_50ddce0bac44",
+      "url": "https://automationexercise.com/login",
+      "page_type": "form",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "active_qa_v1",
+              "last_tested": "2026-03-29T14:48:52Z",
+              "last_result": "fail",
+              "test_count": 3,
+              "history": [
+                {
+                  "run_id": "run_7515366f",
+                  "timestamp": "2026-03-29T13:23:23Z",
+                  "result": "error",
+                  "duration_seconds": 14.13,
+                  "failure_reason": "check_missing_cta() got an unexpected keyword argument 'log_action'"
+                },
+                {
+                  "run_id": "run_8fc2cf90",
+                  "timestamp": "2026-03-29T14:48:52Z",
+                  "result": "fail",
+                  "duration_seconds": 19.92,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_8fc2cf90",
+                  "timestamp": "2026-03-29T14:48:52Z",
+                  "result": "fail",
+                  "duration_seconds": 22.82,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-29T14:48:52Z",
+      "test_count": 3
+    },
+    "page_www.nappadori.com_8d2b27b81990": {
+      "page_id": "page_www.nappadori.com_8d2b27b81990",
+      "url": "https://www.nappadori.com/pages/contact?contact_posted=true#contact_form",
+      "page_type": "",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "ecommerce_scan_v1",
+              "last_tested": "2026-03-29T16:22:49Z",
+              "last_result": "fail",
+              "test_count": 1,
+              "history": [
+                {
+                  "run_id": "run_f051169d",
+                  "timestamp": "2026-03-29T16:22:49Z",
+                  "result": "fail",
+                  "duration_seconds": 83.2,
+                  "failure_reason": null
+                }
+              ]
+            },
+            {
+              "signature": "micro_task_v1",
+              "last_tested": "2026-03-29T16:52:03Z",
+              "last_result": "pass",
+              "test_count": 1,
+              "history": [
+                {
+                  "run_id": "run_5abf3371",
+                  "timestamp": "2026-03-29T16:52:03Z",
+                  "result": "pass",
+                  "duration_seconds": 14.33,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-29T16:52:03Z",
+      "test_count": 2
+    },
+    "page_www.nappadori.com_7375e599f857": {
+      "page_id": "page_www.nappadori.com_7375e599f857",
+      "url": "https://www.nappadori.com/",
+      "page_type": "form",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.nappadori.com_deda5f4f011c": {
+      "page_id": "page_www.nappadori.com_deda5f4f011c",
+      "url": "https://www.nappadori.com/pages/about-us",
+      "page_type": "form",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.nappadori.com_464428e9370d": {
+      "page_id": "page_www.nappadori.com_464428e9370d",
+      "url": "https://www.nappadori.com/collections/new-arrivals",
+      "page_type": "form",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.nappadori.com_f6dcf471054e": {
+      "page_id": "page_www.nappadori.com_f6dcf471054e",
+      "url": "https://www.nappadori.com/collections/men",
+      "page_type": "form",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
     }
   },
   "journeys": {},
   "global_stats": {
-    "total_pages": 41,
-    "pages_tested": 12,
-    "overall_score": 0.2926829268292683,
+    "total_pages": 50,
+    "pages_tested": 17,
+    "overall_score": 0.34,
     "category_scores": {
       "functional": 1.0
     },

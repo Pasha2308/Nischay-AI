@@ -157,6 +157,11 @@ export type TriggerTestRunOptions = {
   auth?: ScanAuthPayload;
   scan_mode?: string;
   scan_task?: string;
+  /** Explicit flow ids (overrides scan_task when non-empty). */
+  flows?: string[];
+  /** Single fast task when set with micro_task. */
+  task_type?: string;
+  micro_task?: string;
   requires_login?: boolean;
   credentials?: ScanCredentialsPayload;
 };
@@ -169,6 +174,9 @@ export async function triggerTestRun(
   if (options?.auth) body.auth = options.auth;
   if (options?.scan_mode != null && options.scan_mode !== "") body.scan_mode = options.scan_mode;
   if (options?.scan_task != null && options.scan_task !== "") body.scan_task = options.scan_task;
+  if (options?.flows != null && options.flows.length > 0) body.flows = options.flows;
+  if (options?.task_type != null && options.task_type !== "") body.task_type = options.task_type;
+  if (options?.micro_task != null && options.micro_task !== "") body.micro_task = options.micro_task;
   if (options?.requires_login !== undefined) body.requires_login = options.requires_login;
   if (options?.credentials) body.credentials = options.credentials;
   const response = await fetch(`${API_BASE}/jobs/test.run`, {

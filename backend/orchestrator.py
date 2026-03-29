@@ -21,10 +21,8 @@ from backend.models.action_log import (
 
 _T = TypeVar("_T")
 
-from backend.core.action_engine import (
-    collect_active_qa_defects_after_navigation,
-)
-from backend.core.login_handler import perform_programmatic_login
+from backend.core.ecommerce_plan import expand_selected_flows, run_ecommerce_scan, run_micro_task
+from backend.core.login_handler import handle_login
 from backend.crawler.crawler import Crawler
 from backend.deterministic_plan import build_deterministic_smoke_plan
 from backend.reporter.reporter import Reporter
@@ -347,62 +345,31 @@ class Orchestrator:
                                 ar.error,
                             )
 
-                    if self.config.requires_login:
-                        logger.info("--- Pipeline: pre-crawl programmatic login (requires_login) ---")
-                        _login_url = self._login_nav_url()
-                        await self.emit(
-                            "stage",
-                            "pre_crawl_login",
-                            {"message": "Logging in before crawl", "target_url": _login_url},
-                        )
-                        pre_page = await browser_context.new_page()
-                        try:
-                            async def _pre_login_goto() -> None:
-                                await pre_page.goto(
-                                    _login_url,
-                                    wait_until="domcontentloaded",
-                                    timeout=60_000,
-                                )
+                    page = await browser_context.new_page()
+                    credentials = dict(self.config.credentials or {})
+                    if self.config.auth is not None:
+                        credentials.setdefault("username", self.config.auth.username)
+                        credentials.setdefault("password", self.config.auth.password)
+                    if not credentials.get("username") and credentials.get("email"):
+                        credentials["username"] = credentials["email"]
+                    credentials["login_url"] = credentials.get("login_url") or self._login_nav_url()
 
-                            await self.log_action_bracketed(
-                                pre_page,
-                                phase="login",
-                                action_type="navigate",
-                                description="Navigate to target for pre-crawl login",
-                                target_url=_login_url,
-                                coro=_pre_login_goto,
-                            )
+                    async def emit_event(msg: str) -> None:
+                        await self.emit("execution", "pipeline_message", {"message": msg})
 
-                            async def _emit_login_handler(msg: str) -> None:
-                                await self.emit("action", "login_handler", {"message": msg})
+                    login_success = False
+                    try:
+                        await emit_event("🔐 Handling authentication...")
+                        login_success = await handle_login(page, credentials, emit_event)
 
-                            creds = self.config.credentials or {}
-                            login_ok = await perform_programmatic_login(
-                                pre_page,
-                                creds,
-                                _emit_login_handler,
-                                log_action=self.log_action,
-                                log_bracketed=self.log_action_bracketed,
-                            )
-                            pipeline_auth_ok = pipeline_auth_ok and login_ok
-                            if login_ok:
-                                logger.info("Pre-crawl login succeeded")
-                                await self.emit(
-                                    "success",
-                                    "pre_crawl_login",
-                                    {"ok": True},
-                                )
-                            else:
-                                logger.warning(
-                                    "Pre-crawl login did not complete successfully; continuing with context state",
-                                )
-                                await self.emit(
-                                    "error",
-                                    "pre_crawl_login",
-                                    {"ok": False},
-                                )
-                        finally:
-                            await pre_page.close()
+                        if not login_success and credentials.get("username"):
+                            await emit_event("⚠️ Running without login")
+
+                        await emit_event("━━━ PHASE 1: CRAWLING ━━━")
+                    finally:
+                        await page.close()
+
+                    pipeline_auth_ok = pipeline_auth_ok and login_success
 
                     # Stage 1: Crawl
                     logger.info("--- Stage 1: Crawl ---")
@@ -737,8 +704,9 @@ class Orchestrator:
         log_action: Any | None = None,
         log_bracketed: Any | None = None,
     ) -> RunResult:
-        """Run active QA on each crawled page (forms, DOM, navigation, performance)."""
+        """Run aggregated ecommerce flows once (no per-page QA loop)."""
         _ = pipeline_auth_satisfied  # pipeline auth already applied to shared context
+        _ = site_model  # crawl output retained for site model / reporting; execution is flow-based
         started_at = time.strftime("%Y-%m-%dT%H:%M:%SZ")
         t0 = time.time()
         run_id = f"run_{uuid.uuid4().hex[:8]}"
@@ -748,102 +716,176 @@ class Orchestrator:
 
         async def run_on_context(bc: BrowserContext) -> RunResult:
             page = await bc.new_page()
-            all_defects: list[dict[str, Any]] = []
             test_results: list[TestResult] = []
             goto_timeout = min(
                 120_000,
                 max(15_000, int(self.config.selector_timeout_seconds * 1000)),
             )
             try:
-                for p_model in site_model.pages:
-                    url = p_model.url
-                    t_page = time.time()
-                    try:
-                        if log_bracketed:
-                            async def _qa_goto() -> None:
-                                await page.goto(
-                                    url,
-                                    wait_until="domcontentloaded",
-                                    timeout=goto_timeout,
-                                )
+                credentials: dict[str, Any] = dict(self.config.credentials or {})
+                credentials.setdefault("target_url", self.config.target_url)
+                credentials.setdefault("browse_start_url", self.config.target_url)
+                if self.config.auth is not None:
+                    credentials.setdefault("email", self.config.auth.username)
+                    credentials.setdefault("username", self.config.auth.username)
+                    credentials.setdefault("password", self.config.auth.password)
 
-                            await log_bracketed(
-                                page,
-                                phase="execute",
-                                action_type="navigate",
-                                description="Active QA navigation to page",
-                                target_url=url,
-                                coro=_qa_goto,
-                            )
-                        else:
+                task_type = str(getattr(self.config, "task_type", "") or "").strip().lower()
+                micro_task = str(getattr(self.config, "micro_task", "") or "").strip()
+
+                try:
+                    if log_bracketed:
+
+                        async def _goto_target() -> None:
                             await page.goto(
-                                url,
+                                self.config.target_url,
                                 wait_until="domcontentloaded",
                                 timeout=goto_timeout,
                             )
-                        await emit_event("⚡ Running tests on " + url)
 
-                        defects = await collect_active_qa_defects_after_navigation(
+                        await log_bracketed(
                             page,
-                            emit_event,
-                            log_action=log_action,
-                            log_bracketed=log_bracketed,
+                            phase="execute",
+                            action_type="navigate",
+                            description="Navigate to target for ecommerce scan",
+                            target_url=self.config.target_url,
+                            coro=_goto_target,
                         )
+                    else:
+                        await page.goto(
+                            self.config.target_url,
+                            wait_until="domcontentloaded",
+                            timeout=goto_timeout,
+                        )
+                except Exception as e:
+                    logger.warning("Ecommerce scan initial navigation failed: %s", e)
+                    if log_action:
+                        await log_action(
+                            page,
+                            phase="execute",
+                            action_type="navigate",
+                            description=f"Ecommerce scan navigation failed: {self.config.target_url[:200]}",
+                            target_url=self.config.target_url,
+                            outcome="failed",
+                            outcome_detail=str(e)[:500],
+                        )
+                    pid = page_id_from_url(self.config.target_url)
+                    test_results.append(
+                        TestResult(
+                            test_id="ecommerce_scan",
+                            test_name="E-commerce scan",
+                            description="Ecommerce scan failed during initial navigation",
+                            category="functional",
+                            priority=1,
+                            target_page_id=pid,
+                            actual_page_id=pid,
+                            actual_url=page.url,
+                            coverage_signature="ecommerce_scan_v1",
+                            result="error",
+                            duration_seconds=round(time.time() - t0, 2),
+                            failure_reason=str(e),
+                            qa_defects_by_page=[],
+                        )
+                    )
+                    completed_at = time.strftime("%Y-%m-%dT%H:%M:%SZ")
+                    return RunResult(
+                        run_id=run_id,
+                        plan_id=plan.plan_id,
+                        started_at=started_at,
+                        completed_at=completed_at,
+                        target_url=plan.target_url,
+                        total_tests=len(test_results),
+                        passed=0,
+                        failed=0,
+                        skipped=0,
+                        errors=len(test_results),
+                        duration_seconds=round(time.time() - t0, 2),
+                        test_results=test_results,
+                        step_retries=0,
+                    )
 
-                        all_defects.extend(defects)
+                t_scan = time.time()
+                if task_type == "micro":
+                    if not micro_task:
                         pid = page_id_from_url(page.url)
                         test_results.append(
                             TestResult(
-                                test_id=f"qa_{pid}",
-                                test_name=f"Active QA — {url[:120]}",
-                                description=(
-                                    "Per-page active QA (forms, DOM, navigation, performance)"
-                                ),
+                                test_id="micro_task",
+                                test_name="Micro task",
+                                description="micro_task is required when task_type=micro",
                                 category="functional",
                                 priority=1,
-                                target_page_id=p_model.page_id,
+                                target_page_id=pid,
                                 actual_page_id=pid,
                                 actual_url=page.url,
-                                coverage_signature="active_qa_v1",
-                                result="fail" if defects else "pass",
-                                duration_seconds=round(time.time() - t_page, 2),
-                                qa_defects_by_page=[
-                                    {"page_url": url, "defects": defects},
-                                ],
-                            )
-                        )
-                    except Exception as e:
-                        logger.warning("Active QA failed for %s: %s", url, e)
-                        if log_action:
-                            await log_action(
-                                page,
-                                phase="execute",
-                                action_type="navigate",
-                                description=f"Active QA navigation failed: {url[:200]}",
-                                target_url=url,
-                                outcome="failed",
-                                outcome_detail=str(e)[:500],
-                            )
-                        pid = page_id_from_url(url)
-                        test_results.append(
-                            TestResult(
-                                test_id=f"qa_{pid}",
-                                test_name=f"Active QA — {url[:120]}",
-                                description="Per-page active QA",
-                                category="functional",
-                                priority=1,
-                                target_page_id=p_model.page_id,
-                                actual_page_id=pid,
-                                actual_url=url,
-                                coverage_signature="active_qa_v1",
+                                coverage_signature="micro_task_v1",
                                 result="error",
-                                duration_seconds=round(time.time() - t_page, 2),
-                                failure_reason=str(e),
-                                qa_defects_by_page=[{"page_url": url, "defects": []}],
+                                duration_seconds=round(time.time() - t_scan, 2),
+                                failure_reason="micro_task missing",
+                                qa_defects_by_page=[],
                             )
                         )
+                        completed_at = time.strftime("%Y-%m-%dT%H:%M:%SZ")
+                        return RunResult(
+                            run_id=run_id,
+                            plan_id=plan.plan_id,
+                            started_at=started_at,
+                            completed_at=completed_at,
+                            target_url=plan.target_url,
+                            total_tests=len(test_results),
+                            passed=0,
+                            failed=0,
+                            skipped=0,
+                            errors=len(test_results),
+                            duration_seconds=round(time.time() - t0, 2),
+                            test_results=test_results,
+                            step_retries=0,
+                        )
+                    results = await run_micro_task(page, micro_task, credentials, emit_event)
+                else:
+                    raw_flows = getattr(self.config, "flows", None)
+                    if isinstance(raw_flows, list) and len(raw_flows) > 0:
+                        selected_flows = expand_selected_flows([str(x) for x in raw_flows if x])
+                    else:
+                        st = str(self.config.scan_task or "full_app_scan").strip() or "full_app_scan"
+                        selected_flows = expand_selected_flows([st])
+                    results = await run_ecommerce_scan(page, selected_flows, credentials, emit_event)
 
-                n_issues = len(all_defects)
+                defects = results.get("defects") or []
+                pid = page_id_from_url(page.url)
+                test_name = (
+                    f"Micro task: {micro_task}"
+                    if task_type == "micro" and micro_task
+                    else "E-commerce scan"
+                )
+                test_id = "micro_task" if task_type == "micro" else "ecommerce_scan"
+                coverage_sig = "micro_task_v1" if task_type == "micro" else "ecommerce_scan_v1"
+                test_results.append(
+                    TestResult(
+                        test_id=test_id,
+                        test_name=test_name,
+                        description="Single micro-task run"
+                        if task_type == "micro"
+                        else "Aggregated ecommerce flows",
+                        category="functional",
+                        priority=1,
+                        target_page_id=pid,
+                        actual_page_id=pid,
+                        actual_url=page.url,
+                        coverage_signature=coverage_sig,
+                        result="fail" if defects else "pass",
+                        duration_seconds=round(time.time() - t_scan, 2),
+                        qa_defects_by_page=[
+                            {
+                                "page_url": page.url,
+                                "defects": defects,
+                                "metrics": results.get("metrics"),
+                            },
+                        ],
+                    )
+                )
+
+                n_issues = len(defects)
                 await emit_event(f"Execution complete — {n_issues} issues detected")
 
                 completed_at = time.strftime("%Y-%m-%dT%H:%M:%SZ")

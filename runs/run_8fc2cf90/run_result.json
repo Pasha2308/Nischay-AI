@@ -1,0 +1,904 @@
+{
+  "run_id": "run_8fc2cf90",
+  "plan_id": "plan_det_e84e754c",
+  "started_at": "2026-03-29T14:47:00Z",
+  "completed_at": "2026-03-29T14:48:52Z",
+  "target_url": "https://automationexercise.com",
+  "total_tests": 5,
+  "passed": 0,
+  "failed": 5,
+  "skipped": 0,
+  "errors": 0,
+  "duration_seconds": 112.27,
+  "test_results": [
+    {
+      "test_id": "qa_page_automationexercise.com_6136257933f5",
+      "test_name": "Active QA \u2014 https://automationexercise.com",
+      "description": "Per-page active QA (forms, DOM, navigation, performance)",
+      "category": "functional",
+      "priority": 1,
+      "target_page_id": "page_automationexercise.com_6136257933f5",
+      "actual_page_id": "page_automationexercise.com_6136257933f5",
+      "actual_url": "https://automationexercise.com/",
+      "coverage_signature": "active_qa_v1",
+      "result": "fail",
+      "duration_seconds": 32.53,
+      "failure_reason": null,
+      "evidence": {
+        "screenshots": [],
+        "console_logs": [],
+        "network_log": [],
+        "dom_snapshot_path": null,
+        "video_path": null
+      },
+      "fallback_records": [],
+      "precondition_results": [],
+      "step_results": [],
+      "assertion_results": [],
+      "assertions_passed": 0,
+      "assertions_failed": 0,
+      "assertions_total": 0,
+      "potentially_flaky": false,
+      "qa_defects_by_page": [
+        {
+          "page_url": "https://automationexercise.com",
+          "defects": [
+            {
+              "defect": "form_submission_failed",
+              "type": "form",
+              "severity": "medium",
+              "page_url": "https://automationexercise.com/",
+              "description": "Form #0: no URL change and no obvious success message after submit"
+            },
+            {
+              "defect": "missing_primary_action",
+              "type": "cta",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "No button/link text contains \"buy\", \"checkout\", or \"submit\""
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Failed to load resource: the server responded with a status of 404 ()"
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/api_list' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/api_list' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/api_list' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Attestation check for Attribution Reporting on https://ad.doubleclick.net failed."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/products' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/products' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/products' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/view_cart' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/view_cart' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/view_cart' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/login' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/login' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/login' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/test_cases' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/test_cases' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/test_cases' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "test_id": "qa_page_automationexercise.com_50ddce0bac44",
+      "test_name": "Active QA \u2014 https://automationexercise.com/login",
+      "description": "Per-page active QA (forms, DOM, navigation, performance)",
+      "category": "functional",
+      "priority": 1,
+      "target_page_id": "page_automationexercise.com_50ddce0bac44",
+      "actual_page_id": "page_automationexercise.com_50ddce0bac44",
+      "actual_url": "https://automationexercise.com/login",
+      "coverage_signature": "active_qa_v1",
+      "result": "fail",
+      "duration_seconds": 19.92,
+      "failure_reason": null,
+      "evidence": {
+        "screenshots": [],
+        "console_logs": [],
+        "network_log": [],
+        "dom_snapshot_path": null,
+        "video_path": null
+      },
+      "fallback_records": [],
+      "precondition_results": [],
+      "step_results": [],
+      "assertion_results": [],
+      "assertions_passed": 0,
+      "assertions_failed": 0,
+      "assertions_total": 0,
+      "potentially_flaky": false,
+      "qa_defects_by_page": [
+        {
+          "page_url": "https://automationexercise.com/login",
+          "defects": [
+            {
+              "defect": "missing_primary_action",
+              "type": "cta",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login",
+              "description": "No button/link text contains \"buy\", \"checkout\", or \"submit\""
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/signup' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/signup' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/signup' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/login' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/login' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/login' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/products' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/products' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/products' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/view_cart' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/view_cart' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/view_cart' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/test_cases' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/test_cases' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/test_cases' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "test_id": "qa_page_automationexercise.com_50ddce0bac44",
+      "test_name": "Active QA \u2014 https://automationexercise.com/login#top",
+      "description": "Per-page active QA (forms, DOM, navigation, performance)",
+      "category": "functional",
+      "priority": 1,
+      "target_page_id": "page_automationexercise.com_50ddce0bac44",
+      "actual_page_id": "page_automationexercise.com_50ddce0bac44",
+      "actual_url": "https://automationexercise.com/login#top",
+      "coverage_signature": "active_qa_v1",
+      "result": "fail",
+      "duration_seconds": 22.82,
+      "failure_reason": null,
+      "evidence": {
+        "screenshots": [],
+        "console_logs": [],
+        "network_log": [],
+        "dom_snapshot_path": null,
+        "video_path": null
+      },
+      "fallback_records": [],
+      "precondition_results": [],
+      "step_results": [],
+      "assertion_results": [],
+      "assertions_passed": 0,
+      "assertions_failed": 0,
+      "assertions_total": 0,
+      "potentially_flaky": false,
+      "qa_defects_by_page": [
+        {
+          "page_url": "https://automationexercise.com/login#top",
+          "defects": [
+            {
+              "defect": "missing_primary_action",
+              "type": "cta",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "No button/link text contains \"buy\", \"checkout\", or \"submit\""
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/signup' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/signup' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/signup' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/login#top' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/login#top' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/login#top' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/products' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/products' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/products' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/view_cart' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/view_cart' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/view_cart' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/login' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/login' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/login' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/test_cases' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/test_cases' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/login#top",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/test_cases' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "test_id": "qa_page_automationexercise.com_6136257933f5",
+      "test_name": "Active QA \u2014 https://automationexercise.com/",
+      "description": "Per-page active QA (forms, DOM, navigation, performance)",
+      "category": "functional",
+      "priority": 1,
+      "target_page_id": "page_automationexercise.com_6136257933f5",
+      "actual_page_id": "page_automationexercise.com_6136257933f5",
+      "actual_url": "https://automationexercise.com/",
+      "coverage_signature": "active_qa_v1",
+      "result": "fail",
+      "duration_seconds": 19.71,
+      "failure_reason": null,
+      "evidence": {
+        "screenshots": [],
+        "console_logs": [],
+        "network_log": [],
+        "dom_snapshot_path": null,
+        "video_path": null
+      },
+      "fallback_records": [],
+      "precondition_results": [],
+      "step_results": [],
+      "assertion_results": [],
+      "assertions_passed": 0,
+      "assertions_failed": 0,
+      "assertions_total": 0,
+      "potentially_flaky": false,
+      "qa_defects_by_page": [
+        {
+          "page_url": "https://automationexercise.com/",
+          "defects": [
+            {
+              "defect": "missing_primary_action",
+              "type": "cta",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "No button/link text contains \"buy\", \"checkout\", or \"submit\""
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/test_cases' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/test_cases' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/test_cases' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/api_list' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/api_list' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/api_list' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/products' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/products' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/products' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/view_cart' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/view_cart' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/view_cart' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/login' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/login' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/login' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "test_id": "qa_page_automationexercise.com_b50ff1d308ba",
+      "test_name": "Active QA \u2014 https://automationexercise.com/products",
+      "description": "Per-page active QA (forms, DOM, navigation, performance)",
+      "category": "functional",
+      "priority": 1,
+      "target_page_id": "page_automationexercise.com_b50ff1d308ba",
+      "actual_page_id": "page_automationexercise.com_b50ff1d308ba",
+      "actual_url": "https://automationexercise.com/products",
+      "coverage_signature": "active_qa_v1",
+      "result": "fail",
+      "duration_seconds": 17.09,
+      "failure_reason": null,
+      "evidence": {
+        "screenshots": [],
+        "console_logs": [],
+        "network_log": [],
+        "dom_snapshot_path": null,
+        "video_path": null
+      },
+      "fallback_records": [],
+      "precondition_results": [],
+      "step_results": [],
+      "assertion_results": [],
+      "assertions_passed": 0,
+      "assertions_failed": 0,
+      "assertions_total": 0,
+      "potentially_flaky": false,
+      "qa_defects_by_page": [
+        {
+          "page_url": "https://automationexercise.com/products",
+          "defects": [
+            {
+              "defect": "missing_primary_action",
+              "type": "cta",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/products",
+              "description": "No button/link text contains \"buy\", \"checkout\", or \"submit\""
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/products",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/products?search=' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/products",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/products?search=' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/products",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/products?search=' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/products",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/products' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/products",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/products' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/products",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/products' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/products",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/products",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/products",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/products",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/view_cart' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/products",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/view_cart' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/products",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/view_cart' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/products",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/login' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/products",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/login' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/products",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/login' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/products",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/test_cases' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/products",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/test_cases' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700'. This request has been blocked; the content must be served over HTTPS."
+            },
+            {
+              "defect": "console_error",
+              "type": "browser_console",
+              "severity": "high",
+              "page_url": "https://automationexercise.com/products",
+              "description": "Mixed Content: The page at 'https://automationexercise.com/test_cases' was loaded over HTTPS, but requested an insecure stylesheet 'http://fonts.googleapis.com/css?family=Abel'. This request has been blocked; the content must be served over HTTPS."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "ai_summary": "",
+  "step_retries": 0
+}

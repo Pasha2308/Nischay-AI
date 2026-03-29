@@ -67,8 +67,13 @@ class FrameworkConfig(BaseModel):
 
     # fast: fewer tests, shorter timeouts, early exit; deep: full scan (higher limits, no early exit)
     scan_mode: Literal["fast", "deep"] = "fast"
-    # Free-form scan goal (e.g. full_app, checkout_only) — used by evaluator and decision layer
-    scan_task: str = "full_app"
+    # Task bundle id (e.g. full_app_scan, quick_scan) or legacy full_app — expanded via TASK_GROUPS
+    scan_task: str = "full_app_scan"
+    # Optional explicit flow list (auth, browse, product, …); when set, overrides scan_task expansion
+    flows: Optional[list[str]] = None
+    # "micro" = single quick task via run_micro_task; otherwise full multi-flow scan
+    task_type: Optional[str] = None
+    micro_task: Optional[str] = None
 
     # Authentication
     auth: Optional[AuthConfig] = None

@@ -1,0 +1,118 @@
+[
+  {
+    "site": "https://www.nappadori.com/",
+    "login_ok": true,
+    "login_mode": "UNKNOWN",
+    "verdict": "WORKING",
+    "metrics": {
+      "auth": {
+        "login_tested": true,
+        "invalid_cred_handled": false,
+        "signup_found": false,
+        "password_reset_found": false,
+        "auth_defects": 1
+      },
+      "browse": {
+        "browse_defect_count": 2,
+        "final_url": "https://www.nappadori.com/pages/nappa-dori-clothing",
+        "defect_types": [
+          "product_page_incomplete",
+          "search_failure"
+        ]
+      },
+      "cart": {
+        "add_to_cart_ok": false,
+        "variant_price_changed": false,
+        "quantity_recalc_ok": false,
+        "promo_applied_or_error": false,
+        "cart_persistent": true,
+        "empty_state_ok": true,
+        "cart_defects": 1
+      },
+      "checkout": {
+        "checkout_risk_weight": "maximum",
+        "proceed_ok": true,
+        "shipping_filled": false,
+        "validation_feedback_ok": true,
+        "shipping_method_ok": true,
+        "payment_surface_ok": false,
+        "total_math_ok": false,
+        "place_order_ready": false,
+        "checkout_defects": 2
+      },
+      "support": {
+        "help_page_ok": true,
+        "chat_tested": true,
+        "chat_ok": false,
+        "form_submitted": true,
+        "contact_methods_ok": true,
+        "support_defects": 0
+      },
+      "ui": {
+        "ui_defect_count": 1,
+        "page_url": "https://www.nappadori.com/pages/contact?contact_posted=true#contact_form",
+        "defect_types": [
+          "console_errors"
+        ],
+        "ui_integrity_budget_seconds": 5.0,
+        "ui_integrity_timed_out": false
+      }
+    },
+    "defect_count": 7,
+    "action_count": 49,
+    "false_positive_login": false
+  },
+  {
+    "site": "https://www.nextdirect.com/",
+    "login_ok": true,
+    "login_mode": "HUMAN",
+    "verdict": "PARTIALLY WORKING",
+    "metrics": {
+      "auth": {
+        "login_tested": true,
+        "invalid_cred_handled": false,
+        "signup_found": false,
+        "password_reset_found": false,
+        "auth_defects": 1
+      },
+      "browse": {
+        "browse_defect_count": 2,
+        "final_url": "https://www.nextdirect.com/CountrySelect",
+        "defect_types": [
+          "product_page_incomplete",
+          "search_failure"
+        ]
+      },
+      "cart": {
+        "add_to_cart_ok": false,
+        "variant_price_changed": false,
+        "quantity_recalc_ok": false,
+        "promo_applied_or_error": false,
+        "cart_persistent": false,
+        "empty_state_ok": false,
+        "cart_defects": 1
+      },
+      "checkout": {
+        "blocked": "region"
+      },
+      "support": {
+        "help_page_ok": true,
+        "chat_tested": true,
+        "chat_ok": false,
+        "form_submitted": false,
+        "contact_methods_ok": false,
+        "support_defects": 1
+      },
+      "ui": {
+        "ui_defect_count": 0,
+        "page_url": "https://www.nextdirect.com/CountrySelect",
+        "defect_types": [],
+        "ui_integrity_budget_seconds": 5.0,
+        "ui_integrity_timed_out": false
+      }
+    },
+    "defect_count": 6,
+    "action_count": 32,
+    "false_positive_login": false
+  }
+]
