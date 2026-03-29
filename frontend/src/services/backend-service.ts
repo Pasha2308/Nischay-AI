@@ -45,6 +45,27 @@ export type ActionTrailEntry = {
 
 export type IssuesBySeverity = Record<Severity, ScanIssue[]>;
 
+export type TaskResultEntry = {
+  task?: string;
+  success?: boolean;
+  impact?: string;
+  defects?: unknown[];
+};
+
+/** Stable execution payload from orchestrator (matches backend ``execution_snapshot``). */
+export type ExecutionSnapshot = {
+  url?: string;
+  decision?: string;
+  risk?: string;
+  /** 0–100 from failed-task impact weights (backend decision engine). */
+  risk_score?: number;
+  summary?: string;
+  task_results?: TaskResultEntry[];
+  defects?: unknown[];
+  logs?: string[];
+  duration?: number;
+};
+
 export type ScanSummary = {
   total_pages_scanned: number;
   total_actions_run: number;
@@ -78,6 +99,9 @@ export type ScanResultPayload = {
   warning?: string;
   scan_mode?: string;
   scan_task?: string;
+  pipeline_metrics?: PipelineMetricsPayload | null;
+  /** Micro-task run snapshot: decision, defects, emit logs, per-task results. */
+  execution_snapshot?: ExecutionSnapshot | null;
 };
 
 /** Prefer top-level ``pages_scanned`` from API; ``summary.total_pages_scanned`` is fallback only. */
@@ -111,6 +135,26 @@ export type ScanCredentialsPayload = {
   password: string;
   /** Page to open for login (defaults to scan URL if omitted). */
   login_url?: string;
+};
+
+export type DashboardSummary = {
+  total_runs: number;
+  last_decision: string | null;
+  last_job_id: string | null;
+  pass_count: number;
+  fail_count: number;
+};
+
+export type RunHistoryEntry = {
+  job_id: string;
+  url: string;
+  decision: string;
+  completed_at: number;
+  status: string;
+};
+
+export type RunHistoryResponse = {
+  runs: RunHistoryEntry[];
 };
 
 export type LatestResultsResponse = {
@@ -164,6 +208,8 @@ export type TriggerTestRunOptions = {
   micro_task?: string;
   requires_login?: boolean;
   credentials?: ScanCredentialsPayload;
+  /** Playwright browser; default chromium. */
+  browser_type?: "chromium" | "firefox" | "webkit";
 };
 
 export async function triggerTestRun(
@@ -179,12 +225,25 @@ export async function triggerTestRun(
   if (options?.micro_task != null && options.micro_task !== "") body.micro_task = options.micro_task;
   if (options?.requires_login !== undefined) body.requires_login = options.requires_login;
   if (options?.credentials) body.credentials = options.credentials;
+  if (options?.browser_type) body.browser_type = options.browser_type;
   const response = await fetch(`${API_BASE}/jobs/test.run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   if (!response.ok) throw new Error(`Failed to start scan (${response.status})`);
+  return response.json();
+}
+
+export async function fetchDashboardSummary(): Promise<DashboardSummary> {
+  const response = await fetch(`${API_BASE}/dashboard/summary`);
+  if (!response.ok) throw new Error(`Failed to load dashboard (${response.status})`);
+  return response.json();
+}
+
+export async function fetchRunHistory(): Promise<RunHistoryResponse> {
+  const response = await fetch(`${API_BASE}/runs/history`);
+  if (!response.ok) throw new Error(`Failed to fetch run history (${response.status})`);
   return response.json();
 }
 

@@ -7,6 +7,7 @@ import { DefectsPage } from "./pages/DefectsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { ScanDetailPage } from "./pages/ScanDetailPage";
 import { JobResultsPage } from "./pages/JobResultsPage";
+import { TestPage } from "./pages/TestPage";
 import { SyntheticDataPage } from "./pages/SyntheticDataPage";
 
 export default function App() {
@@ -16,6 +17,7 @@ export default function App() {
       <main className="content">
         <Routes>
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/test" element={<TestPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/history" element={<ScanHistoryPage />} />
           <Route path="/defects" element={<DefectsPage />} />

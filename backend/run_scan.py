@@ -185,6 +185,8 @@ async def main() -> None:
                     "flows": [],
                     "action_trail": result2.get("actions") or [],
                     "duration_seconds": dur2,
+                    "metrics": result2.get("metrics") or {},
+                    "task_results": result2.get("task_results") or [],
                 }
             )
         except Exception:

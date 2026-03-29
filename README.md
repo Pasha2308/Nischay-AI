@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 Nischay AI
 
 Autonomous QA Agent for Release Decisions
@@ -197,3 +198,179 @@ LinkedIn: Pasha23
 Nischay AI is not about testing.
 
 It’s about making release decisions with confidence.
+=======
+# Nischay AI — Autonomous QA Decision Engine
+
+**Nischay AI** is an autonomous quality-assurance system that drives a **real browser** like a user, observes what happens, and returns a **shipping decision**—not a pass/fail test matrix. It is built for teams that need actionable risk signals fast, especially on **e-commerce** flows.
+
+---
+
+## What it does
+
+- An **agent-style pipeline** simulates real user behavior in the browser (navigation, forms, cart/checkout paths, and more via **micro-tasks**).
+- The system aggregates observations and applies a **decision engine** to output a clear verdict: **SAFE**, **CAUTION**, or **DO NOT SHIP**, with risk context and evidence—not “42 tests passed.”
+- It is **not** a generic unit-test runner: it is a **browser-grounded QA decision** product.
+
+---
+
+## Core concept
+
+```
+User → Intent (URL + task bundle) → Agent pipeline → Browser (Playwright)
+     → Actions → Observations → Decision + logs
+```
+
+The frontend collects intent; the backend orchestrates crawl/plan/execute; **Playwright** runs against the live site; structured results feed the **decision** layer and the UI.
+
+---
+
+## Features
+
+| Area | Description |
+|------|-------------|
+| **Micro Task Engine** | Composable tasks (search, cart, checkout, support, etc.) grouped into scan presets (`quick_scan`, `conversion_scan`, `full_app_scan`). |
+| **Real browser execution** | **Playwright** with optional **Chromium** (default), **Firefox**, or **WebKit**—same tasks, selected engine. |
+| **Decision engine** | Risk-based **SAFE / CAUTION / DO NOT SHIP** style output from execution snapshots. |
+| **Live logs** | Streaming-style job events for transparency during runs. |
+| **E-commerce focus** | Task registry and flows tuned for typical storefront journeys. |
+
+---
+
+## Architecture
+
+| Layer | Stack |
+|-------|--------|
+| **Frontend** | React (Vite), dashboard, test launcher, results |
+| **Backend API** | FastAPI (`api/server.py`) |
+| **Agent engine** | Orchestrator, micro-task runner, crawl/plan/execute pipeline (`backend/`) |
+| **Browser** | Playwright (`backend/core/browser.py` centralizes launch) |
+| **Decision engine** | Rules/snapshot assembly (`backend/core/`, services) |
+| **Shared models** | Pydantic config and DTOs (`shared/`) |
+
+---
+
+## Project structure
+
+```
+.
+├── api/              # FastAPI app (HTTP API, job orchestration)
+├── backend/          # Crawler, executor, orchestrator, micro-tasks, services
+│   └── core/         # Browser launch, ecommerce plans, task registry, etc.
+├── frontend/         # React SPA
+├── shared/           # Cross-cutting models and utilities
+└── pyproject.toml    # Python package and dependencies
+```
+
+---
+
+## How to run
+
+### Prerequisites
+
+- **Python 3.11+**
+- **Node.js** (LTS recommended) for the frontend
+- **Playwright browsers** (install after Python deps)
+
+### Backend
+
+From the repository root:
+
+```bash
+pip install -e .
+playwright install chromium firefox webkit
+```
+
+Start the API (reload for development):
+
+```bash
+uvicorn api.server:app --reload
+```
+
+Default API base: `http://localhost:8000` (see `frontend` service `API_BASE` if you change the port).
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open the printed local URL (typically `http://localhost:5173`).
+
+---
+
+## How to use
+
+1. Open **`/test`** in the app (or use the **New test** nav entry).
+2. Enter a **URL** (`http://` or `https://`).
+3. Choose a **task group** (e.g. full app scan) or **Advanced** micro-tasks.
+4. Optionally pick **Browser** (Chromium default, or Firefox / WebKit).
+5. **Start test** — you are redirected to **results** for the job id when the run is queued.
+
+The **Dashboard** (`/`) shows session stats; **Run history** lists recent completed runs (in-memory for the current API process).
+
+---
+
+## Example output
+
+Execution payloads include a structured snapshot; conceptually:
+
+```json
+{
+  "decision": "DO NOT SHIP",
+  "risk": "HIGH",
+  "summary": "Checkout blocked payment step; cart actions succeeded but fulfillment path is unsafe to release."
+}
+```
+
+Exact field names match `execution_snapshot` in API responses and the React types in `frontend/src/services/backend-service.ts`.
+
+---
+
+## API: optional `browser_type`
+
+`POST /jobs/test.run` accepts an optional JSON field:
+
+```json
+{
+  "url": "https://example.com",
+  "scan_task": "full_app_scan",
+  "browser_type": "chromium"
+}
+```
+
+Allowed values: `"chromium"` (default), `"firefox"`, `"webkit"`. Omitted means **Chromium**.
+
+---
+
+## Development rules (team norms)
+
+- Prefer **small, reviewable changes**; avoid drive-by refactors.
+- **Cursor / AI-assisted coding** is fine; keep prompts and reviews disciplined.
+- Prefer **real target URLs** for integration checks; avoid relying on fabricated payloads for “does the pipeline run?”
+- **Browser selection** must not fork task logic—only the Playwright launch target changes.
+
+---
+
+## Roadmap
+
+- Expand **micro-task** coverage and presets
+- More **adaptive** flows (guided by LLM where configured)
+- **CI/CD** hooks (API-first) for gates on merge/release
+
+---
+
+## Contributing
+
+1. Fork / branch from `main`.
+2. Install backend with `pip install -e ".[dev]"` if you use optional dev tools.
+3. Run the frontend build: `cd frontend && npm run build`.
+4. Open a PR with a clear description of behavior and risk.
+
+---
+
+## License
+
+MIT
+>>>>>>> b51165b (feat: synthetic data + risk score + UI improvements)

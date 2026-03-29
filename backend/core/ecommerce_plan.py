@@ -3741,75 +3741,32 @@ ECOMMERCE_FLOWS: dict[str, Callable[..., Awaitable[EcommerceFlowResult]]] = {
     "coupon": run_coupon_flow,
 }
 
-# User-journey task bundles (expand via expand_selected_flows)
-TASK_GROUPS: dict[str, list[str]] = {
-    "quick_scan": ["ui", "navigation"],
-    "conversion_scan": ["browse", "product", "cart", "checkout"],
-    "auth_scan": ["auth"],
-    "full_app_scan": [
-        "auth",
-        "browse",
-        "product",
-        "cart",
-        "checkout",
-        "support",
-        "ui",
-        "navigation",
-    ],
-}
-
-# Legacy API / UI aliases → canonical task group name
-SCAN_TASK_ALIASES: dict[str, str] = {
-    "full_app": "full_app_scan",
-    "full": "full_app_scan",
-    "default": "full_app_scan",
-}
-
-
 def expand_selected_flows(items: list[Any]) -> list[str]:
     """
-    Map task tokens to ordered flow ids: task group names expand to TASK_GROUPS;
-    individual flow ids pass through. No duplicates; first occurrence wins.
+    Map task tokens to ordered micro task names (task groups + legacy flow aliases).
+    Delegates to backend.core.task_registry.expand_task_selection.
     """
-    out: list[str] = []
-    seen: set[str] = set()
+    from backend.core.task_registry import expand_task_selection
+
+    toks: list[str] = []
     for raw in items or []:
         if not isinstance(raw, str):
             continue
-        token = raw.strip().lower()
-        if not token:
-            continue
-        token = SCAN_TASK_ALIASES.get(token, token)
-        if token in TASK_GROUPS:
-            for fk in TASK_GROUPS[token]:
-                if fk not in seen and fk in ECOMMERCE_FLOWS:
-                    seen.add(fk)
-                    out.append(fk)
-        elif token in ECOMMERCE_FLOWS:
-            if token not in seen:
-                seen.add(token)
-                out.append(token)
-    return out
+        s = raw.strip()
+        if s:
+            toks.append(s)
+    return expand_task_selection(toks)
 
-
-# Single-flow micro-tasks for fast demos (short timeout; same flow implementations as full scan).
-MICRO_TASKS: dict[str, Callable[..., Awaitable[EcommerceFlowResult]]] = {
-    "search_product": run_search_flow,
-    "open_product": run_product_flow,
-    "add_to_cart": run_cart_flow,
-    "apply_coupon": run_coupon_flow,
-    "fill_checkout": run_checkout_flow,
-    "contact_support": run_support_flow,
-}
 
 MICRO_TASK_TIMEOUT_SECONDS = 18.0
 
 _MICRO_TASK_ALIASES: dict[str, str] = {
     "search": "search_product",
-    "product": "open_product",
+    "product": "open_product_from_search",
+    "open_product": "open_product_from_search",
     "cart": "add_to_cart",
     "coupon": "apply_coupon",
-    "checkout": "fill_checkout",
+    "checkout": "start_checkout",
     "support": "contact_support",
 }
 
@@ -3823,13 +3780,16 @@ async def run_micro_task(
     timeout_seconds: float | None = None,
 ) -> EcommerceFlowResult:
     """
-    Run one ecommerce flow with a strict wall-time limit (micro-task / quick demo).
-    Validates task name, logs a single ⚡ line, then delegates to the matching flow runner.
+    Run one registered micro task (TASK_REGISTRY) with a strict wall-time limit.
     """
+    from backend.core.context import create_context, ensure_shared_context
+    from backend.core.micro_tasks import run_task
+    from backend.core.task_registry import TASK_REGISTRY
+
     emit = make_safe_emitter(emit_event)
     raw = str(task or "").strip().lower().replace("-", "_")
     key = _MICRO_TASK_ALIASES.get(raw, raw)
-    if key not in MICRO_TASKS:
+    if key not in TASK_REGISTRY:
         await emit("⚡ Running task: UNKNOWN")
         return _flow_result(
             defects=[
@@ -3847,9 +3807,18 @@ async def run_micro_task(
 
     label = key.upper()
     await emit(f"⚡ Running task: {label}")
-    flow_fn = MICRO_TASKS[key]
+    task_fn = TASK_REGISTRY[key]
     to = float(timeout_seconds if timeout_seconds is not None else MICRO_TASK_TIMEOUT_SECONDS)
-    return await run_flow_with_timeout(flow_fn, page, credentials, emit, to)
+    ctx = ensure_shared_context(create_context())
+    ctx.update(credentials or {})
+    ctx = ensure_shared_context(ctx)
+    mr = await run_task(task_fn, page, ctx, emit, timeout=to)
+    defects = list(mr.get("defects") or [])
+    return _flow_result(
+        defects=defects,
+        actions=[{"flow": "micro", "task": key, "success": mr.get("success"), "impact": mr.get("impact")}],
+        metrics={"micro_task": key, "result": mr},
+    )
 
 
 async def run_ecommerce_scan(
@@ -3859,83 +3828,20 @@ async def run_ecommerce_scan(
     emit_event=None,
 ) -> dict[str, Any]:
     """
-    Run each selected e-commerce flow in order, aggregating defects, actions, and metrics.
+    Run **micro tasks only** (no crawler dependency): ``task → action → result`` via
+    :func:`run_micro_task_group_scan`.
 
-    Unknown flow ids are skipped. A failure in one flow is isolated: the scan continues.
+    ``selected_flows`` are group/task tokens expanded by ``expand_task_selection``.
+    Unknown tokens are skipped. A failure in one task is isolated.
+    Wall time capped at 90s by default (see micro_task_runner).
     """
-    all_defects: list[dict[str, Any]] = []
-    all_actions: list[dict[str, Any]] = []
-    metrics: dict[str, Any] = {}
+    from backend.core.micro_task_runner import run_micro_task_group_scan
 
-    FLOW_TIMEOUTS = {
-        "auth": 30,
-        "browse": 20,
-        "cart": 25,
-        "checkout": 25,
-        "support": 15,
-        "ui": 10,
-        "product": 25,
-        "navigation": 25,
-        "search": 20,
-        "coupon": 20,
-    }
-
-    emit = make_safe_emitter(emit_event)
-
-    expanded = expand_selected_flows(selected_flows)
-    for flow_key in expanded:
-        flow_fn = ECOMMERCE_FLOWS[flow_key]
-        label = flow_key.upper()
-        await emit(f"━━━ Starting {label} flow ━━━")
-
-        try:
-            flow_name = flow_key
-            timeout = FLOW_TIMEOUTS.get(flow_name, 15)
-
-            result = await run_flow_with_timeout(
-                flow_fn,
-                page,
-                credentials,
-                emit,
-                timeout,
-            )
-            if not isinstance(result, Mapping):
-                raise TypeError(f"flow {flow_key!r} returned {type(result)!r}, expected mapping")
-
-            defects = result.get("defects")
-            actions = result.get("actions")
-            flow_metrics = result.get("metrics")
-
-            if not isinstance(defects, list):
-                defects = []
-            if not isinstance(actions, list):
-                actions = []
-            if not isinstance(flow_metrics, dict):
-                flow_metrics = {}
-
-            all_defects.extend(defects)
-            all_actions.extend(actions)
-            metrics[flow_key] = flow_metrics
-
-            n = len(defects)
-            await emit( f"✅ {label} complete — {n} issues found")
-        except Exception as e:
-            logger.exception("E-commerce flow %s failed", flow_key)
-            await emit( f"❌ {label} failed — {e!s}")
-            all_defects.append(
-                {
-                    "defect": "flow_execution_error",
-                    "type": "orchestration",
-                    "severity": "high",
-                    "flow": flow_key,
-                    "page_url": getattr(page, "url", "") or "",
-                    "description": str(e)[:4000],
-                }
-            )
-            metrics[flow_key] = {"error": str(e)[:2000]}
-
-    return {
-        "defects": all_defects,
-        "actions": all_actions,
-        "metrics": metrics,
-    }
+    toks: list[str] = []
+    for raw in selected_flows or []:
+        if not isinstance(raw, str):
+            continue
+        s = raw.strip()
+        if s:
+            toks.append(s)
+    return await run_micro_task_group_scan(page, toks, credentials, emit_event, budget_seconds=90.0)

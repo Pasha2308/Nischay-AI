@@ -1,0 +1,107 @@
+{
+  "run_id": "run_70527c26",
+  "plan_id": "plan_det_3b595d3a",
+  "started_at": "2026-03-29T18:44:46Z",
+  "completed_at": "2026-03-29T18:44:51Z",
+  "target_url": "https://www.nappadori.com/",
+  "total_tests": 1,
+  "passed": 0,
+  "failed": 1,
+  "skipped": 0,
+  "errors": 0,
+  "duration_seconds": 5.19,
+  "test_results": [
+    {
+      "test_id": "micro_task_scan",
+      "test_name": "Micro task scan",
+      "description": "Micro task orchestration (11 tasks in registry)",
+      "category": "functional",
+      "priority": 1,
+      "target_page_id": "page_www.nappadori.com_7375e599f857",
+      "actual_page_id": "page_www.nappadori.com_7375e599f857",
+      "actual_url": "https://www.nappadori.com/",
+      "coverage_signature": "micro_task_scan_v1",
+      "result": "fail",
+      "duration_seconds": 2.29,
+      "failure_reason": null,
+      "evidence": {
+        "screenshots": [],
+        "console_logs": [],
+        "network_log": [],
+        "dom_snapshot_path": null,
+        "video_path": null
+      },
+      "fallback_records": [],
+      "precondition_results": [],
+      "step_results": [],
+      "assertion_results": [],
+      "assertions_passed": 0,
+      "assertions_failed": 0,
+      "assertions_total": 0,
+      "potentially_flaky": false,
+      "qa_defects_by_page": [
+        {
+          "page_url": "https://www.nappadori.com/",
+          "defects": [
+            {
+              "defect": "login_fields_not_found",
+              "description": "No visible login fields",
+              "severity": "high",
+              "page_url": "https://www.nappadori.com/",
+              "micro_task": "login_user"
+            }
+          ],
+          "metrics": {
+            "login_user": {
+              "success": false,
+              "impact": "HIGH",
+              "defects_count": 1
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "ai_summary": "",
+  "step_retries": 0,
+  "execution_snapshot": {
+    "url": "https://www.nappadori.com/",
+    "decision": "SAFE TO SHIP",
+    "risk": "LOW",
+    "summary": "1 high-impact task failure(s), 1 total task failure(s), 0 medium-impact failure(s).",
+    "task_results": [
+      {
+        "task": "login_user",
+        "success": false,
+        "defects": [
+          {
+            "defect": "login_fields_not_found",
+            "description": "No visible login fields",
+            "severity": "high",
+            "page_url": "https://www.nappadori.com/"
+          }
+        ],
+        "impact": "HIGH"
+      }
+    ],
+    "defects": [
+      {
+        "defect": "login_fields_not_found",
+        "description": "No visible login fields",
+        "severity": "high",
+        "page_url": "https://www.nappadori.com/",
+        "micro_task": "login_user"
+      }
+    ],
+    "logs": [
+      "\u2501\u2501\u2501 Micro task: login_user \u2501\u2501\u2501",
+      "[micro:login_user] \u25b6 run_task start (timeout=20.0s)",
+      "[micro:login_user] before \u2014 login",
+      "[micro:login_user] after \u2014 no fields",
+      "[micro:login_user] \u25b6 run_task finished success=False",
+      "\u2705 login_user complete \u2014 1 issue(s)",
+      "Execution complete \u2014 1 issues detected"
+    ],
+    "duration": 2.29
+  }
+}

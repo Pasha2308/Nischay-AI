@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Optional
 from urllib.parse import urljoin, urlparse
 
+from backend.core.browser import launch_browser
 from playwright.async_api import (
     Browser,
     BrowserContext,
@@ -289,12 +290,14 @@ class Crawler:
 
             else:
                 async with async_playwright() as playwright:
-                    logger.debug("Launching stealth Chromium browser...")
-                    print("🚀 PLAYWRIGHT LAUNCH TRIGGERED", flush=True)
-                    browser = await playwright.chromium.launch(
-                        headless=False,
-                        slow_mo=80,
-                        args=["--start-maximized", "--disable-blink-features=AutomationControlled"]
+                    logger.debug(
+                        "Launching Playwright browser (type=%s)...",
+                        self.config.browser_type,
+                    )
+                    browser = await launch_browser(
+                        playwright,
+                        browser_type=self.config.browser_type,
+                        requires_login=bool(self.config.auth),
                     )
                     logger.debug(
                         "Creating stealth browser context (viewport=%dx%d)",

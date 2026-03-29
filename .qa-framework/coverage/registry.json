@@ -1,6 +1,6 @@
 {
   "target_url": "https://example.com",
-  "last_updated": "2026-03-29T16:52:03Z",
+  "last_updated": "2026-03-29T18:44:51Z",
   "pages": {
     "page_example.com_0f115db062b7": {
       "page_id": "page_example.com_0f115db062b7",
@@ -1074,10 +1074,33 @@
       "page_id": "page_www.nappadori.com_7375e599f857",
       "url": "https://www.nappadori.com/",
       "page_type": "form",
-      "categories": {},
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "micro_task_scan_v1",
+              "last_tested": "2026-03-29T18:44:51Z",
+              "last_result": "fail",
+              "test_count": 1,
+              "history": [
+                {
+                  "run_id": "run_70527c26",
+                  "timestamp": "2026-03-29T18:44:51Z",
+                  "result": "fail",
+                  "duration_seconds": 2.29,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
       "elements_tested": {},
-      "last_tested": "",
-      "test_count": 0
+      "last_tested": "2026-03-29T18:44:51Z",
+      "test_count": 1
     },
     "page_www.nappadori.com_deda5f4f011c": {
       "page_id": "page_www.nappadori.com_deda5f4f011c",
@@ -1110,8 +1133,8 @@
   "journeys": {},
   "global_stats": {
     "total_pages": 50,
-    "pages_tested": 17,
-    "overall_score": 0.34,
+    "pages_tested": 18,
+    "overall_score": 0.36,
     "category_scores": {
       "functional": 1.0
     },

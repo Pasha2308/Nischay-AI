@@ -90,3 +90,5 @@ class RunResult(BaseModel):
     ai_summary: str = ""
     # Step-level evaluator retries (sum across parallel tests)
     step_retries: int = 0
+    # Stable API payload for execution UI (url, decision, risk, summary, task_results, defects, logs, duration)
+    execution_snapshot: Optional[dict[str, Any]] = None

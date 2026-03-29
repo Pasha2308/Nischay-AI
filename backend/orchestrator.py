@@ -21,7 +21,10 @@ from backend.models.action_log import (
 
 _T = TypeVar("_T")
 
+from backend.core.browser import launch_browser
+from backend.core.decision_engine import generate_decision
 from backend.core.ecommerce_plan import expand_selected_flows, run_ecommerce_scan, run_micro_task
+from backend.core.task_registry import TASK_REGISTRY
 from backend.core.login_handler import handle_login
 from backend.crawler.crawler import Crawler
 from backend.deterministic_plan import build_deterministic_smoke_plan
@@ -30,7 +33,7 @@ from backend.services.decision_insights import attach_decision_insights
 from backend.services.risk_explanation import attach_risk_explanation
 from backend.structured_run_output import build_structured_output, site_pages_payload
 from shared.models.config import FrameworkConfig
-from shared.models.site_model import AuthFlow, SiteModel
+from shared.models.site_model import AuthFlow, PageModel, SiteModel
 from shared.utils.auth import perform_smart_auth
 from shared.utils.browser_stealth import create_stealth_context
 from shared.models.test_plan import TestPlan
@@ -49,8 +52,49 @@ PHASE_3_AI_ANALYSIS = "━━━ PHASE 3: AI ANALYSIS ━━━"
 PHASE_4_REPORT = "━━━ PHASE 4: REPORT ━━━"
 
 
+def _build_execution_snapshot(
+    *,
+    page_url: str,
+    defects: list[Any],
+    results: dict[str, Any],
+    task_type: str,
+    logs: list[str],
+    duration_seconds: float,
+) -> dict[str, Any]:
+    """Stable shape for frontend: decision from decision_engine; task_results from scan (or single micro task)."""
+    task_results: list[dict[str, Any]] = list(results.get("task_results") or [])
+    if not task_results and task_type == "micro":
+        r = (results.get("metrics") or {}).get("result")
+        if isinstance(r, dict):
+            task_results = [r]
+    dec = generate_decision(task_results)
+    return {
+        "url": page_url,
+        "decision": dec["decision"],
+        "risk": dec["risk"],
+        "risk_score": int(dec.get("risk_score", 0)),
+        "summary": dec["summary"],
+        "task_results": task_results,
+        "defects": list(defects),
+        "logs": list(logs),
+        "duration": round(float(duration_seconds), 2),
+    }
+
+
+def _minimal_site_model_for_target(target_url: str) -> SiteModel:
+    """Single synthetic page for reporting/plan when crawl is skipped (micro-task execution only)."""
+    t = (target_url or "").strip()
+    if not t:
+        raise ValueError("target_url is required")
+    pid = page_id_from_url(t)
+    return SiteModel(
+        base_url=t,
+        pages=[PageModel(page_id=pid, url=t, page_type="static", title="")],
+    )
+
+
 class Orchestrator:
-    """Coordinates crawl → deterministic plan → execute (+ optional report/coverage)."""
+    """Coordinates optional crawl → deterministic plan → execute (+ optional report/coverage)."""
 
     def __init__(
         self,
@@ -302,11 +346,10 @@ class Orchestrator:
 
         try:
             async with async_playwright() as playwright:
-                print("🚀 PLAYWRIGHT LAUNCH TRIGGERED", flush=True)
-                browser = await playwright.chromium.launch(
-                    headless=False,
-                    slow_mo=80,
-                    args=["--start-maximized", "--disable-blink-features=AutomationControlled"]
+                browser = await launch_browser(
+                    playwright,
+                    browser_type=self.config.browser_type,
+                    requires_login=bool(self.config.auth or self.config.requires_login),
                 )
                 browser_context = await create_stealth_context(
                     browser,
@@ -371,36 +414,65 @@ class Orchestrator:
 
                     pipeline_auth_ok = pipeline_auth_ok and login_success
 
-                    # Stage 1: Crawl
-                    logger.info("--- Stage 1: Crawl ---")
-                    await self.emit(
-                        "stage",
-                        "phase_1_crawling",
-                        {"banner": PHASE_1_CRAWLING},
-                    )
-                    t_crawl0 = time.time()
-                    site_model = await self._crawl(
-                        browser=browser,
-                        browser_context=browser_context,
-                        post_login_url=post_login_url,
-                        auth_flow=auth_flow,
-                        log_action=self.log_action,
-                        log_bracketed=self.log_action_bracketed,
-                    )
-                    crawl_time_s = round(time.time() - t_crawl0, 2)
-                    pages_scanned = len(site_model.pages)
-                    self._last_site_model = site_model
-                    self._save_site_model(site_model)
-                    logger.info(
-                        "--- Stage 1 complete: %d pages in %.1fs ---",
-                        len(site_model.pages),
-                        crawl_time_s,
-                    )
-                    await self.emit(
-                        "stage",
-                        "crawl_complete",
-                        {"pages": pages_scanned, "duration_s": crawl_time_s},
-                    )
+                    # Stage 1: Optional crawl (discovery). Default off — execution is micro-task only.
+                    if self.config.crawl_before_execution:
+                        logger.info("--- Stage 1: Crawl ---")
+                        await self.emit(
+                            "stage",
+                            "phase_1_crawling",
+                            {"banner": PHASE_1_CRAWLING},
+                        )
+                        t_crawl0 = time.time()
+                        site_model = await self._crawl(
+                            browser=browser,
+                            browser_context=browser_context,
+                            post_login_url=post_login_url,
+                            auth_flow=auth_flow,
+                            log_action=self.log_action,
+                            log_bracketed=self.log_action_bracketed,
+                        )
+                        crawl_time_s = round(time.time() - t_crawl0, 2)
+                        pages_scanned = len(site_model.pages)
+                        self._last_site_model = site_model
+                        self._save_site_model(site_model)
+                        logger.info(
+                            "--- Stage 1 complete: %d pages in %.1fs ---",
+                            len(site_model.pages),
+                            crawl_time_s,
+                        )
+                        await self.emit(
+                            "stage",
+                            "crawl_complete",
+                            {"pages": pages_scanned, "duration_s": crawl_time_s},
+                        )
+                    else:
+                        logger.info(
+                            "--- Skipping crawl: micro-task execution (task → action → result) ---",
+                        )
+                        site_model = _minimal_site_model_for_target(self.config.target_url)
+                        crawl_time_s = 0.0
+                        pages_scanned = len(site_model.pages)
+                        self._last_site_model = site_model
+                        self._save_site_model(site_model)
+                        await self.emit(
+                            "stage",
+                            "phase_1_crawling",
+                            {
+                                "banner": PHASE_1_CRAWLING,
+                                "skipped": True,
+                                "mode": "micro_task_execution",
+                            },
+                        )
+                        await self.emit(
+                            "stage",
+                            "crawl_complete",
+                            {
+                                "pages": pages_scanned,
+                                "duration_s": 0.0,
+                                "skipped": True,
+                                "mode": "minimal_site_model",
+                            },
+                        )
 
                     await self.emit(
                         "stage",
@@ -496,6 +568,7 @@ class Orchestrator:
                     "scan_task": self.config.scan_task,
                     "target_url": self.config.target_url,
                     "results": None,
+                    "execution_snapshot": run_result.execution_snapshot if run_result else None,
                     "coverage": registry_summary,
                     "reports": reports,
                     "pipeline_metrics": pm,
@@ -571,6 +644,7 @@ class Orchestrator:
             }
             if run_result
             else None,
+            "execution_snapshot": run_result.execution_snapshot if run_result else None,
             "coverage": registry_summary,
             "reports": reports,
             "pipeline_metrics": pm,
@@ -649,6 +723,9 @@ class Orchestrator:
                 "target_url": self.config.target_url,
                 "status": "partial",
                 "warning": warning_message,
+                "execution_snapshot": self._last_run_result.execution_snapshot
+                if self._last_run_result
+                else None,
                 "pipeline_metrics": pm,
                 "action_trail": list(self.action_trail),
                 **site_pages_payload(self._last_site_model),
@@ -704,19 +781,17 @@ class Orchestrator:
         log_action: Any | None = None,
         log_bracketed: Any | None = None,
     ) -> RunResult:
-        """Run aggregated ecommerce flows once (no per-page QA loop)."""
+        """Run micro-task ecommerce scan once (``run_ecommerce_scan``); no crawl dependency."""
         _ = pipeline_auth_satisfied  # pipeline auth already applied to shared context
-        _ = site_model  # crawl output retained for site model / reporting; execution is flow-based
+        _ = site_model  # optional crawl snapshot for reporting only; execution uses page + config only
         started_at = time.strftime("%Y-%m-%dT%H:%M:%SZ")
         t0 = time.time()
         run_id = f"run_{uuid.uuid4().hex[:8]}"
 
-        async def emit_event(msg: str) -> None:
-            await self.emit("execution", "qa_action", {"message": msg})
-
         async def run_on_context(bc: BrowserContext) -> RunResult:
             page = await bc.new_page()
             test_results: list[TestResult] = []
+            execution_logs: list[str] = []
             goto_timeout = min(
                 120_000,
                 max(15_000, int(self.config.selector_timeout_seconds * 1000)),
@@ -732,6 +807,10 @@ class Orchestrator:
 
                 task_type = str(getattr(self.config, "task_type", "") or "").strip().lower()
                 micro_task = str(getattr(self.config, "micro_task", "") or "").strip()
+
+                async def emit_event(msg: str) -> None:
+                    execution_logs.append(str(msg))
+                    await self.emit("execution", "qa_action", {"message": msg})
 
                 try:
                     if log_bracketed:
@@ -802,6 +881,14 @@ class Orchestrator:
                         duration_seconds=round(time.time() - t0, 2),
                         test_results=test_results,
                         step_retries=0,
+                        execution_snapshot=_build_execution_snapshot(
+                            page_url=str(page.url or self.config.target_url),
+                            defects=[],
+                            results={},
+                            task_type="",
+                            logs=execution_logs,
+                            duration_seconds=round(time.time() - t0, 2),
+                        ),
                     )
 
                 t_scan = time.time()
@@ -840,6 +927,14 @@ class Orchestrator:
                             duration_seconds=round(time.time() - t0, 2),
                             test_results=test_results,
                             step_retries=0,
+                            execution_snapshot=_build_execution_snapshot(
+                                page_url=str(page.url or self.config.target_url),
+                                defects=[],
+                                results={},
+                                task_type="micro",
+                                logs=execution_logs,
+                                duration_seconds=round(time.time() - t_scan, 2),
+                            ),
                         )
                     results = await run_micro_task(page, micro_task, credentials, emit_event)
                 else:
@@ -856,17 +951,17 @@ class Orchestrator:
                 test_name = (
                     f"Micro task: {micro_task}"
                     if task_type == "micro" and micro_task
-                    else "E-commerce scan"
+                    else "Micro task scan"
                 )
-                test_id = "micro_task" if task_type == "micro" else "ecommerce_scan"
-                coverage_sig = "micro_task_v1" if task_type == "micro" else "ecommerce_scan_v1"
+                test_id = "micro_task" if task_type == "micro" else "micro_task_scan"
+                coverage_sig = "micro_task_v1" if task_type == "micro" else "micro_task_scan_v1"
                 test_results.append(
                     TestResult(
                         test_id=test_id,
                         test_name=test_name,
                         description="Single micro-task run"
                         if task_type == "micro"
-                        else "Aggregated ecommerce flows",
+                        else f"Micro task orchestration ({len(TASK_REGISTRY)} tasks in registry)",
                         category="functional",
                         priority=1,
                         target_page_id=pid,
@@ -892,6 +987,14 @@ class Orchestrator:
                 passed = sum(1 for tr in test_results if tr.result == "pass")
                 failed = sum(1 for tr in test_results if tr.result == "fail")
                 errors = sum(1 for tr in test_results if tr.result == "error")
+                execution_snapshot = _build_execution_snapshot(
+                    page_url=str(page.url or self.config.target_url),
+                    defects=defects,
+                    results=results,
+                    task_type=task_type,
+                    logs=execution_logs,
+                    duration_seconds=round(time.time() - t_scan, 2),
+                )
                 return RunResult(
                     run_id=run_id,
                     plan_id=plan.plan_id,
@@ -906,6 +1009,7 @@ class Orchestrator:
                     duration_seconds=round(time.time() - t0, 2),
                     test_results=test_results,
                     step_retries=0,
+                    execution_snapshot=execution_snapshot,
                 )
             finally:
                 await page.close()
@@ -914,14 +1018,10 @@ class Orchestrator:
             return await run_on_context(browser_context)
 
         async with async_playwright() as playwright:
-            print("🚀 PLAYWRIGHT LAUNCH TRIGGERED", flush=True)
-            browser_launched = await playwright.chromium.launch(
-                headless=False,
-                slow_mo=80,
-                args=[
-                    "--start-maximized",
-                    "--disable-blink-features=AutomationControlled",
-                ],
+            browser_launched = await launch_browser(
+                playwright,
+                browser_type=self.config.browser_type,
+                requires_login=bool(self.config.auth or self.config.requires_login),
             )
             bc = await create_stealth_context(
                 browser_launched,

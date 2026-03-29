@@ -9,6 +9,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from backend.core.browser import launch_browser
 from playwright.async_api import (
     Browser,
     BrowserContext,
@@ -362,13 +363,12 @@ class Executor:
 
         try:
             async with async_playwright() as playwright:
-                logger.info("Launching browser")
-                logger.debug("Launching stealth Chromium for test execution...")
-                print("🚀 PLAYWRIGHT LAUNCH TRIGGERED", flush=True)
-                browser = await playwright.chromium.launch(
-                    headless=False,
-                    slow_mo=80,
-                    args=["--start-maximized", "--disable-blink-features=AutomationControlled"]
+                logger.info("Launching browser (type=%s)", self.config.browser_type)
+                logger.debug("Launching Playwright for test execution...")
+                browser = await launch_browser(
+                    playwright,
+                    browser_type=self.config.browser_type,
+                    requires_login=bool(self.config.auth),
                 )
 
                 # Capture auth state once — will be injected into per-test contexts

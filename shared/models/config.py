@@ -74,6 +74,11 @@ class FrameworkConfig(BaseModel):
     # "micro" = single quick task via run_micro_task; otherwise full multi-flow scan
     task_type: Optional[str] = None
     micro_task: Optional[str] = None
+    # Playwright browser (API / CLI); default chromium matches historical behavior
+    browser_type: Literal["chromium", "firefox", "webkit"] = "chromium"
+    # When True, run the site crawler before execution (legacy path). When False (default),
+    # execution is micro-task only: task → action → result on the target URL (no crawl gate).
+    crawl_before_execution: bool = False
 
     # Authentication
     auth: Optional[AuthConfig] = None
@@ -138,6 +143,16 @@ class FrameworkConfig(BaseModel):
     report_formats: list[str] = Field(default_factory=lambda: ["html", "json"])
     report_output_dir: str = "./qa-reports"
     capture_video: str = "on_failure"
+
+    @field_validator("browser_type", mode="before")
+    @classmethod
+    def normalize_browser_type(cls, v: object) -> str:
+        if v is None or v == "":
+            return "chromium"
+        s = str(v).strip().lower()
+        if s in ("chromium", "firefox", "webkit"):
+            return s
+        raise ValueError("browser_type must be 'chromium', 'firefox', or 'webkit'")
 
     @field_validator("scan_mode", mode="before")
     @classmethod

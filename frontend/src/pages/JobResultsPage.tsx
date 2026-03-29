@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { JobExecutionResults } from "../components/JobExecutionResults";
 import { RiskGauge } from "../components/RiskGauge";
 import {
   fetchResults,
@@ -25,6 +26,10 @@ function riskBadgeClass(result: ScanResultPayload | null | undefined): string {
 }
 
 function riskScoreFromResult(result: ScanResultPayload | null | undefined): number {
+  const es = result?.execution_snapshot;
+  if (es != null && typeof es.risk_score === "number" && !Number.isNaN(es.risk_score)) {
+    return es.risk_score;
+  }
   return typeof result?.risk_score === "number" ? result.risk_score : 0;
 }
 
@@ -63,6 +68,22 @@ function issuesFoundFromResult(result: ScanResultPayload, issues: ScanIssue[]): 
   const n = result.summary?.total_issues_found;
   if (typeof n === "number") return n;
   return issues.length;
+}
+
+const POLL_MS = 2000;
+const POLL_MAX_MS = 120_000;
+
+const SCAN_STATUS_MESSAGES = [
+  "🔍 Understanding website structure...",
+  "🧠 Simulating real user behavior...",
+  "🛒 Testing purchase flow...",
+  "⚡ Detecting critical issues...",
+] as const;
+
+/** API returns lowercase status strings from the backend. */
+function isTerminalJobStatus(statusRaw: string | undefined | null): boolean {
+  const s = (statusRaw ?? "unknown").toLowerCase();
+  return s === "complete" || s === "completed" || s === "partial" || s === "failed";
 }
 
 function useAnimatedRiskScore(target: number, active: boolean): number {
@@ -236,26 +257,88 @@ export function JobResultsPage() {
   const { jobId } = useParams<{ jobId: string }>();
   const [data, setData] = useState<LatestResultsResponse | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [pollError, setPollError] = useState<string | null>(null);
+  const [pollTimedOut, setPollTimedOut] = useState(false);
+  const [scanStatusIdx, setScanStatusIdx] = useState(0);
 
   useEffect(() => {
     if (!jobId) return;
+
     let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    const pollDeadline = Date.now() + POLL_MAX_MS;
+
     setLoadError(null);
+    setPollError(null);
+    setPollTimedOut(false);
     setData(null);
-    fetchResults(jobId)
-      .then((d) => {
-        if (!cancelled) setData(d);
-      })
-      .catch((e) => {
-        if (!cancelled) setLoadError(String(e));
-      });
+
+    const stopPolling = () => {
+      if (intervalId != null) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    (async () => {
+      try {
+        const res = await fetchResults(jobId);
+        if (cancelled) return;
+        setData(res);
+
+        const st = (res.status ?? "unknown").toLowerCase();
+        if (isTerminalJobStatus(st)) return;
+
+        intervalId = setInterval(async () => {
+          if (cancelled) {
+            stopPolling();
+            return;
+          }
+          if (Date.now() > pollDeadline) {
+            stopPolling();
+            if (!cancelled) setPollTimedOut(true);
+            return;
+          }
+          try {
+            const next = await fetchResults(jobId);
+            if (cancelled) return;
+            setData(next);
+            setPollError(null);
+            const st2 = (next.status ?? "unknown").toLowerCase();
+            if (isTerminalJobStatus(st2)) stopPolling();
+          } catch (e) {
+            if (!cancelled) {
+              setPollError(e instanceof Error ? e.message : String(e));
+              stopPolling();
+            }
+          }
+        }, POLL_MS);
+      } catch (e) {
+        if (!cancelled) setLoadError(e instanceof Error ? e.message : String(e));
+      }
+    })();
+
     return () => {
       cancelled = true;
+      stopPolling();
     };
   }, [jobId]);
 
   const result = data?.result ?? null;
   const status = (data?.status ?? "unknown").toLowerCase();
+  const jobInProgress = Boolean(data) && !isTerminalJobStatus(status);
+
+  useEffect(() => {
+    if (jobInProgress && !pollTimedOut) setScanStatusIdx(0);
+  }, [jobId, jobInProgress, pollTimedOut]);
+
+  useEffect(() => {
+    if (!jobInProgress || pollTimedOut) return;
+    const t = setInterval(() => {
+      setScanStatusIdx((i) => (i + 1) % SCAN_STATUS_MESSAGES.length);
+    }, 2600);
+    return () => clearInterval(t);
+  }, [jobInProgress, pollTimedOut]);
   const issues = result?.issues ?? [];
   const riskScore = riskScoreFromResult(result ?? undefined);
   const riskLevel = riskLevelFromResult(result ?? undefined);
@@ -314,6 +397,45 @@ export function JobResultsPage() {
         </p>
       </header>
 
+      {jobInProgress && !pollTimedOut && (
+        <div className="card job-results-in-progress" aria-live="polite">
+          <div className="job-results-in-progress-row">
+            <span className="spinner" aria-hidden="true" />
+            <div>
+              <p className="job-results-in-progress-title">
+                {SCAN_STATUS_MESSAGES[scanStatusIdx % SCAN_STATUS_MESSAGES.length]}
+              </p>
+              <p className="muted job-results-in-progress-meta">
+                Job status: <strong>{data?.status ?? "—"}</strong>
+                {typeof data?.started_at === "number" ? (
+                  <>
+                    {" "}
+                    · Started {new Date(data.started_at * 1000).toLocaleString()}
+                  </>
+                ) : null}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {jobInProgress && pollTimedOut && (
+        <div className="card job-results-poll-timeout" role="status">
+          <div className="card-title">Still running</div>
+          <p className="muted">
+            Stopped auto-refresh after {POLL_MAX_MS / 1000} seconds. Last status:{" "}
+            <strong>{data?.status ?? "—"}</strong>. Refresh the page to load the latest result.
+          </p>
+        </div>
+      )}
+
+      {pollError ? (
+        <div className="card job-results-poll-error" role="alert">
+          <p className="job-results-poll-error-title">Could not refresh job status</p>
+          <p className="muted">{pollError}</p>
+        </div>
+      ) : null}
+
       {status === "failed" && (
         <div className="card job-results-failed" style={{ borderLeft: "4px solid #dc2626" }}>
           <div className="card-title">Scan failed</div>
@@ -322,7 +444,15 @@ export function JobResultsPage() {
       )}
 
       {showResults && result && (
-        <div className="job-results-grid">
+        <>
+          <JobExecutionResults
+            snapshot={result.execution_snapshot ?? null}
+            issues={issues}
+            fallbackRiskLevel={riskLevel}
+            pipelineExecutionSeconds={result.pipeline_metrics?.execution_time ?? null}
+            pipelineDurationSeconds={typeof result.duration === "number" ? result.duration : null}
+          />
+          <div className="job-results-grid">
           <aside className="job-results-col job-results-col--left">
             <div className="card job-risk-card">
               <RiskGauge score={animatedScore} />
@@ -412,17 +542,20 @@ export function JobResultsPage() {
             <TaskMetricsPanel result={result} scanTask={scanTask} />
           </aside>
         </div>
+        </>
       )}
 
-      {status !== "failed" &&
+      {jobInProgress && !pollTimedOut ? null : status !== "failed" &&
         status !== "complete" &&
         status !== "completed" &&
-        status !== "partial" && (
+        status !== "partial" &&
+        !pollTimedOut &&
+        !pollError ? (
           <div className="card">
             <p className="muted">Job status: {data.status}</p>
-            {!data.result ? <p>No result payload yet.</p> : null}
+            {data.result ? null : <p className="muted">No result payload yet.</p>}
           </div>
-        )}
+        ) : null}
     </div>
   );
 }

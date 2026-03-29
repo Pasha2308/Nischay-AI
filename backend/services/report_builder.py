@@ -9,6 +9,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from typing import Any
 
+from backend.core.decision_engine import generate_decision
 from backend.services.llm_client import LLMClient, _is_placeholder_api_key
 
 logger = logging.getLogger(__name__)
@@ -113,6 +114,33 @@ def _flatten_defects(scan: Mapping[str, Any]) -> list[dict[str, Any]]:
         seen.add(key)
         deduped.append(d)
     return deduped
+
+
+def _task_results_from_scan(scan: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Prefer ``task_results``; otherwise synthesize from per-task ``metrics`` (micro scan)."""
+    raw = scan.get("task_results")
+    if isinstance(raw, list) and raw:
+        return [dict(x) for x in raw if isinstance(x, dict)]
+    metrics = scan.get("metrics")
+    if not isinstance(metrics, dict) or not metrics:
+        return []
+    out: list[dict[str, Any]] = []
+    for name, meta in metrics.items():
+        if not isinstance(meta, dict):
+            continue
+        success = bool(meta.get("success", True))
+        impact = str(meta.get("impact") or "LOW").strip().upper()
+        if impact not in ("LOW", "MEDIUM", "HIGH"):
+            impact = "LOW"
+        out.append(
+            {
+                "task": str(name),
+                "success": success,
+                "impact": impact,
+                "defects": [],
+            }
+        )
+    return out
 
 
 def _flows_from_scan(scan: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -392,7 +420,8 @@ async def build_cto_report(scan_payload: Mapping[str, Any]) -> dict[str, Any]:
     Transform a scan payload into a CTO report dict. All sections are populated from
     ``scan_payload`` keys: ``target_url``, ``duration_seconds``, ``started_at``,
     ``completed_at``, ``flows`` (list of flow dicts with optional ``name``, ``defects``, ``metrics``),
-    ``defects`` (flat list), ``action_trail`` (list of dicts), ``pages_visited`` (optional).
+    ``defects`` (flat list), ``action_trail`` (list of dicts), ``pages_visited`` (optional),
+    ``task_results`` (per micro-task dicts from the runner) or ``metrics`` (per-task success/impact) for ``shipping_decision``.
 
     LLM sections require a configured ``LLM_API_KEY``; otherwise rule-based text is used
     (still derived only from supplied data).
@@ -537,6 +566,9 @@ async def build_cto_report(scan_payload: Mapping[str, Any]) -> dict[str, Any]:
         "count": len(rec_items),
     }
 
+    # --- 6b Release decision (micro-task outcomes)
+    shipping_decision = generate_decision(_task_results_from_scan(scan))
+
     # --- 7 Metadata
     started = scan.get("started_at")
     completed = scan.get("completed_at")
@@ -561,6 +593,7 @@ async def build_cto_report(scan_payload: Mapping[str, Any]) -> dict[str, Any]:
         "defect_list": defect_list,
         "action_trail": action_trail_section,
         "recommendations": recommendations,
+        "shipping_decision": shipping_decision,
         "metadata": metadata,
     }
 

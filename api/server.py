@@ -121,6 +121,14 @@ class ScanRequest(BaseModel):
     url: str = Field(..., min_length=1)
     scan_mode: str = "fast"
     scan_task: str = "full_app_scan"
+    browser_type: Optional[Literal["chromium", "firefox", "webkit"]] = Field(
+        default=None,
+        description="Playwright browser; omit for chromium.",
+    )
+    crawl_before_execution: bool = Field(
+        default=False,
+        description="If true, run site crawler for discovery before micro-task execution.",
+    )
     flows: Optional[list[str]] = Field(
         default=None,
         description="Explicit flow ids (overrides scan_task when non-empty), e.g. search, coupon.",
@@ -186,6 +194,11 @@ _jobs: dict[str, dict[str, Any]] = {}
 _jobs_events: dict[str, list[dict[str, Any]]] = {}
 _latest_job_id: str | None = None
 _lock = asyncio.Lock()
+
+# Last N completed runs (in-memory only; newest first).
+_RUN_HISTORY_MAX = 10
+_run_history: list[dict[str, Any]] = []
+_total_runs_completed: int = 0
 
 _STATUS_PROGRESS = {
     "QUEUED": 5,
@@ -279,6 +292,41 @@ async def _set_job_state(job_id: str, status: str, message: str) -> None:
             _jobs[job_id]["status"] = status
             _jobs[job_id]["status_message"] = message
             _jobs[job_id]["progress"] = _STATUS_PROGRESS.get(status, 0)
+
+
+def _decision_from_result(result: dict[str, Any] | None) -> str:
+    if not isinstance(result, dict):
+        return "—"
+    es = result.get("execution_snapshot")
+    if isinstance(es, dict):
+        d = es.get("decision")
+        if d is not None and str(d).strip():
+            return str(d).strip()
+    return "—"
+
+
+async def _append_run_history(job_id: str, url: str) -> None:
+    """Record a terminal job in the ring buffer (newest first)."""
+    global _total_runs_completed
+    async with _lock:
+        job = _jobs.get(job_id)
+        if not job:
+            return
+        status = str(job.get("status") or "UNKNOWN")
+        result = job.get("result")
+        decision = _decision_from_result(result if isinstance(result, dict) else None)
+        ts = float(job.get("completed_at") or job.get("started_at") or time.time())
+        entry = {
+            "job_id": job_id,
+            "url": url,
+            "decision": decision,
+            "completed_at": ts,
+            "status": status,
+        }
+        _run_history[:] = [e for e in _run_history if e.get("job_id") != job_id]
+        _run_history.insert(0, entry)
+        del _run_history[_RUN_HISTORY_MAX:]
+        _total_runs_completed += 1
 
 def _normalize_scan_task(raw: str | None) -> str:
     st = (raw or "full_app").strip().lower()
@@ -649,6 +697,7 @@ async def trigger_test_run(req: ScanRequest) -> Any:
                 flow_list = [str(x).strip() for x in req.flows if str(x).strip()]
             tt = (req.task_type or "").strip() or None
             mt = (req.micro_task or "").strip() or None
+            bt = req.browser_type or "chromium"
             config = FrameworkConfig(
                 target_url=req.url,
                 scan_mode=sm,
@@ -656,6 +705,8 @@ async def trigger_test_run(req: ScanRequest) -> Any:
                 flows=flow_list,
                 task_type=tt,
                 micro_task=mt,
+                browser_type=bt,
+                crawl_before_execution=bool(req.crawl_before_execution),
                 requires_login=bool(req.requires_login),
                 credentials=creds,
             )
@@ -799,6 +850,8 @@ async def trigger_test_run(req: ScanRequest) -> Any:
             elif status == "FAILED":
                 await _push_event(job_id, "error", "Job failed")
 
+            await _append_run_history(job_id, req.url)
+
     asyncio.create_task(_run_job())
 
     return TestRunResponse(
@@ -896,6 +949,31 @@ async def generate_synthetic(req: SyntheticGenerateRequest) -> dict[str, Any]:
         "count": count,
         "rows": rows,
     }
+
+
+@app.get("/dashboard/summary")
+async def get_dashboard_summary() -> dict[str, Any]:
+    """Lightweight stats for the home dashboard (single request)."""
+    async with _lock:
+        last = _run_history[0] if _run_history else None
+        pass_n = sum(
+            1 for e in _run_history if str(e.get("status")) in ("COMPLETE", "PARTIAL")
+        )
+        fail_n = sum(1 for e in _run_history if str(e.get("status")) == "FAILED")
+        return {
+            "total_runs": _total_runs_completed,
+            "last_decision": last.get("decision") if last else None,
+            "last_job_id": last.get("job_id") if last else None,
+            "pass_count": pass_n,
+            "fail_count": fail_n,
+        }
+
+
+@app.get("/runs/history")
+async def get_run_history() -> dict[str, Any]:
+    """Last 10 completed runs (in-memory; no persistence)."""
+    async with _lock:
+        return {"runs": list(_run_history)}
 
 
 @app.get("/results", response_model=ResultsResponse)

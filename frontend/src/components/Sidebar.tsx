@@ -1,9 +1,10 @@
 import { NavLink } from "react-router-dom";
 
 const links = [
-  { to: "/", label: "Launch" },
+  { to: "/", label: "Dashboard" },
+  { to: "/test", label: "New test" },
   { to: "/projects", label: "Projects" },
-  { to: "/history", label: "Scan History" },
+  { to: "/history", label: "Run history" },
   { to: "/defects", label: "Defects" },
   { to: "/synthetic", label: "Synthetic Data" },
   { to: "/settings", label: "Settings" },
