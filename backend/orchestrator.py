@@ -369,6 +369,11 @@ class Orchestrator:
         self._started_at = start
         self.action_trail = []
         self._session_id = self._action_job_id or f"pipeline_{uuid.uuid4().hex[:12]}"
+        # ADD THIS — per-run screenshots under runs/<session_id>/screenshots/
+        from backend.screenshot_manager import ScreenshotManager
+
+        self._screenshot_mgr: ScreenshotManager | None = ScreenshotManager(self._session_id)
+        # END ADD THIS
         site_model: SiteModel | None = None
         run_result: RunResult | None = None
         reports: dict[str, str] = {}
@@ -881,6 +886,13 @@ class Orchestrator:
                             wait_until="domcontentloaded",
                             timeout=goto_timeout,
                         )
+                    # ADD THIS — full-page shot after successful entry URL load
+                    _sm = getattr(self, "_screenshot_mgr", None)
+                    if _sm is not None:
+                        await _sm.capture_page(
+                            page, "after_initial_goto", page.url or ""
+                        )
+                    # END ADD THIS
                 except Exception as e:
                     logger.warning("Ecommerce scan initial navigation failed: %s", e)
                     if log_action:
@@ -991,7 +1003,39 @@ class Orchestrator:
                         selected_flows = expand_selected_flows([st])
                     results = await run_ecommerce_scan(page, selected_flows, context, emit_event)
 
+                # ADD THIS — post-scan page + per-defect evidence + final state
+                _sm = getattr(self, "_screenshot_mgr", None)
+                if _sm is not None:
+                    await _sm.capture_page(page, "after_flow_scan", page.url or "")
+                # END ADD THIS
                 defects = results.get("defects") or []
+                # ADD THIS
+                if _sm is not None:
+                    for _d in defects:
+                        if isinstance(_d, dict):
+                            _sel = (
+                                str(
+                                    _d.get("selector")
+                                    or _d.get("element")
+                                    or "body"
+                                ).strip()
+                                or "body"
+                            )
+                            _lab = str(
+                                _d.get("defect")
+                                or _d.get("defect_id")
+                                or _d.get("type")
+                                or "issue"
+                            )
+                            _meta = await _sm.capture_element(
+                                page, _sel, _lab, page.url or ""
+                            )
+                            if _meta:
+                                _up = str(_meta.get("url_path") or "")
+                                _d["screenshot_path"] = _up
+                                _d["evidence"] = _up
+                    await _sm.capture_page(page, "final_state", page.url or "")
+                # END ADD THIS
                 pid = page_id_from_url(page.url)
                 test_name = (
                     f"Micro task: {micro_task}"

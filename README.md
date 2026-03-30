@@ -1,376 +1,415 @@
-<<<<<<< HEAD
-Nischay AI
+# Nischay AI 🛡️
 
-Autonomous QA Agent for Release Decisions
+> Autonomous QA Intelligence Platform for E-Commerce
 
-“Is this application safe to ship?”
-
-Nischay AI is an AI-powered autonomous agent that navigates your application like a real user, executes actions, detects issues, and delivers a CTO-level decision report in seconds.
-
-🚀 What Makes Nischay AI Different
-
-❌ Not a test automation tool
-❌ Not a crawler
-❌ Not a script runner
-
-✅ A decision engine for product release readiness
-
-🔥 Core Capabilities
-🧭 Real Browser Execution
-Uses Playwright (headed mode)
-Opens actual browser
-Performs real user actions:
-Click
-Fill
-Navigate
-Submit
-🤖 Autonomous Agent Behavior
-Goal-driven execution (not random crawling)
-Adapts based on task:
-Auth
-Checkout
-Cart
-Support
-Thinks in user journeys
-🔐 Smart Login Handling
-Attempts programmatic login
-Falls back to human-in-the-loop login
-Detects login success automatically
-Works on real-world SaaS + e-commerce apps
-⚡ Micro-Task Execution (Fast Mode)
-
-Run specific user actions in seconds:
-
-Search product
-Add to cart
-Fill checkout
-Contact support
-
-👉 Each task runs in 10–20 seconds
-
-🛍️ Full Journey Scans
-
-Simulates full user journeys:
-
-Browse → Product → Cart → Checkout
-Auth flows
-Support flows
-UI integrity
-🧠 Defect Detection Engine
-
-Detects real issues:
-
-Broken buttons / CTAs
-Form failures
-Navigation issues
-Console errors
-Missing validation
-Performance issues
-Broken images
-
-Each issue includes:
-
-Severity
-Business impact (Revenue / Trust / UX / Data)
-Fix suggestion
-📊 Risk Scoring System
-
-Outputs:
-
-Score: 0–100
-Level: CRITICAL / HIGH / MEDIUM / LOW
-
-👉 Helps answer:
-
-“Should we ship this?”
-
-📜 Action Trail (Proof Layer)
-
-Every action is recorded:
-
-What happened
-Where
-Result
-Duration
-
-👉 “You can see what the AI did”
-
-🧾 Executive Report
-3-line CTO summary
-Defect list
-Recommendations
-Scorecards
-
-👉 Boardroom-ready output
-
-🏗️ Architecture
-User Input
-   ↓
-Task Engine (Agent Brain)
-   ↓
-Execution Layer (Playwright)
-   ↓
-Flow System (Auth / Cart / Checkout / etc.)
-   ↓
-Detection Engine
-   ↓
-Risk Engine
-   ↓
-Report Builder
-   ↓
-Frontend (Live Logs + Results)
-⚙️ Installation
-1. Clone Repo
-git clone https://github.com/Pasha2308/Nischay-AI.git
-cd Nischay-AI
-2. Backend Setup
-pip install -r requirements.txt
-playwright install
-3. Run Backend
-uvicorn api.server:app --reload
-4. Frontend Setup
-cd frontend
-npm install
-npm run dev
-
-Open:
-
-http://localhost:5173
-🧪 Usage
-🔹 Full Scan Mode
-Enter URL
-Select scan type:
-Quick Scan
-Conversion Flow
-Authentication Flow
-Full App Scan
-Click Launch Scan
-⚡ Micro Task Mode (Recommended)
-
-Run focused actions:
-
-Search Product
-Add to Cart
-Checkout Form
-Contact Support
-
-👉 Faster, reliable, demo-friendly
-
-🎯 Example
-{
-  "url": "https://automationexercise.com",
-  "task_type": "micro",
-  "micro_task": "add_to_cart"
-}
-📊 Output Example
-Scan covered 6 pages and found 12 issues.
-Critical checkout failure blocks purchases.
-Fix checkout button logic immediately.
-🧠 Tech Stack
-Backend: Python, FastAPI
-Browser: Playwright
-Frontend: React + Vite
-AI: LLM-based analysis
-Architecture: Agent-driven system
-⚡ Performance
-Mode	Time
-Micro Task	10–20 sec
-Full Scan	60–90 sec
-🚨 Limitations
-Complex login flows may require manual login
-Highly dynamic apps may need tuning
-Checkout flows vary across sites
-🛣️ Roadmap
-Smarter agent reasoning logs
-Session-aware flows
-Multi-session testing
-AI decision explanation layer
-SaaS dashboard
-👨‍💻 Author
-
-Mohammed Pasha
-Founder & Builder
-
-GitHub: https://github.com/Pasha2308
-LinkedIn: Pasha23
-⭐ Final Note
-
-Nischay AI is not about testing.
-
-It’s about making release decisions with confidence.
-=======
-# Nischay AI — Autonomous QA Decision Engine
-
-**Nischay AI** is an autonomous quality-assurance system that drives a **real browser** like a user, observes what happens, and returns a **shipping decision**—not a pass/fail test matrix. It is built for teams that need actionable risk signals fast, especially on **e-commerce** flows.
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Status](https://img.shields.io/badge/status-MVP-green)
+![Python](https://img.shields.io/badge/python-3.11+-blue)
+![React](https://img.shields.io/badge/react-18-cyan)
 
 ---
 
-## What it does
+## What is Nischay AI?
 
-- An **agent-style pipeline** simulates real user behavior in the browser (navigation, forms, cart/checkout paths, and more via **micro-tasks**).
-- The system aggregates observations and applies a **decision engine** to output a clear verdict: **SAFE**, **CAUTION**, or **DO NOT SHIP**, with risk context and evidence—not “42 tests passed.”
-- It is **not** a generic unit-test runner: it is a **browser-grounded QA decision** product.
+Nischay AI is an autonomous QA system for e-commerce sites: it drives a real browser (Playwright), runs scripted commerce flows and checks, aggregates defects and console/network signals, and produces structured results with UX-oriented scoring and reporting. It is aimed at teams that need repeatable smoke and conversion-path validation without maintaining large manual test suites.
 
----
+**Core loop:**
 
-## Core concept
-
-```
-User → Intent (URL + task bundle) → Agent pipeline → Browser (Playwright)
-     → Actions → Observations → Decision + logs
-```
-
-The frontend collects intent; the backend orchestrates crawl/plan/execute; **Playwright** runs against the live site; structured results feed the **decision** layer and the UI.
+URL → Crawl (optional) → Plan → Execute → Detect → Score → Report
 
 ---
 
 ## Features
 
-| Area | Description |
-|------|-------------|
-| **Micro Task Engine** | Composable tasks (search, cart, checkout, support, etc.) grouped into scan presets (`quick_scan`, `conversion_scan`, `full_app_scan`). |
-| **Real browser execution** | **Playwright** with optional **Chromium** (default), **Firefox**, or **WebKit**—same tasks, selected engine. |
-| **Decision engine** | Risk-based **SAFE / CAUTION / DO NOT SHIP** style output from execution snapshots. |
-| **Live logs** | Streaming-style job events for transparency during runs. |
-| **E-commerce focus** | Task registry and flows tuned for typical storefront journeys. |
+Features present in this repository:
+
+- **HTTP API (FastAPI)** — Trigger test runs, poll job status, stream events, fetch results, health checks, dashboard summary, shareable reports, synthetic data generation, and a **Nischay AI frontend bridge** (`/api/run`, `/api/runs`, logs, SSE stream, modules, rerun, compare, screenshots).
+- **Orchestrated pipeline** — `Orchestrator` coordinates optional crawl, deterministic test planning, and Playwright-based execution (`backend/orchestrator.py`).
+- **Optional website crawling** — Discovery and page modeling (`backend/crawler/`), configurable via framework config.
+- **Deterministic & planner paths** — `build_deterministic_smoke_plan`, schema-validated plans (`backend/planner/`, `backend/deterministic_plan.py`).
+- **E-commerce micro-tasks** — Registered tasks such as search, add to cart, checkout steps, login, coupons, support contact (`backend/core/micro_tasks.py`, `TASK_REGISTRY` in `backend/core/task_registry.py`).
+- **Tool-based executor** — Actions via navigation, forms, extraction, assertions, screenshot evidence (`backend/executor/`).
+- **Structured run output** — Issues, summaries, actions trace, console/network signals (`backend/structured_run_output.py`).
+- **UX scoring engine** — User-experience-focused scores and labels from issue payloads (`backend/ux_scorer.py`), integrated into structured output.
+- **Screenshot capture** — Run-scoped screenshots under `runs/<run_id>/screenshots/` (`backend/screenshot_manager.py`, wired from orchestrator).
+- **Defect intelligence & reporting** — Enrichment hooks, HTML/JSON reports, regression hints (`backend/services/defect_intelligence.py`, `backend/reporter/`).
+- **Run persistence** — Registry and per-run artifacts (`api/run_store.py`, `runs/`, `backend/run_artifacts.py`).
+- **Baseline comparison** — Compare runs on disk (`backend/baseline_comparator.py`).
+- **Optional LLM integration** — OpenAI-compatible client for explanations and insights when API keys are configured (`backend/services/llm_client.py`, `backend/ai_explainer.py`).
+- **Optional PostgreSQL** — Async SQLAlchemy models and session helpers (`backend/db/`).
+- **Coverage & visual baselines** — Registry utilities under `shared/utils/coverage/`.
+- **React + Vite frontend** — Dashboard, new test, live preview, modules, results (route still available), history, issues, analytics, schedules, alerts, integrations, settings (`frontend/src/App.jsx`).
 
 ---
 
 ## Architecture
 
-| Layer | Stack |
-|-------|--------|
-| **Frontend** | React (Vite), dashboard, test launcher, results |
-| **Backend API** | FastAPI (`api/server.py`) |
-| **Agent engine** | Orchestrator, micro-task runner, crawl/plan/execute pipeline (`backend/`) |
-| **Browser** | Playwright (`backend/core/browser.py` centralizes launch) |
-| **Decision engine** | Rules/snapshot assembly (`backend/core/`, services) |
-| **Shared models** | Pydantic config and DTOs (`shared/`) |
+### High-Level Flow
+
+```
+┌─────────────┐     ┌───────────┐     ┌─────────────┐     ┌──────────────┐
+│  FastAPI    │────▶│Orchestrator│────▶│ Playwright  │────▶│ Structured   │
+│  api/server │     │  pipeline  │     │  + tasks    │     │ output + UX  │
+└─────────────┘     └───────────┘     └─────────────┘     └──────┬───────┘
+       │                    │                   │                   │
+       │                    ▼                   ▼                   ▼
+       │             ┌───────────┐     ┌─────────────┐     ┌──────────────┐
+       │             │  Crawler  │     │ Micro-tasks │     │ runs/ + JSON │
+       │             │ (optional)│     │ / executor  │     │ reports      │
+       │             └───────────┘     └─────────────┘     └──────────────┘
+       │
+       ▼
+┌──────────────┐
+│ React (Vite) │
+└──────────────┘
+```
+
+### Project Structure
+
+```
+Feuji/   (repository root; name may vary)
+├── api/
+│   ├── server.py              # FastAPI app: jobs, reports, dashboard, Nischay bridge, screenshots
+│   └── run_store.py           # Run registry, result.json, logs under runs/
+├── backend/
+│   ├── orchestrator.py        # Crawl → plan → execute pipeline
+│   ├── structured_run_output.py  # Issues, risk/UX payload for API
+│   ├── ux_scorer.py           # UX-oriented scoring
+│   ├── screenshot_manager.py  # Per-run Playwright screenshots
+│   ├── run_artifacts.py       # Traces, console logs, screenshot copies
+│   ├── baseline_comparator.py # Compare runs
+│   ├── page_quality.py        # Page-quality helpers
+│   ├── ai_explainer.py        # Optional AI explanations
+│   ├── deterministic_plan.py  # Deterministic smoke plan builder
+│   ├── run_scan.py            # CLI / scan entry helpers
+│   ├── run_system_diagnostic.py
+│   ├── scheduler.py
+│   ├── crawler/               # Site crawl, SPA, forms, elements
+│   ├── core/                  # Browser, ecommerce_plan, micro_tasks, task_registry, login, etc.
+│   ├── executor/              # Main executor, action_runner, task_executor, evidence, assertions
+│   ├── executor/tools/        # navigation, form, browser, extraction, registry, runner
+│   ├── planner/               # Planner, task_planner, schema_validator
+│   ├── reporter/              # HTML/JSON reports, regression
+│   ├── services/              # LLM client, defect intelligence, report_builder, insights
+│   ├── agents/                # Evaluator agent
+│   ├── db/                    # SQLAlchemy async PostgreSQL layer
+│   └── models/                # action_log and related
+├── frontend/
+│   ├── package.json
+│   ├── vite.config.js         # Dev server port 5173
+│   └── src/
+│       ├── App.jsx            # Routes
+│       ├── main.jsx
+│       ├── index.css
+│       ├── config/api.js      # API base URL and paths
+│       ├── pages/             # Dashboard, NewTest, LivePreview, Results, RunHistory, TestModules, etc.
+│       ├── components/        # layout (Sidebar, Layout, TopBar), ui/*, charts, etc.
+│       ├── hooks/             # useApi, useToast, useBackendHealth, …
+│       └── data/              # mockData, backendAudit
+├── shared/
+│   ├── models/                # config, test_result, test_plan, site_model, run_record, …
+│   ├── risk_scoring.py        # Severity weights (legacy helpers)
+│   ├── pipeline_emit.py
+│   └── utils/                 # auth, browser_stealth, url_utils, coverage, ai prompts
+├── runs/                      # Per-run logs, result.json, screenshots (runtime)
+├── qa-reports/                # Generated QA reports (when produced)
+├── .qa-framework/             # Framework state (coverage, site model, plans; runtime)
+├── pyproject.toml             # Python package metadata and dependencies
+└── README.md                  # This file
+```
+
+### Tech Stack
+
+**Backend:**
+
+| Component | Technology |
+|-----------|------------|
+| API layer | FastAPI, Uvicorn |
+| Browser automation | Playwright (Python) |
+| Validation / models | Pydantic v2 |
+| HTTP client | httpx (LLM APIs) |
+| DB (optional) | SQLAlchemy 2 async + asyncpg |
+| Env config | python-dotenv |
+| CLI / logs | rich |
+| Async IO | aiofiles |
+
+**Frontend:**
+
+| Component | Technology |
+|-----------|------------|
+| Framework | React 18 |
+| Build | Vite 6 |
+| Styling | Tailwind CSS 3 |
+| Routing | react-router-dom 6 |
+| Motion | framer-motion |
+| Icons | lucide-react |
+| Charts | recharts |
 
 ---
 
-## Project structure
+## Requirements
 
-```
-.
-├── api/              # FastAPI app (HTTP API, job orchestration)
-├── backend/          # Crawler, executor, orchestrator, micro-tasks, services
-│   └── core/         # Browser launch, ecommerce plans, task registry, etc.
-├── frontend/         # React SPA
-├── shared/           # Cross-cutting models and utilities
-└── pyproject.toml    # Python package and dependencies
-```
+### System Requirements
+
+- **Python** 3.11+ (per `pyproject.toml`: `requires-python = ">=3.11"`)
+- **Node.js** 18+ recommended (for Vite 6 / local dev)
+- **Playwright browsers** — install Chromium (and others if you extend browser types)
+
+### Python Dependencies
+
+Declared in `pyproject.toml` (install with `pip install .` or `pip install -e .` from the repo root):
+
+- playwright, pydantic, faker, httpx, python-dotenv, fastapi, uvicorn[standard], aiofiles, rich, sqlalchemy[asyncio], asyncpg
+
+Optional dev: ruff, pytest (`pip install -e ".[dev]"`).
+
+### Node Dependencies
+
+From `frontend/package.json`:
+
+- react, react-dom, react-router-dom, framer-motion, lucide-react, recharts
+- Dev: vite, @vitejs/plugin-react, tailwindcss, postcss, autoprefixer
 
 ---
 
-## How to run
+## Installation & Setup
 
-### Prerequisites
-
-- **Python 3.11+**
-- **Node.js** (LTS recommended) for the frontend
-- **Playwright browsers** (install after Python deps)
-
-### Backend
-
-From the repository root:
+### 1. Clone the repository
 
 ```bash
-pip install -e .
-playwright install chromium firefox webkit
+git clone <repo-url>
+cd Feuji
 ```
 
-Start the API (reload for development):
+### 2. Backend Setup
 
 ```bash
-uvicorn api.server:app --reload
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# Unix/macOS:
+# source venv/bin/activate
+
+pip install .
+# Optional dev tools:
+# pip install -e ".[dev]"
+
+playwright install chromium
 ```
 
-Default API base: `http://localhost:8000` (see `frontend` service `API_BASE` if you change the port).
+There is no `requirements.txt` in this repo; dependencies are defined in `pyproject.toml`.
 
-### Frontend
+### 3. Frontend Setup
 
 ```bash
 cd frontend
 npm install
+```
+
+### 4. Environment Configuration
+
+The API loads environment variables via `python-dotenv` (e.g. a `.env` file in the project root). Commonly referenced in code:
+
+- **LLM (optional):** `LLM_API_KEY`, `LLM_MODEL`, `LLM_BASE_URL` — used when LLM features are enabled.
+- **Database (optional):** `DATABASE_URL` for async PostgreSQL when DB-backed features are used.
+
+The frontend can point at the API with:
+
+- `VITE_API_URL` (defaults to `http://localhost:8000` in `frontend/src/config/api.js` if unset)
+
+Example `frontend/.env.example` (if present) or create:
+
+```env
+VITE_API_URL=http://localhost:8000
+```
+
+---
+
+## Running the Application
+
+### Start Backend
+
+```bash
+uvicorn api.server:app --reload --port 8000
+```
+
+### Start Frontend
+
+```bash
+cd frontend
 npm run dev
 ```
 
-Open the printed local URL (typically `http://localhost:5173`).
+### Access the Application
+
+- **Frontend UI:** http://localhost:5173 (configured in `frontend/vite.config.js`)
+- **Backend API:** http://localhost:8000
+- **OpenAPI docs:** http://localhost:8000/docs
 
 ---
 
-## How to use
+## API Reference
 
-1. Open **`/test`** in the app (or use the **New test** nav entry).
-2. Enter a **URL** (`http://` or `https://`).
-3. Choose a **task group** (e.g. full app scan) or **Advanced** micro-tasks.
-4. Optionally pick **Browser** (Chromium default, or Firefox / WebKit).
-5. **Start test** — you are redirected to **results** for the job id when the run is queued.
+Endpoints defined in `api/server.py`:
 
-The **Dashboard** (`/`) shows session stats; **Run history** lists recent completed runs (in-memory for the current API process).
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/jobs/test.run` | Start a legacy job-style test run |
+| GET | `/report/{report_id}` | Fetch shareable report payload |
+| POST | `/synthetic/generate` | Generate synthetic data |
+| GET | `/dashboard/summary` | Dashboard summary |
+| GET | `/runs/history` | Run history listing |
+| GET | `/results` | Aggregated results (legacy model) |
+| GET | `/results/{job_id}` | Results for a job |
+| GET | `/jobs/{job_id}/status` | Job status |
+| GET | `/jobs/{job_id}/events` | Job events |
+| GET | `/healthz` | Simple liveness |
+| GET | `/health` | Health + API version (Nischay bridge) |
+| POST | `/api/run` | Start QA run (Nischay body: url, depth, modules, tasks, device, auth) |
+| GET | `/api/runs` | List runs |
+| GET | `/api/runs/{run_key}` | Single run detail |
+| GET | `/api/runs/{run_key}/status` | Run status for polling |
+| GET | `/api/runs/{run_key}/logs` | Merged logs |
+| GET | `/api/runs/{run_key}/stream` | SSE stream |
+| GET | `/api/modules` | Module / flow metadata for UI |
+| POST | `/api/runs/{run_key}/rerun` | Rerun from saved config |
+| GET | `/api/runs/{run_key}/compare` | Baseline comparison vs previous run |
+| GET | `/api/runs/{run_id}/screenshots` | Screenshot index JSON |
+| GET | `/api/runs/{run_id}/screenshots/{filename}` | Serve PNG |
 
----
+### Example: Start a Test
 
-## Example output
+```bash
+curl -X POST http://localhost:8000/api/run \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://your-store.com",
+    "depth": "standard",
+    "modules": ["auth", "cart", "checkout"],
+    "tasks": ["test login", "add item to cart"],
+    "device": "desktop"
+  }'
+```
 
-Execution payloads include a structured snapshot; conceptually:
+### Example Response
 
 ```json
 {
-  "decision": "DO NOT SHIP",
-  "risk": "HIGH",
-  "summary": "Checkout blocked payment step; cart actions succeeded but fulfillment path is unsafe to release."
+  "run_id": "run_xxxxxxxxxx",
+  "job_id": "run_xxxxxxxxxx",
+  "status": "started",
+  "url": "https://your-store.com"
 }
 ```
 
-Exact field names match `execution_snapshot` in API responses and the React types in `frontend/src/services/backend-service.ts`.
+(Exact fields match the handler return in `api/server.py` for `api_run`.)
 
 ---
 
-## API: optional `browser_type`
+## QA Modules
 
-`POST /jobs/test.run` accepts an optional JSON field:
+Micro-task IDs registered in `TASK_REGISTRY` (`backend/core/task_registry.py`):
 
-```json
-{
-  "url": "https://example.com",
-  "scan_task": "full_app_scan",
-  "browser_type": "chromium"
-}
-```
+| Module / task ID | Description |
+|------------------|-------------|
+| `login_user` | Login flow |
+| `search_product` | Product search |
+| `open_product_from_search` | Open PDP from search |
+| `add_to_cart` | Add to cart |
+| `apply_coupon` | Coupon application |
+| `start_checkout` | Start checkout |
+| `fill_address_form` | Address form |
+| `place_order_attempt` | Place order (attempt) |
+| `contact_support` | Support / contact |
+| `check_page_load` | Page load check |
+| `check_navigation_links` | Navigation links check |
 
-Allowed values: `"chromium"` (default), `"firefox"`, `"webkit"`. Omitted means **Chromium**.
+Legacy flow IDs (mapped to tasks via `LEGACY_FLOW_TO_TASKS`): `auth`, `browse`, `cart`, `checkout`, `support`, `ui`, `product`, `navigation`, `search`, `coupon`.
 
 ---
 
-## Development rules (team norms)
+## Task Presets
 
-- Prefer **small, reviewable changes**; avoid drive-by refactors.
-- **Cursor / AI-assisted coding** is fine; keep prompts and reviews disciplined.
-- Prefer **real target URLs** for integration checks; avoid relying on fabricated payloads for “does the pipeline run?”
-- **Browser selection** must not fork task logic—only the Playwright launch target changes.
+From `TASK_GROUPS` in `backend/core/task_registry.py`:
+
+| Preset | Tasks (summary) | Use case |
+|--------|-------------------|----------|
+| `quick_scan` | search → open product → add to cart | Fast surface check |
+| `conversion_scan` | cart → coupon → checkout → address | Conversion funnel |
+| `auth_scan` | login | Auth-only run |
+| `full_app_scan` | search, cart, coupon, checkout, order attempt, support | Broad sweep |
+
+Aliases: `full_app`, `full`, `default` → `full_app_scan`.
+
+---
+
+## UX Scoring
+
+Implemented in `backend/ux_scorer.py` and applied in `backend/structured_run_output.py`:
+
+- **What it measures:** User experience impact of detected issues (e.g. conversion blockers, trust, navigation, performance feel), not a generic technical “genuinity” score.
+- **Scores:** **UX score** 0–100 (100 = best experience). **Risk score** is defined as **100 − UX score** for legacy compatibility in summaries and gauges.
+- **Labels:** Bands such as EXCELLENT UX, GOOD UX, NEEDS WORK, POOR UX, CRITICAL UX ISSUES (see `UX_SCORE_LABELS` in `ux_scorer.py`).
+- **Categories:** Conversion Flow, Navigation & Findability, Page Clarity, Interaction Feedback, Error Recovery, Performance Feel, Mobile Usability, Accessibility, General — with configurable category weights.
+- **Prioritization:** Issues receive penalties by type; `top_improvements` lists high-impact actions; `passed_checks` notes categories with no penalty in the run.
+
+---
+
+## Screenshots
+
+_Add your own screenshots here._
+
+Suggested captures:
+
+- Dashboard
+- New Test page
+- Live Preview
+- Results page (direct URL `/results` or `/results/:runId` still works; sidebar link removed by design)
 
 ---
 
 ## Roadmap
 
-- Expand **micro-task** coverage and presets
-- More **adaptive** flows (guided by LLM where configured)
-- **CI/CD** hooks (API-first) for gates on merge/release
+### Completed (MVP)
+
+- FastAPI service with job and Nischay bridge endpoints
+- Playwright-driven orchestrator pipeline and micro-tasks
+- Structured issues, run registry, `runs/` artifacts
+- UX scoring layer and screenshot APIs
+- React SPA with core QA pages and API config
+
+### In Progress / Partial
+
+- AI-powered explanations when LLM env is configured (`ai_explainer`, `llm_client`)
+- Visual/regression tooling via coverage and baseline utilities
+
+### Planned (examples)
+
+- SaaS-ready deployment and auth
+- CI/CD integrations
+- Team workflows
+- Richer adaptive planning (planner hooks exist; depth varies)
 
 ---
 
 ## Contributing
 
-1. Fork / branch from `main`.
-2. Install backend with `pip install -e ".[dev]"` if you use optional dev tools.
-3. Run the frontend build: `cd frontend && npm run build`.
-4. Open a PR with a clear description of behavior and risk.
+1. Fork the repository  
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)  
+3. Commit your changes (`git commit -m 'Add AmazingFeature'`)  
+4. Push to the branch (`git push origin feature/AmazingFeature`)  
+5. Open a Pull Request  
 
 ---
 
 ## License
 
-MIT
->>>>>>> b51165b (feat: synthetic data + risk score + UI improvements)
+`pyproject.toml` currently lists **Proprietary** as the package license. If you intend open-source distribution, add a `LICENSE` file and align metadata. The template below is for projects that adopt MIT:
+
+MIT License — see a `LICENSE` file in the repository when provided.
+
+---
+
+## Built With ❤️ by
+
+Nischay AI — Making QA accessible to every e-commerce team.

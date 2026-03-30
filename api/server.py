@@ -1077,3 +1077,1098 @@ async def get_job_events(job_id: str) -> dict[str, Any]:
 async def healthz() -> dict[str, str]:
     return {"status": "ok"}
 
+
+# ═══════════════════════════════════════════════
+# NISCHAY AI FRONTEND BRIDGE — NEW ENDPOINTS
+# Appended below existing code — nothing above modified
+# ═══════════════════════════════════════════════
+
+# New imports for frontend bridge endpoints
+from pathlib import Path
+import time as _time
+import json as _json
+
+from fastapi.responses import StreamingResponse
+
+from pydantic import BaseModel as _BaseModel, Field as _Field
+
+from shared.models.config import ViewportConfig
+from shared.models.run_record import RunRecord
+
+import api.run_store as run_store
+
+from backend.core.task_registry import LEGACY_FLOW_TO_TASKS, TASK_GROUPS
+
+
+def _map_frontend_module_to_flow(mid: str) -> str:
+    m = (mid or "").strip().lower()
+    aliases = {
+        "product_pages": "product",
+        "links_assets": "navigation",
+    }
+    return aliases.get(m, m)
+
+
+def _depth_to_scan_task(depth: str, modules: list[str]) -> tuple[str, list[str] | None]:
+    """Return (scan_task, flows_override)."""
+    if modules and len(modules) > 0:
+        flows = [_map_frontend_module_to_flow(x) for x in modules]
+        return ("full_app_scan", flows)
+    d = (depth or "standard").strip().lower()
+    if d == "quick":
+        return ("quick_scan", None)
+    if d == "deep":
+        return ("full_app_scan", None)
+    return ("conversion_scan", None)
+
+
+def _device_viewport(device: str) -> ViewportConfig:
+    dv = (device or "desktop").strip().lower()
+    if dv == "mobile":
+        return ViewportConfig(width=390, height=844, name="mobile")
+    if dv == "tablet":
+        return ViewportConfig(width=768, height=1024, name="tablet")
+    return ViewportConfig(width=1280, height=720, name="desktop")
+
+
+class ApiRunBody(_BaseModel):
+    """POST /api/run JSON body from Nischay AI frontend."""
+
+    url: str = _Field(..., min_length=1)
+    depth: str = "standard"
+    modules: list[str] = _Field(default_factory=list)
+    tasks: list[str] = _Field(default_factory=list)
+    device: str = "desktop"
+    auth: dict[str, Any] | None = None
+
+
+def _api_run_body_to_scan_request(body: ApiRunBody) -> ScanRequest:
+    scan_task, flows = _depth_to_scan_task(body.depth, list(body.modules or []))
+    task_input = "\n".join([str(t).strip() for t in (body.tasks or []) if str(t).strip()])
+    sm = _coerce_scan_mode("deep" if (body.depth or "").lower() == "deep" else "fast")
+    creds: dict[str, Any] | None = None
+    auth_block: dict[str, Any] | None = None
+    if body.auth and isinstance(body.auth, dict):
+        email = str(body.auth.get("email") or body.auth.get("username") or "").strip()
+        password = str(body.auth.get("password") or "").strip()
+        if email and password:
+            creds = {"username": email, "password": password}
+            auth_block = {"username": email, "password": password}
+    return ScanRequest(
+        url=str(body.url).strip(),
+        scan_mode=sm,
+        scan_task=scan_task,
+        flows=flows,
+        crawl_before_execution=False,
+        task_input=task_input or None,
+        requires_login=bool(creds),
+        credentials=creds,
+        auth=auth_block,
+        browser_type="chromium",
+    )
+
+
+async def _save_api_run_config(run_id: str, body: ApiRunBody) -> None:
+    path = run_store.run_dir(run_id) / "api_run_config.json"
+
+    def _write() -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "url": body.url,
+            "depth": body.depth,
+            "modules": list(body.modules or []),
+            "tasks": list(body.tasks or []),
+            "device": body.device,
+            "auth": body.auth,
+        }
+        with open(path, "w", encoding="utf-8") as f:
+            _json.dump(payload, f, indent=2, default=str)
+
+    await asyncio.to_thread(_write)
+
+
+def _run_status_to_frontend(job_status: str) -> str:
+    s = str(job_status or "").upper()
+    if s in ("QUEUED", "RUNNING", "WAITING_FOR_LOGIN", "SCANNING"):
+        return "running"
+    if s in ("COMPLETE", "PARTIAL"):
+        return "completed"
+    if s == "FAILED":
+        return "failed"
+    return "pending"
+
+
+def _infer_stage_from_message(msg: str) -> str:
+    m = (msg or "").lower()
+    if "phase 1" in m or "crawling" in m or "crawl" in m or "crawler" in m:
+        return "crawl"
+    if "phase 2" in m or "execution" in m or "running tests" in m:
+        return "execute"
+    if "phase 3" in m or "ai analysis" in m:
+        return "detect"
+    if "phase 4" in m or "report" in m:
+        return "report"
+    if "generating ai summary" in m:
+        return "score"
+    if "plan" in m:
+        return "plan"
+    if "detect" in m:
+        return "detect"
+    if "score" in m or "risk" in m:
+        return "score"
+    return "execute"
+
+
+def _bridge_compute_metrics(result: dict[str, Any] | None) -> tuple[int, int, int]:
+    if not isinstance(result, dict):
+        return 0, 0, 0
+    summ = result.get("summary") or {}
+    if not isinstance(summ, dict):
+        summ = {}
+    pages = int(summ.get("total_pages_scanned") or result.get("pages_scanned") or 0)
+    try:
+        pages = max(0, pages)
+    except (TypeError, ValueError):
+        pages = 0
+    actions = int(summ.get("total_actions_run") or 0)
+    try:
+        actions = max(0, actions)
+    except (TypeError, ValueError):
+        actions = 0
+    issues = int(summ.get("total_issues_found") or len(result.get("issues") or []) or 0)
+    try:
+        issues = max(0, issues)
+    except (TypeError, ValueError):
+        issues = 0
+    return pages, actions, issues
+
+
+async def _bridge_run_status_payload(run_key: str) -> dict[str, Any]:
+    """run_key: same string for run_id and job_id in bridge mode."""
+    async with _lock:
+        job = _jobs.get(run_key)
+    started = float((job or {}).get("started_at") or _time.time())
+    completed = (job or {}).get("completed_at")
+    elapsed = 0.0
+    if isinstance(completed, (int, float)):
+        elapsed = max(0.0, float(completed) - float(started))
+    elif job:
+        elapsed = max(0.0, _time.time() - float(started))
+
+    result = (job or {}).get("result") if job else None
+    pages, actions, issues = _bridge_compute_metrics(result if isinstance(result, dict) else None)
+    risk_score = None
+    risk_level = None
+    if isinstance(result, dict):
+        rs = result.get("risk_score")
+        try:
+            risk_score = int(rs) if rs is not None else None
+        except (TypeError, ValueError):
+            risk_score = None
+        rl = result.get("risk_level")
+        risk_level = str(rl) if rl is not None else None
+
+    stage = "crawl"
+    progress = int((job or {}).get("progress") or 0)
+    current_action = ""
+    async with _lock:
+        evs = list(_jobs_events.get(run_key, []))
+    if evs:
+        last = evs[-1]
+        current_action = str(last.get("message") or "")
+        stage = _infer_stage_from_message(current_action)
+
+    jstat = str((job or {}).get("status") or "QUEUED")
+    if jstat in ("COMPLETE", "PARTIAL") and isinstance(result, dict):
+        stage = "done"
+    elif jstat == "FAILED":
+        stage = "done"
+
+    return {
+        "run_id": run_key,
+        "status": _run_status_to_frontend(jstat),
+        "stage": stage,
+        "progress": min(100, max(0, progress)),
+        "current_action": current_action,
+        "pages_found": pages,
+        "actions_run": actions,
+        "issues_found": issues,
+        "elapsed_seconds": int(elapsed),
+        "risk_score": risk_score,
+        "risk_level": risk_level,
+    }
+
+
+def _parse_log_timestamp(line: str) -> float | None:
+    s = (line or "").strip()
+    if len(s) >= 20 and s[0] == "[" and "]" in s[:30]:
+        try:
+            from datetime import datetime, timezone
+
+            inner = s[1 : s.index("]")]
+            dt = datetime.fromisoformat(inner.replace("Z", "+00:00"))
+            return dt.timestamp()
+        except Exception:
+            return None
+    return None
+
+
+def _merge_run_log_lines(run_id: str) -> list[str]:
+    """Merge logs.txt + console_logs.txt; dedupe; sort by timestamp when present."""
+    root = run_store.run_dir(run_id)
+    p1 = root / "logs.txt"
+    p2 = root / "console_logs.txt"
+    lines: list[str] = []
+    for p in (p1, p2):
+        if not p.exists():
+            continue
+        try:
+            text = p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for ln in text.splitlines():
+            t = ln.strip()
+            if t:
+                lines.append(t)
+    seen: set[str] = set()
+    uniq: list[str] = []
+    for ln in lines:
+        if ln not in seen:
+            seen.add(ln)
+            uniq.append(ln)
+
+    def sort_key(line: str) -> tuple[float, int]:
+        ts = _parse_log_timestamp(line)
+        return (ts if ts is not None else 0.0, hash(line) % 10_000_000)
+
+    return sorted(uniq, key=sort_key)
+
+
+@app.get("/health")
+async def health() -> dict[str, Any]:
+    """Health check for Nischay AI frontend (includes API version)."""
+    return {"status": "ok", "version": getattr(app, "version", None) or "0.1.0"}
+
+
+@app.post("/api/run")
+async def api_run(body: ApiRunBody) -> dict[str, Any]:
+    """Start a QA run using the same pipeline as /jobs/test.run; returns run_id == job_id."""
+    global _latest_job_id
+
+    unified_id = f"run_{uuid.uuid4().hex[:10]}"
+    req = _api_run_body_to_scan_request(body)
+    started_at = _time.time()
+
+    async with _lock:
+        _jobs[unified_id] = {
+            "job_id": unified_id,
+            "status": "QUEUED",
+            "status_message": "Job queued",
+            "progress": _STATUS_PROGRESS["QUEUED"],
+            "started_at": started_at,
+            "completed_at": None,
+            "result": None,
+            "error": None,
+            "scan_mode": _coerce_scan_mode(req.scan_mode),
+            "scan_task": (req.scan_task or "full_app_scan").strip() or "full_app_scan",
+        }
+        _jobs_events[unified_id] = []
+        _latest_job_id = unified_id
+    await _push_event(unified_id, "action", "Job queued")
+
+    await run_store.create_run(unified_id, unified_id, str(body.url).strip())
+    await _save_api_run_config(unified_id, body)
+
+    async def _run_job_bridge() -> None:
+        orch: Any = None
+        try:
+            await _set_job_state(unified_id, "RUNNING", "Starting scan run")
+            await _push_event(unified_id, "action", "Opening browser")
+            await _push_event(unified_id, "action", "Loading URL")
+            await _push_event(unified_id, "detection", "Detecting login form")
+
+            from backend.orchestrator import Orchestrator
+
+            sm = _coerce_scan_mode(req.scan_mode)
+            st = (req.scan_task or "full_app_scan").strip() or "full_app_scan"
+            creds: dict[str, Any] | None = None
+            if req.requires_login and req.credentials and isinstance(req.credentials, dict):
+                creds = {str(k): str(v) for k, v in req.credentials.items() if v is not None}
+            flow_list: list[str] | None = None
+            if req.flows and isinstance(req.flows, list) and len(req.flows) > 0:
+                flow_list = [str(x).strip() for x in req.flows if str(x).strip()]
+            tt = (req.task_type or "").strip() or None
+            mt = (req.micro_task or "").strip() or None
+            bt = req.browser_type or "chromium"
+            ti = (req.task_input or "").strip() or None
+            config = FrameworkConfig(
+                target_url=req.url,
+                scan_mode=sm,
+                scan_task=st,
+                flows=flow_list,
+                task_type=tt,
+                micro_task=mt,
+                browser_type=bt,
+                crawl_before_execution=bool(req.crawl_before_execution),
+                task_input=ti,
+                requires_login=bool(req.requires_login),
+                credentials=creds,
+            )
+            try:
+                config.crawl.viewport = _device_viewport(body.device)
+            except Exception:
+                pass
+            auth_username = auth_password = ""
+            if req.auth and isinstance(req.auth, dict):
+                auth_username = str(req.auth.get("username") or "").strip()
+                auth_password = str(req.auth.get("password") or "").strip()
+            if auth_username and auth_password:
+                await _set_job_state(
+                    unified_id,
+                    "WAITING_FOR_LOGIN",
+                    "Please login in the Chrome window",
+                )
+                config.auth = {
+                    "login_url": req.url,
+                    "username": auth_username,
+                    "password": auth_password,
+                    "auto_detect": True,
+                }
+                await _push_event(unified_id, "detection", "Login page detected")
+                await _push_event(
+                    unified_id,
+                    "action",
+                    "⏸ Waiting for you to login in the browser window...",
+                )
+
+            async def emit_bridge(
+                kind: str, name: str, payload: dict[str, Any] | None = None
+            ) -> None:
+                await _pipeline_emit(unified_id, kind, name, payload)
+
+            orch = Orchestrator(config, emit=emit_bridge, job_id=unified_id)
+
+            result = await asyncio.wait_for(
+                orch._run_pipeline(),
+                timeout=_pipeline_timeout_seconds(),
+            )
+            issues_found = int(((result or {}).get("summary") or {}).get("total_issues_found") or 0)
+            if issues_found > 0:
+                await _push_event(unified_id, "success", f"Found {issues_found} issues")
+            auth_status = str((result or {}).get("auth_status") or "not_attempted")
+            if auth_status == "success":
+                await _set_job_state(unified_id, "SCANNING", "Login confirmed, scanning in progress")
+                await _push_event(unified_id, "success", "Login confirmed — resuming scan")
+                await _push_event(unified_id, "success", "Login successful")
+            if auth_status == "failed":
+                issues = list((result or {}).get("issues") or [])
+                login_timeout = any(
+                    "timeout" in str(i.get("message", "")).lower() for i in issues
+                )
+                await _push_event(
+                    unified_id,
+                    "error",
+                    "Login timeout — scan cancelled"
+                    if login_timeout
+                    else "Login failed — check credentials or bot protection",
+                )
+            if bool((result or {}).get("partial")):
+                await _push_event(unified_id, "detection", "Scan marked as partial")
+
+            pages_n = _resolve_pages_scanned(result or {})
+            if pages_n == 0:
+                await _push_event(unified_id, "error", "No pages were crawled — scan failed")
+                async with _lock:
+                    if unified_id in _jobs:
+                        _jobs[unified_id]["completed_at"] = _time.time()
+                        _jobs[unified_id]["result"] = result
+                        _jobs[unified_id]["error"] = "No pages scanned"
+                await _set_job_state(unified_id, "FAILED", "Scan failed: no pages were crawled")
+                await run_store.finalize_run(
+                    unified_id,
+                    status="failed",
+                    result=result if isinstance(result, dict) else None,
+                    error="No pages scanned",
+                    partial=False,
+                )
+            else:
+                await _push_event(unified_id, "action", "Generating AI summary...")
+                await _push_event(unified_id, "success", "Scan complete")
+
+                async with _lock:
+                    if unified_id in _jobs:
+                        _jobs[unified_id]["completed_at"] = _time.time()
+                        _jobs[unified_id]["result"] = result
+                await _set_job_state(
+                    unified_id,
+                    "PARTIAL" if bool((result or {}).get("partial")) else "COMPLETE",
+                    "Scan finished with partial results"
+                    if bool((result or {}).get("partial"))
+                    else "Scan completed successfully",
+                )
+                asyncio.create_task(_generate_executive_summary(unified_id, req.url))
+                await run_store.finalize_run(
+                    unified_id,
+                    status="success",
+                    result=result if isinstance(result, dict) else None,
+                    error=None,
+                    partial=bool((result or {}).get("partial")),
+                )
+        except asyncio.TimeoutError:
+            await _push_event(unified_id, "error", "Scan timeout")
+            if orch is None:
+                async with _lock:
+                    if unified_id in _jobs:
+                        _jobs[unified_id]["completed_at"] = _time.time()
+                        _jobs[unified_id]["error"] = "Scan timeout"
+                await _set_job_state(unified_id, "FAILED", "Scan failed")
+                await run_store.finalize_run(
+                    unified_id,
+                    status="failed",
+                    result=None,
+                    error="Scan timeout",
+                    partial=False,
+                )
+                return
+            partial_result = await orch.build_partial_result(
+                "Scan timed out — showing partial results"
+            )
+            try:
+                from backend.db.persistence import persist_pipeline_result
+
+                _sid, delta_report, _rid = await persist_pipeline_result(
+                    req.url,
+                    partial_result,
+                    orch._last_site_model,
+                    orch._last_run_result,
+                )
+                if delta_report is not None:
+                    partial_result["delta_report"] = delta_report
+            except Exception:
+                pass
+            try:
+                from backend.services.decision_insights import attach_decision_insights
+                from backend.services.risk_explanation import attach_risk_explanation
+
+                await attach_risk_explanation(partial_result)
+                await attach_decision_insights(partial_result)
+            except Exception:
+                pass
+            async with _lock:
+                if unified_id in _jobs:
+                    _jobs[unified_id]["completed_at"] = _time.time()
+                    _jobs[unified_id]["error"] = "Scan timeout"
+                    _jobs[unified_id]["result"] = partial_result
+            if _resolve_pages_scanned(partial_result) == 0:
+                async with _lock:
+                    if unified_id in _jobs:
+                        _jobs[unified_id]["error"] = "Scan timed out — no pages crawled"
+                await _set_job_state(unified_id, "FAILED", "Scan failed: no pages were crawled")
+                await run_store.finalize_run(
+                    unified_id,
+                    status="failed",
+                    result=partial_result if isinstance(partial_result, dict) else None,
+                    error="Scan timed out — no pages crawled",
+                    partial=False,
+                )
+            else:
+                await _set_job_state(unified_id, "PARTIAL", "Scan timed out — showing partial results")
+                await run_store.finalize_run(
+                    unified_id,
+                    status="success",
+                    result=partial_result if isinstance(partial_result, dict) else None,
+                    error="Scan timeout",
+                    partial=True,
+                )
+        except Exception as e:
+            await _push_event(unified_id, "error", f"Scan failed: {e}")
+            async with _lock:
+                if unified_id in _jobs:
+                    _jobs[unified_id]["completed_at"] = _time.time()
+                    _jobs[unified_id]["error"] = str(e)
+                    _jobs[unified_id]["result"] = None
+            await _set_job_state(unified_id, "FAILED", "Scan failed")
+            await run_store.finalize_run(
+                unified_id,
+                status="failed",
+                result=None,
+                error=str(e),
+                partial=False,
+            )
+        finally:
+            forced_failed = False
+            async with _lock:
+                job = _jobs.get(unified_id)
+                if job and job.get("status") in {"QUEUED", "RUNNING"}:
+                    job["completed_at"] = _time.time()
+                    job["error"] = job.get("error") or "Scan ended unexpectedly"
+                    forced_failed = True
+            if forced_failed:
+                await _set_job_state(unified_id, "FAILED", "Scan ended unexpectedly")
+            async with _lock:
+                status = (_jobs.get(unified_id) or {}).get("status")
+            if status == "COMPLETE":
+                await _push_event(unified_id, "success", "SCAN COMPLETE")
+            elif status == "PARTIAL":
+                await _push_event(unified_id, "detection", "Job completed with partial results")
+            elif status == "FAILED":
+                await _push_event(unified_id, "error", "Job failed")
+
+            await _append_run_history(unified_id, req.url)
+
+    asyncio.create_task(_run_job_bridge())
+
+    return {
+        "run_id": unified_id,
+        "job_id": unified_id,
+        "status": "started",
+        "url": str(body.url).strip(),
+    }
+
+
+def _iso_from_ts(ts: float | None) -> str | None:
+    if ts is None:
+        return None
+    try:
+        from datetime import datetime, timezone
+
+        return datetime.fromtimestamp(float(ts), tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    except Exception:
+        return None
+
+
+def _format_duration_human(start: float | None, end: float | None) -> str:
+    if start is None or end is None:
+        return "—"
+    try:
+        sec = max(0, int(round(float(end) - float(start))))
+    except (TypeError, ValueError):
+        return "—"
+    m, s = divmod(sec, 60)
+    if m > 0:
+        return f"{m}m {s:02d}s"
+    return f"{s}s"
+
+
+def _serialize_registry_run(rec: RunRecord) -> dict[str, Any]:
+    uid = str(rec.run_id)
+    risk = rec.risk_score
+    try:
+        risk_i = int(risk) if risk is not None else 0
+    except (TypeError, ValueError):
+        risk_i = 0
+    st = str(rec.status)
+    if st == "success":
+        front_status = "completed"
+    elif st == "failed":
+        front_status = "failed"
+    else:
+        front_status = "running"
+    summ = rec.summary or ""
+    pages = 0
+    issues = 0
+    if "Pages:" in summ and "issues:" in summ:
+        try:
+            parts = summ.split(",")
+            for p in parts:
+                p = p.strip()
+                if p.startswith("Pages:"):
+                    pages = int(p.split(":")[1].strip())
+                if p.startswith("issues:"):
+                    issues = int(p.split(":")[1].strip())
+        except Exception:
+            pass
+    return {
+        "run_id": uid,
+        "job_id": uid,
+        "url": rec.target_url,
+        "status": front_status,
+        "risk_score": risk_i,
+        "risk_level": "LOW RISK",
+        "started_at": _iso_from_ts(rec.start_time),
+        "completed_at": _iso_from_ts(rec.end_time),
+        "duration": _format_duration_human(rec.start_time, rec.end_time),
+        "pages": pages,
+        "issues": issues,
+    }
+
+
+@app.get("/api/runs")
+async def api_list_runs() -> list[dict[str, Any]]:
+    """List runs from registry plus in-memory jobs (legacy job_* keys)."""
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    reg_list = await run_store.list_runs()
+    reg_list.sort(key=lambda r: r.start_time, reverse=True)
+    for rec in reg_list:
+        rows.append(_serialize_registry_run(rec))
+        seen.add(str(rec.run_id))
+
+    async with _lock:
+        snapshot = {k: dict(v) for k, v in _jobs.items()}
+
+    for jid, job in snapshot.items():
+        if jid in seen:
+            continue
+        if not str(jid).startswith("job_"):
+            continue
+        st = str(job.get("status") or "QUEUED")
+        front = _run_status_to_frontend(st)
+        res = job.get("result") if isinstance(job.get("result"), dict) else None
+        pages, actions, issues = _bridge_compute_metrics(res)
+        rs = 0
+        if res:
+            try:
+                rs = int(res.get("risk_score") or 0)
+            except (TypeError, ValueError):
+                rs = 0
+        target_url = str((res or {}).get("target_url") or "")
+        rows.append(
+            {
+                "run_id": jid,
+                "job_id": jid,
+                "url": target_url,
+                "status": front,
+                "risk_score": rs,
+                "risk_level": str((res or {}).get("risk_level") or "LOW RISK"),
+                "started_at": _iso_from_ts(job.get("started_at")),
+                "completed_at": _iso_from_ts(job.get("completed_at")),
+                "duration": _format_duration_human(job.get("started_at"), job.get("completed_at")),
+                "pages": pages,
+                "issues": issues,
+            }
+        )
+
+    def sort_key_iso(r: dict[str, Any]) -> str:
+        return str(r.get("started_at") or "")
+
+    rows.sort(key=sort_key_iso, reverse=True)
+    return rows
+
+
+def _build_run_detail_payload(run_key: str, job: dict[str, Any] | None, rec: RunRecord | None) -> dict[str, Any]:
+    result = None
+    if job and isinstance(job.get("result"), dict):
+        result = dict(job["result"])
+    elif rec:
+        path = run_store.result_path(str(rec.run_id))
+        if path.exists():
+            try:
+                with open(path, encoding="utf-8") as f:
+                    result = json.load(f)
+            except Exception:
+                result = None
+
+    url = ""
+    if isinstance(result, dict) and result.get("target_url"):
+        url = str(result.get("target_url"))
+    elif rec:
+        url = rec.target_url
+    elif job:
+        url = ""
+
+    status = "pending"
+    if job:
+        status = _run_status_to_frontend(str(job.get("status") or "QUEUED"))
+    elif rec:
+        status = "completed" if rec.status == "success" else ("failed" if rec.status == "failed" else "running")
+
+    risk_score = 0
+    risk_level = "LOW RISK"
+    summary = {
+        "total_pages_scanned": 0,
+        "total_actions_run": 0,
+        "total_issues_found": 0,
+    }
+    issues_out: list[dict[str, Any]] = []
+    total_passed = 0
+    total_failed = 0
+    ux_score: int | None = None
+    ux_label: str | None = None
+    ux_color: str | None = None
+    ux_summary: str | None = None
+    top_improvements: list[Any] = []
+    category_scores: dict[str, Any] = {}
+    passed_checks: list[str] = []
+
+    if isinstance(result, dict):
+        try:
+            risk_score = int(result.get("risk_score") or 0)
+        except (TypeError, ValueError):
+            risk_score = 0
+        risk_level = str(result.get("risk_level") or "LOW RISK")
+        try:
+            if result.get("ux_score") is not None:
+                ux_score = int(result.get("ux_score"))
+        except (TypeError, ValueError):
+            ux_score = None
+        ux_label = result.get("ux_label") if isinstance(result.get("ux_label"), str) else None
+        ux_color = result.get("ux_color") if isinstance(result.get("ux_color"), str) else None
+        ux_summary = result.get("ux_summary") if isinstance(result.get("ux_summary"), str) else None
+        _ti = result.get("top_improvements")
+        if isinstance(_ti, list):
+            top_improvements = list(_ti)
+        _cs = result.get("category_scores")
+        if isinstance(_cs, dict):
+            category_scores = dict(_cs)
+        _pc = result.get("passed_checks")
+        if isinstance(_pc, list):
+            passed_checks = [str(x) for x in _pc if x is not None]
+        sm = result.get("summary") or {}
+        if isinstance(sm, dict):
+            summary = {
+                "total_pages_scanned": int(sm.get("total_pages_scanned") or 0),
+                "total_actions_run": int(sm.get("total_actions_run") or 0),
+                "total_issues_found": int(sm.get("total_issues_found") or 0),
+            }
+        raw_issues = list(result.get("issues") or [])
+        for it in raw_issues:
+            if not isinstance(it, dict):
+                continue
+            row = dict(it)
+            row.setdefault("severity", str(it.get("severity") or "medium").upper())
+            row.setdefault(
+                "type",
+                str(it.get("type") or it.get("defect") or "Issue").replace("_", " ").title(),
+            )
+            row.setdefault(
+                "page_url",
+                str(it.get("page_url") or it.get("url") or it.get("page") or ""),
+            )
+            row.setdefault(
+                "element",
+                str(it.get("selector") or it.get("element") or ""),
+            )
+            row.setdefault(
+                "description",
+                str(it.get("message") or it.get("description") or ""),
+            )
+            row.setdefault(
+                "user_message",
+                str(it.get("user_message") or it.get("message") or ""),
+            )
+            row.setdefault(
+                "improvement",
+                str(it.get("improvement") or it.get("fix_suggestion") or ""),
+            )
+            ev = it.get("screenshot_path") or it.get("evidence")
+            row.setdefault("evidence", ev)
+            row.setdefault("screenshot_path", it.get("screenshot_path") or ev)
+            issues_out.append(row)
+        tr = result.get("test_results") or result.get("results")
+        if isinstance(tr, list):
+            total_passed = sum(1 for x in tr if isinstance(x, dict) and x.get("result") == "pass")
+            total_failed = sum(1 for x in tr if isinstance(x, dict) and x.get("result") in ("fail", "error"))
+
+    return {
+        "run_id": run_key,
+        "url": url,
+        "status": status,
+        "risk_score": risk_score,
+        "risk_level": risk_level,
+        "ux_score": ux_score,
+        "ux_label": ux_label,
+        "ux_color": ux_color,
+        "ux_summary": ux_summary,
+        "top_improvements": top_improvements,
+        "category_scores": category_scores,
+        "passed_checks": passed_checks,
+        "summary": summary,
+        "issues": issues_out,
+        "results": {
+            "total": total_passed + total_failed,
+            "passed": total_passed,
+            "failed": total_failed,
+        },
+    }
+
+
+@app.get("/api/runs/{run_key}")
+async def api_get_run(run_key: str) -> dict[str, Any]:
+    """Single run detail; run_key may be run_* or legacy job_*."""
+    async with _lock:
+        job = _jobs.get(run_key)
+    rec = await run_store.get_run(run_key)
+    if not job and not rec:
+        raise HTTPException(status_code=404, detail="run not found")
+    return _build_run_detail_payload(run_key, job, rec)
+
+
+@app.get("/api/runs/{run_key}/status")
+async def api_run_status(run_key: str) -> dict[str, Any]:
+    """Polling status for live preview."""
+    async with _lock:
+        exists = run_key in _jobs
+    rec = await run_store.get_run(run_key)
+    if not exists and not rec:
+        raise HTTPException(status_code=404, detail="run not found")
+    if exists:
+        payload = await _bridge_run_status_payload(run_key)
+        payload["run_id"] = run_key
+        return payload
+    rec2 = await run_store.get_run(run_key)
+    if rec2 and rec2.end_time is not None:
+        path = run_store.result_path(run_key)
+        result = None
+        if path.exists():
+            try:
+                with open(path, encoding="utf-8") as f:
+                    result = json.load(f)
+            except Exception:
+                result = None
+        pages, actions, issues = _bridge_compute_metrics(result if isinstance(result, dict) else None)
+        rs = None
+        rl = None
+        if isinstance(result, dict):
+            try:
+                rs = int(result.get("risk_score") or 0)
+            except (TypeError, ValueError):
+                rs = None
+            rl = str(result.get("risk_level") or "") or None
+        return {
+            "run_id": run_key,
+            "status": "completed" if rec2.status == "success" else "failed",
+            "stage": "done",
+            "progress": 100,
+            "current_action": "",
+            "pages_found": pages,
+            "actions_run": actions,
+            "issues_found": issues,
+            "elapsed_seconds": int(max(0.0, float(rec2.end_time) - float(rec2.start_time))),
+            "risk_score": rs,
+            "risk_level": rl,
+        }
+    raise HTTPException(status_code=404, detail="run not found")
+
+
+@app.get("/api/runs/{run_key}/logs")
+async def api_run_logs(run_key: str) -> dict[str, Any]:
+    """Merged logs from logs.txt and console_logs.txt."""
+    rec = await run_store.get_run(run_key)
+    async with _lock:
+        in_mem = run_key in _jobs
+    if not rec and not in_mem:
+        raise HTTPException(status_code=404, detail="run not found")
+    lines = _merge_run_log_lines(run_key)
+    return {"run_id": run_key, "logs": lines, "log_count": len(lines)}
+
+
+@app.get("/api/runs/{run_key}/stream")
+async def api_run_stream(run_key: str) -> StreamingResponse:
+    """SSE: job events + merged log files + periodic metrics."""
+
+    async def event_generator():
+        yield f"data: {_json.dumps({'type': 'connected', 'run_id': run_key})}\n\n".encode(
+            "utf-8"
+        )
+        rec_done = await run_store.get_run(run_key)
+        async with _lock:
+            job0 = _jobs.get(run_key)
+        if not job0 and rec_done and rec_done.end_time is not None:
+            path = run_store.result_path(run_key)
+            result: dict[str, Any] = {}
+            if path.exists():
+                try:
+                    with open(path, encoding="utf-8") as f:
+                        result = json.load(f)
+                except Exception:
+                    result = {}
+            try:
+                rs = int(result.get("risk_score") or 0)
+            except (TypeError, ValueError):
+                rs = 0
+            rl = str(result.get("risk_level") or "LOW RISK")
+            done = {
+                "type": "complete",
+                "risk_score": rs,
+                "risk_level": rl,
+                "run_id": run_key,
+            }
+            yield f"data: {_json.dumps(done)}\n\n".encode("utf-8")
+            return
+
+        last_log_count = 0
+        last_event_idx = 0
+        t0 = _time.monotonic()
+        last_metric = 0.0
+        while _time.monotonic() - t0 < 600.0:
+            await asyncio.sleep(0.5)
+
+            lines = _merge_run_log_lines(run_key)
+            if len(lines) > last_log_count:
+                new_lines = lines[last_log_count:]
+                last_log_count = len(lines)
+                for ln in new_lines:
+                    stg = _infer_stage_from_message(ln)
+                    ts = _time.strftime("%H:%M:%S")
+                    ev = {
+                        "type": "log",
+                        "stage": stg,
+                        "message": ln,
+                        "timestamp": ts,
+                    }
+                    yield f"data: {_json.dumps(ev)}\n\n".encode("utf-8")
+
+            async with _lock:
+                evs = list(_jobs_events.get(run_key, []))
+                job = dict(_jobs.get(run_key) or {})
+            if len(evs) > last_event_idx:
+                for e in evs[last_event_idx:]:
+                    msg = str(e.get("message") or "")
+                    stg = _infer_stage_from_message(msg)
+                    ts = _time.strftime("%H:%M:%S")
+                    ev = {
+                        "type": "log",
+                        "stage": stg,
+                        "message": msg,
+                        "timestamp": ts,
+                    }
+                    yield f"data: {_json.dumps(ev)}\n\n".encode("utf-8")
+                last_event_idx = len(evs)
+
+            now = _time.monotonic()
+            if now - last_metric >= 2.0:
+                last_metric = now
+                status_payload = await _bridge_run_status_payload(run_key)
+                metric = {
+                    "type": "metric",
+                    "pages_found": status_payload.get("pages_found", 0),
+                    "actions_run": status_payload.get("actions_run", 0),
+                    "issues_found": status_payload.get("issues_found", 0),
+                    "stage": status_payload.get("stage", "execute"),
+                    "progress": status_payload.get("progress", 0),
+                }
+                yield f"data: {_json.dumps(metric)}\n\n".encode("utf-8")
+                sc = {
+                    "type": "stage_change",
+                    "stage": str(status_payload.get("stage") or "execute"),
+                }
+                yield f"data: {_json.dumps(sc)}\n\n".encode("utf-8")
+
+            st = str(job.get("status") or "")
+            if st in ("COMPLETE", "PARTIAL"):
+                res = job.get("result") if isinstance(job.get("result"), dict) else {}
+                rs = int(res.get("risk_score") or 0) if res else 0
+                rl = str(res.get("risk_level") or "LOW RISK")
+                done = {
+                    "type": "complete",
+                    "risk_score": rs,
+                    "risk_level": rl,
+                    "run_id": run_key,
+                }
+                yield f"data: {_json.dumps(done)}\n\n".encode("utf-8")
+                return
+            if st == "FAILED":
+                err = {
+                    "type": "error",
+                    "message": str(job.get("error") or job.get("status_message") or "Run failed"),
+                }
+                yield f"data: {_json.dumps(err)}\n\n".encode("utf-8")
+                return
+
+        yield f"data: {_json.dumps({'type': 'timeout', 'message': 'Stream timeout'})}\n\n".encode(
+            "utf-8"
+        )
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@app.get("/api/modules")
+async def api_modules() -> dict[str, Any]:
+    """Modules derived from legacy flow ids (TASK_GROUPS entries are presets, not listed as modules)."""
+    preset_ids = set(TASK_GROUPS.keys())
+    mods: list[dict[str, Any]] = []
+    for fid in sorted(LEGACY_FLOW_TO_TASKS.keys()):
+        tasks = LEGACY_FLOW_TO_TASKS.get(fid) or []
+        mods.append(
+            {
+                "id": fid,
+                "name": fid.replace("_", " ").title(),
+                "description": f"Covers flows: {', '.join(tasks)}" if tasks else "Legacy flow bundle",
+                "enabled": True,
+                "test_count": max(1, len(tasks) * 2),
+                "status": "available",
+            }
+        )
+    return {"modules": mods, "total": len(mods), "presets": sorted(preset_ids)}
+
+
+@app.post("/api/runs/{run_key}/rerun")
+async def api_rerun(run_key: str) -> dict[str, Any]:
+    """Rerun using saved api_run_config.json for that run."""
+    path = run_store.run_dir(run_key) / "api_run_config.json"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Original run config not found")
+    try:
+        with open(path, encoding="utf-8") as f:
+            raw = json.load(f)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+    body = ApiRunBody(**raw)
+    out = await api_run(body)
+    return {"run_id": out["run_id"], "status": "started", "job_id": out["job_id"]}
+
+
+@app.get("/api/runs/{run_key}/compare")
+async def api_run_compare(run_key: str) -> dict[str, Any]:
+    """Compare this run's result.json to the previous run on disk."""
+    from backend.baseline_comparator import compare_disk_runs
+
+    return compare_disk_runs(Path("runs"), run_key)
+
+
+# ═══════════════════════════════════════════
+# SCREENSHOT ENDPOINTS (Nischay)
+# Note: ``/runs`` is not mounted as StaticFiles here because it would
+# shadow the existing GET /runs/history route. Use these API URLs instead.
+# ═══════════════════════════════════════════
+
+from fastapi.responses import FileResponse as _ScreenshotFileResponse
+
+
+def _safe_screenshot_filename(filename: str) -> str:
+    fn = (filename or "").strip()
+    if not fn or ".." in fn or "/" in fn or "\\" in fn:
+        raise HTTPException(status_code=400, detail="invalid filename")
+    return Path(fn).name
+
+
+@app.get("/api/runs/{run_id}/screenshots", tags=["screenshots"])
+async def get_run_screenshots(run_id: str) -> dict[str, Any]:
+    """List screenshot metadata (index.json) for a run."""
+    screenshots_dir = Path("runs") / run_id / "screenshots"
+    index_path = screenshots_dir / "index.json"
+    if not index_path.is_file():
+        return {"run_id": run_id, "screenshots": [], "count": 0}
+    try:
+        with open(index_path, encoding="utf-8") as f:
+            screenshots = json.load(f)
+        if not isinstance(screenshots, list):
+            screenshots = []
+        return {"run_id": run_id, "screenshots": screenshots, "count": len(screenshots)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.get("/api/runs/{run_id}/screenshots/{filename}", tags=["screenshots"])
+async def get_screenshot_file(run_id: str, filename: str) -> _ScreenshotFileResponse:
+    """Serve a PNG captured during the run."""
+    safe_fn = _safe_screenshot_filename(filename)
+    filepath = Path("runs") / run_id / "screenshots" / safe_fn
+    if not filepath.is_file():
+        raise HTTPException(status_code=404, detail="Screenshot not found")
+    return _ScreenshotFileResponse(
+        path=str(filepath),
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
+

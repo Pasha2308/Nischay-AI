@@ -1,0 +1,16 @@
+{
+  "run_id": "run_bb44f7af",
+  "plan_id": "plan_det_8164d952",
+  "started_at": "2026-03-29T13:25:23Z",
+  "completed_at": "2026-03-29T13:25:23Z",
+  "target_url": "test@test.com",
+  "total_tests": 0,
+  "passed": 0,
+  "failed": 0,
+  "skipped": 0,
+  "errors": 0,
+  "duration_seconds": 0.19,
+  "test_results": [],
+  "ai_summary": "",
+  "step_retries": 0
+}

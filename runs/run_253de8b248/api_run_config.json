@@ -1,0 +1,23 @@
+{
+  "url": "https://thebombaystore.com/",
+  "depth": "standard",
+  "modules": [
+    "auth",
+    "navigation",
+    "search",
+    "product_pages",
+    "cart",
+    "checkout",
+    "wishlist",
+    "performance",
+    "accessibility",
+    "security",
+    "links_assets"
+  ],
+  "tasks": [
+    "search for a ganesha product",
+    "add to cart and proceed to checkout"
+  ],
+  "device": "desktop",
+  "auth": null
+}

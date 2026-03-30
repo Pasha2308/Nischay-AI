@@ -1,0 +1,344 @@
+{
+  "run_id": "run_64aab396",
+  "plan_id": "plan_det_451ccf65",
+  "started_at": "2026-03-30T08:04:25Z",
+  "completed_at": "2026-03-30T08:05:02Z",
+  "target_url": "https://amazon.in",
+  "total_tests": 1,
+  "passed": 0,
+  "failed": 1,
+  "skipped": 0,
+  "errors": 0,
+  "duration_seconds": 36.84,
+  "test_results": [
+    {
+      "test_id": "micro_task_scan",
+      "test_name": "Micro task scan",
+      "description": "Micro task orchestration (11 tasks in registry)",
+      "category": "functional",
+      "priority": 1,
+      "target_page_id": "page_www.amazon.in_eba2534b0c3f",
+      "actual_page_id": "page_www.amazon.in_eba2534b0c3f",
+      "actual_url": "https://www.amazon.in/s?k=dress&crid=QC5PYQCCD8UB&sprefix=dress%2Caps%2C342&ref=nb_sb_noss_2",
+      "coverage_signature": "micro_task_scan_v1",
+      "result": "fail",
+      "duration_seconds": 34.17,
+      "failure_reason": null,
+      "evidence": {
+        "screenshots": [],
+        "console_logs": [],
+        "network_log": [],
+        "dom_snapshot_path": null,
+        "video_path": null
+      },
+      "fallback_records": [],
+      "precondition_results": [],
+      "step_results": [],
+      "assertion_results": [],
+      "assertions_passed": 0,
+      "assertions_failed": 0,
+      "assertions_total": 0,
+      "potentially_flaky": false,
+      "qa_defects_by_page": [
+        {
+          "page_url": "https://www.amazon.in/s?k=dress&crid=QC5PYQCCD8UB&sprefix=dress%2Caps%2C342&ref=nb_sb_noss_2",
+          "defects": [
+            {
+              "defect": "login_missing_credentials",
+              "description": "username/password not in context",
+              "severity": "medium",
+              "page_url": "https://www.amazon.in/",
+              "micro_task": "login_user"
+            },
+            {
+              "defect": "broken_navigation",
+              "description": "Nav link 0 not clickable",
+              "severity": "high",
+              "page_url": "https://www.amazon.in/",
+              "micro_task": "check_navigation_links"
+            },
+            {
+              "defect": "broken_navigation",
+              "description": "Nav link 1 not clickable",
+              "severity": "high",
+              "page_url": "https://www.amazon.in/",
+              "micro_task": "check_navigation_links"
+            },
+            {
+              "defect": "broken_navigation",
+              "description": "Nav link 2 not clickable",
+              "severity": "high",
+              "page_url": "https://www.amazon.in/",
+              "micro_task": "check_navigation_links"
+            },
+            {
+              "defect": "page_not_changed",
+              "description": "URL unchanged after product click",
+              "severity": "high",
+              "page_url": "https://www.amazon.in/s?k=dress&crid=QC5PYQCCD8UB&sprefix=dress%2Caps%2C342&ref=nb_sb_noss_2",
+              "micro_task": "open_product_from_search"
+            },
+            {
+              "defect": "checkout_unavailable",
+              "description": "No checkout control matched",
+              "severity": "high",
+              "page_url": "https://www.amazon.in/s?k=dress&crid=QC5PYQCCD8UB&sprefix=dress%2Caps%2C342&ref=nb_sb_noss_2",
+              "micro_task": "start_checkout"
+            },
+            {
+              "defect": "address_fields_missing",
+              "description": "Could not fill at least name/address/phone (need 2+)",
+              "severity": "high",
+              "page_url": "https://www.amazon.in/s?k=dress&crid=QC5PYQCCD8UB&sprefix=dress%2Caps%2C342&ref=nb_sb_noss_2",
+              "micro_task": "fill_address_form"
+            }
+          ],
+          "metrics": {
+            "login_user": {
+              "success": false,
+              "impact": "MEDIUM",
+              "defects_count": 1
+            },
+            "check_navigation_links": {
+              "success": false,
+              "impact": "HIGH",
+              "defects_count": 3
+            },
+            "search_product": {
+              "success": true,
+              "impact": "LOW",
+              "defects_count": 0
+            },
+            "open_product_from_search": {
+              "success": false,
+              "impact": "HIGH",
+              "defects_count": 1
+            },
+            "add_to_cart": {
+              "success": true,
+              "impact": "LOW",
+              "defects_count": 0
+            },
+            "start_checkout": {
+              "success": false,
+              "impact": "HIGH",
+              "defects_count": 1
+            },
+            "fill_address_form": {
+              "success": false,
+              "impact": "HIGH",
+              "defects_count": 1
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "ai_summary": "",
+  "step_retries": 0,
+  "execution_snapshot": {
+    "url": "https://www.amazon.in/s?k=dress&crid=QC5PYQCCD8UB&sprefix=dress%2Caps%2C342&ref=nb_sb_noss_2",
+    "decision": "DO NOT SHIP",
+    "risk": "HIGH",
+    "risk_score": 100,
+    "summary": "4 high-impact task failure(s), 5 total task failure(s), 1 medium-impact failure(s). Numeric risk score: 100/100.",
+    "task_results": [
+      {
+        "task": "login_user",
+        "success": false,
+        "defects": [
+          {
+            "defect": "login_missing_credentials",
+            "description": "username/password not in context",
+            "severity": "medium",
+            "page_url": "https://www.amazon.in/"
+          }
+        ],
+        "impact": "MEDIUM"
+      },
+      {
+        "task": "check_navigation_links",
+        "success": false,
+        "defects": [
+          {
+            "defect": "broken_navigation",
+            "description": "Nav link 0 not clickable",
+            "severity": "high",
+            "page_url": "https://www.amazon.in/"
+          },
+          {
+            "defect": "broken_navigation",
+            "description": "Nav link 1 not clickable",
+            "severity": "high",
+            "page_url": "https://www.amazon.in/"
+          },
+          {
+            "defect": "broken_navigation",
+            "description": "Nav link 2 not clickable",
+            "severity": "high",
+            "page_url": "https://www.amazon.in/"
+          }
+        ],
+        "impact": "HIGH"
+      },
+      {
+        "task": "search_product",
+        "success": true,
+        "defects": [],
+        "impact": "LOW"
+      },
+      {
+        "task": "open_product_from_search",
+        "success": false,
+        "defects": [
+          {
+            "defect": "page_not_changed",
+            "description": "URL unchanged after product click",
+            "severity": "high",
+            "page_url": "https://www.amazon.in/s?k=dress&crid=QC5PYQCCD8UB&sprefix=dress%2Caps%2C342&ref=nb_sb_noss_2"
+          }
+        ],
+        "impact": "HIGH"
+      },
+      {
+        "task": "add_to_cart",
+        "success": true,
+        "defects": [],
+        "impact": "LOW"
+      },
+      {
+        "task": "start_checkout",
+        "success": false,
+        "defects": [
+          {
+            "defect": "checkout_unavailable",
+            "description": "No checkout control matched",
+            "severity": "high",
+            "page_url": "https://www.amazon.in/s?k=dress&crid=QC5PYQCCD8UB&sprefix=dress%2Caps%2C342&ref=nb_sb_noss_2"
+          }
+        ],
+        "impact": "HIGH"
+      },
+      {
+        "task": "fill_address_form",
+        "success": false,
+        "defects": [
+          {
+            "defect": "address_fields_missing",
+            "description": "Could not fill at least name/address/phone (need 2+)",
+            "severity": "high",
+            "page_url": "https://www.amazon.in/s?k=dress&crid=QC5PYQCCD8UB&sprefix=dress%2Caps%2C342&ref=nb_sb_noss_2"
+          }
+        ],
+        "impact": "HIGH"
+      }
+    ],
+    "defects": [
+      {
+        "defect": "login_missing_credentials",
+        "description": "username/password not in context",
+        "severity": "medium",
+        "page_url": "https://www.amazon.in/",
+        "micro_task": "login_user"
+      },
+      {
+        "defect": "broken_navigation",
+        "description": "Nav link 0 not clickable",
+        "severity": "high",
+        "page_url": "https://www.amazon.in/",
+        "micro_task": "check_navigation_links"
+      },
+      {
+        "defect": "broken_navigation",
+        "description": "Nav link 1 not clickable",
+        "severity": "high",
+        "page_url": "https://www.amazon.in/",
+        "micro_task": "check_navigation_links"
+      },
+      {
+        "defect": "broken_navigation",
+        "description": "Nav link 2 not clickable",
+        "severity": "high",
+        "page_url": "https://www.amazon.in/",
+        "micro_task": "check_navigation_links"
+      },
+      {
+        "defect": "page_not_changed",
+        "description": "URL unchanged after product click",
+        "severity": "high",
+        "page_url": "https://www.amazon.in/s?k=dress&crid=QC5PYQCCD8UB&sprefix=dress%2Caps%2C342&ref=nb_sb_noss_2",
+        "micro_task": "open_product_from_search"
+      },
+      {
+        "defect": "checkout_unavailable",
+        "description": "No checkout control matched",
+        "severity": "high",
+        "page_url": "https://www.amazon.in/s?k=dress&crid=QC5PYQCCD8UB&sprefix=dress%2Caps%2C342&ref=nb_sb_noss_2",
+        "micro_task": "start_checkout"
+      },
+      {
+        "defect": "address_fields_missing",
+        "description": "Could not fill at least name/address/phone (need 2+)",
+        "severity": "high",
+        "page_url": "https://www.amazon.in/s?k=dress&crid=QC5PYQCCD8UB&sprefix=dress%2Caps%2C342&ref=nb_sb_noss_2",
+        "micro_task": "fill_address_form"
+      }
+    ],
+    "logs": [
+      "\u2501\u2501\u2501 Micro task: login_user \u2501\u2501\u2501",
+      "[micro:login_user] \u25b6 run_task start (timeout=20.0s)",
+      "[micro:login_user] before \u2014 login",
+      "[micro:login_user] after \u2014 missing credentials",
+      "[micro:login_user] \u25b6 run_task finished success=False",
+      "\u2705 login_user complete \u2014 1 issue(s)",
+      "\u2501\u2501\u2501 Micro task: check_navigation_links \u2501\u2501\u2501",
+      "[micro:check_navigation_links] \u25b6 run_task start (timeout=20.0s)",
+      "[micro:check_navigation_links] before \u2014 main nav",
+      "[micro:check_navigation_links] nav 1/3",
+      "[micro:check_navigation_links] nav 2/3",
+      "[micro:check_navigation_links] nav 3/3",
+      "[micro:check_navigation_links] after \u2014 broken=3",
+      "[micro:check_navigation_links] \u25b6 run_task finished success=False",
+      "\u2705 check_navigation_links complete \u2014 3 issue(s)",
+      "\u2501\u2501\u2501 Micro task: search_product \u2501\u2501\u2501",
+      "[micro:search_product] \u25b6 run_task start (timeout=20.0s)",
+      "Using synthetic search data",
+      "[micro:search_product] before \u2014 search keyword='dress'",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] after \u2014 results=True defects=0",
+      "[micro:search_product] \u25b6 run_task finished success=True",
+      "\u2705 search_product complete \u2014 0 issue(s)",
+      "\u2501\u2501\u2501 Micro task: open_product_from_search \u2501\u2501\u2501",
+      "[micro:open_product_from_search] \u25b6 run_task start (timeout=20.0s)",
+      "[micro:open_product_from_search] before \u2014 open first result",
+      "[micro:open_product_from_search] clicked result via pattern",
+      "[micro:open_product_from_search] after \u2014 ok=False",
+      "[micro:open_product_from_search] \u25b6 run_task finished success=False",
+      "\u2705 open_product_from_search complete \u2014 1 issue(s)",
+      "\u2501\u2501\u2501 Micro task: add_to_cart \u2501\u2501\u2501",
+      "[micro:add_to_cart] \u25b6 run_task start (timeout=20.0s)",
+      "[micro:add_to_cart] before \u2014 add to cart",
+      "[micro:add_to_cart] context.cart_items=1",
+      "[micro:add_to_cart] after \u2014 cart_updated=True",
+      "[micro:add_to_cart] \u25b6 run_task finished success=True",
+      "\u2705 add_to_cart complete \u2014 0 issue(s)",
+      "\u2501\u2501\u2501 Micro task: start_checkout \u2501\u2501\u2501",
+      "[micro:start_checkout] \u25b6 run_task start (timeout=20.0s)",
+      "[micro:start_checkout] before \u2014 checkout",
+      "[micro:start_checkout] after \u2014 no CTA",
+      "[micro:start_checkout] \u25b6 run_task finished success=False",
+      "\u2705 start_checkout complete \u2014 1 issue(s)",
+      "\u2501\u2501\u2501 Micro task: fill_address_form \u2501\u2501\u2501",
+      "[micro:fill_address_form] \u25b6 run_task start (timeout=20.0s)",
+      "Using synthetic user data",
+      "[micro:fill_address_form] before \u2014 minimal address",
+      "[micro:fill_address_form] after \u2014 insufficient fields",
+      "[micro:fill_address_form] \u25b6 run_task finished success=False",
+      "\u2705 fill_address_form complete \u2014 1 issue(s)",
+      "Execution complete \u2014 7 issues detected"
+    ],
+    "duration": 34.17
+  },
+  "regressions": []
+}

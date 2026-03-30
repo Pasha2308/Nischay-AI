@@ -1,5 +1,10 @@
 """Navigation-oriented tools: goto URL, click, hover."""
 
+# ADD THIS — Run-wide screenshots for API-triggered flows are captured in
+# ``backend.orchestrator.Orchestrator._execute`` (``ScreenshotManager`` under
+# ``runs/<run_id>/screenshots/``). This module performs navigation only.
+# END ADD THIS
+
 from __future__ import annotations
 
 import logging

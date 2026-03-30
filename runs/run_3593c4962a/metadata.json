@@ -1,0 +1,10 @@
+{
+  "run_id": "run_3593c4962a",
+  "url": "https://amazon.in",
+  "status": "success",
+  "started_at": "2026-03-30T02:34:15Z",
+  "completed_at": "2026-03-30T02:35:02Z",
+  "duration_seconds": 46.93,
+  "risk_score": 100,
+  "risk_level": "Critical"
+}

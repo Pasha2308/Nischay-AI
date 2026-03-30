@@ -1,7 +1,7 @@
 {
-  "plan_id": "plan_det_0c625881",
-  "generated_at": "2026-03-29T20:02:16Z",
-  "target_url": "https://www.mochishoes.com/",
+  "plan_id": "plan_det_cb582eef",
+  "generated_at": "2026-03-30T08:47:02Z",
+  "target_url": "https://amazon.in",
   "test_cases": [
     {
       "test_id": "deterministic_smoke",
@@ -9,7 +9,7 @@
       "description": "No-AI deterministic flow using tool-based executor.",
       "category": "functional",
       "priority": 1,
-      "target_page_id": "page_www.mochishoes.com_f126f5adc10f",
+      "target_page_id": "page_amazon.in_1e4668e104ac",
       "coverage_signature": "deterministic_smoke_generic_flow_v1",
       "requires_auth": false,
       "preconditions": [],
@@ -17,7 +17,7 @@
         {
           "action_type": "navigate",
           "selector": null,
-          "value": "https://www.mochishoes.com/",
+          "value": "https://amazon.in",
           "description": "Open target page"
         },
         {
@@ -48,7 +48,7 @@
           "description": "Page has basic content after steps"
         }
       ],
-      "timeout_seconds": 45
+      "timeout_seconds": 48
     }
   ],
   "estimated_duration_seconds": 60,

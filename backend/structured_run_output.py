@@ -850,9 +850,53 @@ async def build_structured_output(
     issues_out = _finalize_issues_for_display(issues_enriched)
     actions_run = _flatten_actions_run(run_result)
 
-    risk_score, risk_level, risk_level_legacy, risk_detail, *_ = _compute_aggregate_risk_score(
-        issues_out, run_result, site_model
+    # ADD THIS — UX scoring (primary); risk_score = 100 - ux_score for legacy gauges
+    from backend.ux_scorer import score_ux
+
+    raw_for_ux: list[dict[str, Any]] = []
+    for i in issues_out:
+        raw_for_ux.append(
+            {
+                "type": str(i.get("defect") or i.get("type") or "unknown"),
+                "issue_type": i.get("type"),
+                "error_type": i.get("assertion_type"),
+                "severity": i.get("severity"),
+                "page_url": str(i.get("page_url") or "").strip(),
+                "element_selector": str(
+                    i.get("selector") or i.get("element_selector") or ""
+                ).strip(),
+                "description": str(
+                    i.get("message") or i.get("title") or ""
+                ).strip(),
+                "message": i.get("message"),
+                "screenshot_path": i.get("screenshot_path"),
+                "evidence": i.get("evidence"),
+            }
+        )
+    ux_pages = max(1, int(pages_scanned or 0) or 1)
+    ux_result = score_ux(raw_for_ux, pages_scanned=ux_pages)
+    merged_issues: list[dict[str, Any]] = []
+    for orig, ux_row in zip(issues_out, ux_result.issues):
+        merged_issues.append({**orig, **ux_row})
+    issues_out = merged_issues
+
+    risk_score = int(ux_result.risk_score)
+    risk_level, risk_level_legacy = _risk_display_and_legacy(
+        _risk_band_from_score(risk_score)
     )
+    risk_detail: dict[str, Any] = {
+        "score": risk_score,
+        "level": _risk_band_from_score(risk_score),
+    }
+    ux_score = int(ux_result.ux_score)
+    ux_label = str(ux_result.ux_label)
+    ux_color = str(ux_result.ux_color)
+    ux_summary = str(ux_result.summary)
+    top_improvements = list(ux_result.top_improvements)
+    category_scores = dict(ux_result.category_scores)
+    passed_checks = list(ux_result.passed_checks)
+    # END ADD THIS
+
     auth_failed = any(i.get("defect") == "auth_login_failed" for i in issues_out)
     auth_succeeded = bool(
         run_result
@@ -864,6 +908,13 @@ async def build_structured_output(
         "risk_level": risk_level,
         "risk_level_legacy": risk_level_legacy,
         "risk": risk_detail,
+        "ux_score": ux_score,
+        "ux_label": ux_label,
+        "ux_color": ux_color,
+        "ux_summary": ux_summary,
+        "top_improvements": top_improvements,
+        "category_scores": category_scores,
+        "passed_checks": passed_checks,
         "partial": auth_failed,
         "auth_status": "failed" if auth_failed else ("success" if auth_succeeded else "not_attempted"),
         "issues_by_severity": _issues_by_severity(issues_out),
@@ -880,6 +931,13 @@ async def build_structured_output(
     base["risk_level"] = risk_level
     base["risk_level_legacy"] = risk_level_legacy
     base["risk"] = risk_detail
+    base["ux_score"] = ux_score
+    base["ux_label"] = ux_label
+    base["ux_color"] = ux_color
+    base["ux_summary"] = ux_summary
+    base["top_improvements"] = top_improvements
+    base["category_scores"] = category_scores
+    base["passed_checks"] = passed_checks
     base["pages"] = pages_list
     base["pages_scanned"] = pages_scanned
     summary_out = {

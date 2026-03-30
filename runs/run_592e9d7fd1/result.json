@@ -1,0 +1,654 @@
+{
+  "risk_score": 78,
+  "risk_level": "Critical",
+  "risk_level_legacy": "CRITICAL RISK",
+  "risk": {
+    "score": 78,
+    "level": "CRITICAL"
+  },
+  "ux_score": 22,
+  "ux_label": "CRITICAL UX ISSUES",
+  "ux_color": "#FF4444",
+  "ux_summary": "Critical UX failures detected. 6 issues are severely breaking the user experience. Users cannot reliably complete purchases. This site needs urgent attention before it can convert visitors into customers.",
+  "top_improvements": [
+    {
+      "priority": 1,
+      "category": "Navigation & Findability",
+      "impact": "HIGH",
+      "action": "Fix the search feature. Users who search have high purchase intent \u2014 broken search directly loses sales.",
+      "affects": "High-intent buyers using search",
+      "penalty_removed": 28
+    },
+    {
+      "priority": 2,
+      "category": "General",
+      "impact": "MEDIUM",
+      "action": "Review and fix this issue to improve the overall user experience.",
+      "affects": "Some users",
+      "penalty_removed": 10
+    }
+  ],
+  "category_scores": {
+    "Conversion Flow": {
+      "score": 100,
+      "penalty": 0,
+      "label": "Excellent"
+    },
+    "Navigation & Findability": {
+      "score": 58,
+      "penalty": 28,
+      "label": "Needs Work"
+    },
+    "Performance Feel": {
+      "score": 100,
+      "penalty": 0,
+      "label": "Excellent"
+    },
+    "Page Clarity": {
+      "score": 100,
+      "penalty": 0,
+      "label": "Excellent"
+    },
+    "Interaction Feedback": {
+      "score": 100,
+      "penalty": 0,
+      "label": "Excellent"
+    },
+    "Error Recovery": {
+      "score": 100,
+      "penalty": 0,
+      "label": "Excellent"
+    },
+    "Mobile Usability": {
+      "score": 100,
+      "penalty": 0,
+      "label": "Excellent"
+    },
+    "Accessibility": {
+      "score": 100,
+      "penalty": 0,
+      "label": "Excellent"
+    },
+    "General": {
+      "score": 25,
+      "penalty": 50,
+      "label": "Critical"
+    }
+  },
+  "passed_checks": [
+    "\u2713 Accessibility looks good",
+    "\u2713 Conversion Flow looks good",
+    "\u2713 Error Recovery looks good",
+    "\u2713 Interaction Feedback looks good",
+    "\u2713 Mobile Usability looks good",
+    "\u2713 Page Clarity looks good",
+    "\u2713 Performance Feel looks good"
+  ],
+  "partial": false,
+  "auth_status": "not_attempted",
+  "issues_by_severity": {
+    "critical": [],
+    "high": [
+      {
+        "type": "search_not_working",
+        "defect": "search_not_working",
+        "severity": "high",
+        "message": "Could not submit search via safe_click",
+        "test_id": "micro_task_scan",
+        "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/",
+        "recurring": false,
+        "fix_suggestion": "Validate search field selectors, catalog data, and that results render for representative queries.",
+        "business_impact": "Users cannot find products, reducing conversions",
+        "title": "Search not working \u2014 Could not submit search via safe_click",
+        "ux_category": "Navigation & Findability",
+        "ux_impact": "HIGH",
+        "ux_penalty": 28,
+        "element": "",
+        "description": "Could not submit search via safe_click",
+        "user_message": "Search functionality is broken",
+        "improvement": "Fix the search feature. Users who search have high purchase intent \u2014 broken search directly loses sales.",
+        "affects": "High-intent buyers using search",
+        "screenshot_path": null,
+        "evidence": null
+      },
+      {
+        "type": "pdp_not_loaded",
+        "defect": "pdp_not_loaded",
+        "severity": "high",
+        "message": "No clear product-page signals after click",
+        "test_id": "micro_task_scan",
+        "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/",
+        "recurring": false,
+        "fix_suggestion": "Reproduce on staging, capture console/network logs, and patch the failing interaction or assertion.",
+        "business_impact": "Reduced confidence in release quality until verified",
+        "title": "Pdp not loaded \u2014 No clear product-page signals after click",
+        "ux_category": "General",
+        "ux_impact": "MEDIUM",
+        "ux_penalty": 10,
+        "element": "",
+        "description": "No clear product-page signals after click",
+        "user_message": "Issue detected that may affect user experience",
+        "improvement": "Review and fix this issue to improve the overall user experience.",
+        "affects": "Some users",
+        "screenshot_path": null,
+        "evidence": null
+      },
+      {
+        "type": "add_to_cart_missing",
+        "defect": "add_to_cart_missing",
+        "severity": "high",
+        "message": "No add-to-cart control matched",
+        "test_id": "micro_task_scan",
+        "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/",
+        "recurring": false,
+        "fix_suggestion": "Trace cart state (cookies/session), button handlers, and inventory APIs; retest add-to-cart on staging.",
+        "business_impact": "Users cannot complete purchase \u2192 revenue loss",
+        "title": "Add to cart missing \u2014 No add-to-cart control matched",
+        "ux_category": "General",
+        "ux_impact": "MEDIUM",
+        "ux_penalty": 10,
+        "element": "",
+        "description": "No add-to-cart control matched",
+        "user_message": "Issue detected that may affect user experience",
+        "improvement": "Review and fix this issue to improve the overall user experience.",
+        "affects": "Some users",
+        "screenshot_path": null,
+        "evidence": null
+      },
+      {
+        "type": "checkout_unavailable",
+        "defect": "checkout_unavailable",
+        "severity": "high",
+        "message": "No checkout control matched",
+        "test_id": "micro_task_scan",
+        "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/",
+        "recurring": false,
+        "fix_suggestion": "Review checkout funnel, payment gateway responses, and error handling; test with sandbox cards.",
+        "business_impact": "Direct revenue blockage",
+        "title": "Checkout unavailable \u2014 No checkout control matched",
+        "ux_category": "General",
+        "ux_impact": "MEDIUM",
+        "ux_penalty": 10,
+        "element": "",
+        "description": "No checkout control matched",
+        "user_message": "Issue detected that may affect user experience",
+        "improvement": "Review and fix this issue to improve the overall user experience.",
+        "affects": "Some users",
+        "screenshot_path": null,
+        "evidence": null
+      },
+      {
+        "type": "address_fields_missing",
+        "defect": "address_fields_missing",
+        "severity": "high",
+        "message": "Could not fill at least name/address/phone (need 2+)",
+        "test_id": "micro_task_scan",
+        "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/",
+        "recurring": false,
+        "fix_suggestion": "Reproduce on staging, capture console/network logs, and patch the failing interaction or assertion.",
+        "business_impact": "Reduced confidence in release quality until verified",
+        "title": "Address fields missing \u2014 Could not fill at least name/address/phone (need 2+)",
+        "ux_category": "General",
+        "ux_impact": "MEDIUM",
+        "ux_penalty": 10,
+        "element": "",
+        "description": "Could not fill at least name/address/phone (need 2+)",
+        "user_message": "Issue detected that may affect user experience",
+        "improvement": "Review and fix this issue to improve the overall user experience.",
+        "affects": "Some users",
+        "screenshot_path": null,
+        "evidence": null
+      }
+    ],
+    "medium": [
+      {
+        "type": "login_missing_credentials",
+        "defect": "login_missing_credentials",
+        "severity": "medium",
+        "message": "username/password not in context",
+        "test_id": "micro_task_scan",
+        "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/",
+        "recurring": false,
+        "fix_suggestion": "Verify credentials flow, session cookies, and bot protection rules; align with identity provider.",
+        "business_impact": "Users cannot access accounts",
+        "title": "Login missing credentials \u2014 username/password not in context",
+        "ux_category": "General",
+        "ux_impact": "MEDIUM",
+        "ux_penalty": 10,
+        "element": "",
+        "description": "username/password not in context",
+        "user_message": "Issue detected that may affect user experience",
+        "improvement": "Review and fix this issue to improve the overall user experience.",
+        "affects": "Some users",
+        "screenshot_path": null,
+        "evidence": null
+      }
+    ],
+    "low": []
+  },
+  "issues": [
+    {
+      "type": "login_missing_credentials",
+      "defect": "login_missing_credentials",
+      "severity": "medium",
+      "message": "username/password not in context",
+      "test_id": "micro_task_scan",
+      "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/",
+      "recurring": false,
+      "fix_suggestion": "Verify credentials flow, session cookies, and bot protection rules; align with identity provider.",
+      "business_impact": "Users cannot access accounts",
+      "title": "Login missing credentials \u2014 username/password not in context",
+      "ux_category": "General",
+      "ux_impact": "MEDIUM",
+      "ux_penalty": 10,
+      "element": "",
+      "description": "username/password not in context",
+      "user_message": "Issue detected that may affect user experience",
+      "improvement": "Review and fix this issue to improve the overall user experience.",
+      "affects": "Some users",
+      "screenshot_path": null,
+      "evidence": null
+    },
+    {
+      "type": "search_not_working",
+      "defect": "search_not_working",
+      "severity": "high",
+      "message": "Could not submit search via safe_click",
+      "test_id": "micro_task_scan",
+      "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/",
+      "recurring": false,
+      "fix_suggestion": "Validate search field selectors, catalog data, and that results render for representative queries.",
+      "business_impact": "Users cannot find products, reducing conversions",
+      "title": "Search not working \u2014 Could not submit search via safe_click",
+      "ux_category": "Navigation & Findability",
+      "ux_impact": "HIGH",
+      "ux_penalty": 28,
+      "element": "",
+      "description": "Could not submit search via safe_click",
+      "user_message": "Search functionality is broken",
+      "improvement": "Fix the search feature. Users who search have high purchase intent \u2014 broken search directly loses sales.",
+      "affects": "High-intent buyers using search",
+      "screenshot_path": null,
+      "evidence": null
+    },
+    {
+      "type": "pdp_not_loaded",
+      "defect": "pdp_not_loaded",
+      "severity": "high",
+      "message": "No clear product-page signals after click",
+      "test_id": "micro_task_scan",
+      "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/",
+      "recurring": false,
+      "fix_suggestion": "Reproduce on staging, capture console/network logs, and patch the failing interaction or assertion.",
+      "business_impact": "Reduced confidence in release quality until verified",
+      "title": "Pdp not loaded \u2014 No clear product-page signals after click",
+      "ux_category": "General",
+      "ux_impact": "MEDIUM",
+      "ux_penalty": 10,
+      "element": "",
+      "description": "No clear product-page signals after click",
+      "user_message": "Issue detected that may affect user experience",
+      "improvement": "Review and fix this issue to improve the overall user experience.",
+      "affects": "Some users",
+      "screenshot_path": null,
+      "evidence": null
+    },
+    {
+      "type": "add_to_cart_missing",
+      "defect": "add_to_cart_missing",
+      "severity": "high",
+      "message": "No add-to-cart control matched",
+      "test_id": "micro_task_scan",
+      "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/",
+      "recurring": false,
+      "fix_suggestion": "Trace cart state (cookies/session), button handlers, and inventory APIs; retest add-to-cart on staging.",
+      "business_impact": "Users cannot complete purchase \u2192 revenue loss",
+      "title": "Add to cart missing \u2014 No add-to-cart control matched",
+      "ux_category": "General",
+      "ux_impact": "MEDIUM",
+      "ux_penalty": 10,
+      "element": "",
+      "description": "No add-to-cart control matched",
+      "user_message": "Issue detected that may affect user experience",
+      "improvement": "Review and fix this issue to improve the overall user experience.",
+      "affects": "Some users",
+      "screenshot_path": null,
+      "evidence": null
+    },
+    {
+      "type": "checkout_unavailable",
+      "defect": "checkout_unavailable",
+      "severity": "high",
+      "message": "No checkout control matched",
+      "test_id": "micro_task_scan",
+      "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/",
+      "recurring": false,
+      "fix_suggestion": "Review checkout funnel, payment gateway responses, and error handling; test with sandbox cards.",
+      "business_impact": "Direct revenue blockage",
+      "title": "Checkout unavailable \u2014 No checkout control matched",
+      "ux_category": "General",
+      "ux_impact": "MEDIUM",
+      "ux_penalty": 10,
+      "element": "",
+      "description": "No checkout control matched",
+      "user_message": "Issue detected that may affect user experience",
+      "improvement": "Review and fix this issue to improve the overall user experience.",
+      "affects": "Some users",
+      "screenshot_path": null,
+      "evidence": null
+    },
+    {
+      "type": "address_fields_missing",
+      "defect": "address_fields_missing",
+      "severity": "high",
+      "message": "Could not fill at least name/address/phone (need 2+)",
+      "test_id": "micro_task_scan",
+      "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/",
+      "recurring": false,
+      "fix_suggestion": "Reproduce on staging, capture console/network logs, and patch the failing interaction or assertion.",
+      "business_impact": "Reduced confidence in release quality until verified",
+      "title": "Address fields missing \u2014 Could not fill at least name/address/phone (need 2+)",
+      "ux_category": "General",
+      "ux_impact": "MEDIUM",
+      "ux_penalty": 10,
+      "element": "",
+      "description": "Could not fill at least name/address/phone (need 2+)",
+      "user_message": "Issue detected that may affect user experience",
+      "improvement": "Review and fix this issue to improve the overall user experience.",
+      "affects": "Some users",
+      "screenshot_path": null,
+      "evidence": null
+    }
+  ],
+  "pages": [
+    {
+      "page_id": "page_theoneshop.in_f5e3afb6698a",
+      "url": "https://theoneshop.in/",
+      "title": "",
+      "page_type": "static"
+    }
+  ],
+  "pages_scanned": 1,
+  "actions_run": [],
+  "console_errors": [],
+  "failed_actions": [],
+  "missing_elements": [],
+  "run_id": "run_0c982166",
+  "duration": 103.33,
+  "mode": "deterministic_no_ai",
+  "scan_mode": "deep",
+  "scan_task": "full_app_scan",
+  "target_url": "https://theoneshop.in/",
+  "results": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1,
+    "skipped": 0,
+    "errors": 0
+  },
+  "execution_snapshot": {
+    "url": "https://theoneshop.in/product-category/marriage-return-gifts/",
+    "decision": "DO NOT SHIP",
+    "risk": "HIGH",
+    "risk_score": 100,
+    "summary": "5 high-impact task failure(s), 6 total task failure(s), 1 medium-impact failure(s). Numeric risk score: 100/100.",
+    "task_results": [
+      {
+        "task": "login_user",
+        "success": false,
+        "defects": [
+          {
+            "defect": "login_missing_credentials",
+            "description": "username/password not in context",
+            "severity": "medium",
+            "page_url": "https://theoneshop.in/"
+          }
+        ],
+        "impact": "MEDIUM"
+      },
+      {
+        "task": "check_navigation_links",
+        "success": true,
+        "defects": [],
+        "impact": "LOW"
+      },
+      {
+        "task": "search_product",
+        "success": false,
+        "defects": [
+          {
+            "defect": "search_not_working",
+            "description": "Could not submit search via safe_click",
+            "severity": "high",
+            "page_url": "https://theoneshop.in/"
+          }
+        ],
+        "impact": "HIGH"
+      },
+      {
+        "task": "open_product_from_search",
+        "success": false,
+        "defects": [
+          {
+            "defect": "pdp_not_loaded",
+            "description": "No clear product-page signals after click",
+            "severity": "high",
+            "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/"
+          }
+        ],
+        "impact": "HIGH"
+      },
+      {
+        "task": "add_to_cart",
+        "success": false,
+        "defects": [
+          {
+            "defect": "add_to_cart_missing",
+            "description": "No add-to-cart control matched",
+            "severity": "high",
+            "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/"
+          }
+        ],
+        "impact": "HIGH"
+      },
+      {
+        "task": "start_checkout",
+        "success": false,
+        "defects": [
+          {
+            "defect": "checkout_unavailable",
+            "description": "No checkout control matched",
+            "severity": "high",
+            "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/"
+          }
+        ],
+        "impact": "HIGH"
+      },
+      {
+        "task": "fill_address_form",
+        "success": false,
+        "defects": [
+          {
+            "defect": "address_fields_missing",
+            "description": "Could not fill at least name/address/phone (need 2+)",
+            "severity": "high",
+            "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/"
+          }
+        ],
+        "impact": "HIGH"
+      }
+    ],
+    "defects": [
+      {
+        "defect": "login_missing_credentials",
+        "description": "username/password not in context",
+        "severity": "medium",
+        "page_url": "https://theoneshop.in/",
+        "micro_task": "login_user",
+        "screenshot_path": "/api/runs/run_592e9d7fd1/screenshots/issue_login_missing_credentials_1774840123184.png",
+        "evidence": "/api/runs/run_592e9d7fd1/screenshots/issue_login_missing_credentials_1774840123184.png"
+      },
+      {
+        "defect": "search_not_working",
+        "description": "Could not submit search via safe_click",
+        "severity": "high",
+        "page_url": "https://theoneshop.in/",
+        "micro_task": "search_product",
+        "screenshot_path": "/api/runs/run_592e9d7fd1/screenshots/issue_search_not_working_1774840124266.png",
+        "evidence": "/api/runs/run_592e9d7fd1/screenshots/issue_search_not_working_1774840124266.png"
+      },
+      {
+        "defect": "pdp_not_loaded",
+        "description": "No clear product-page signals after click",
+        "severity": "high",
+        "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/",
+        "micro_task": "open_product_from_search",
+        "screenshot_path": "/api/runs/run_592e9d7fd1/screenshots/issue_pdp_not_loaded_1774840125297.png",
+        "evidence": "/api/runs/run_592e9d7fd1/screenshots/issue_pdp_not_loaded_1774840125297.png"
+      },
+      {
+        "defect": "add_to_cart_missing",
+        "description": "No add-to-cart control matched",
+        "severity": "high",
+        "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/",
+        "micro_task": "add_to_cart",
+        "screenshot_path": "/api/runs/run_592e9d7fd1/screenshots/issue_add_to_cart_missing_1774840126328.png",
+        "evidence": "/api/runs/run_592e9d7fd1/screenshots/issue_add_to_cart_missing_1774840126328.png"
+      },
+      {
+        "defect": "checkout_unavailable",
+        "description": "No checkout control matched",
+        "severity": "high",
+        "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/",
+        "micro_task": "start_checkout",
+        "screenshot_path": "/api/runs/run_592e9d7fd1/screenshots/issue_checkout_unavailable_1774840127380.png",
+        "evidence": "/api/runs/run_592e9d7fd1/screenshots/issue_checkout_unavailable_1774840127380.png"
+      },
+      {
+        "defect": "address_fields_missing",
+        "description": "Could not fill at least name/address/phone (need 2+)",
+        "severity": "high",
+        "page_url": "https://theoneshop.in/product-category/marriage-return-gifts/",
+        "micro_task": "fill_address_form",
+        "screenshot_path": "/api/runs/run_592e9d7fd1/screenshots/issue_address_fields_missing_1774840128413.png",
+        "evidence": "/api/runs/run_592e9d7fd1/screenshots/issue_address_fields_missing_1774840128413.png"
+      }
+    ],
+    "logs": [
+      "\u2501\u2501\u2501 Micro task: login_user \u2501\u2501\u2501",
+      "[micro:login_user] \u25b6 run_task start (timeout=20.0s)",
+      "[micro:login_user] before \u2014 login",
+      "[micro:login_user] after \u2014 missing credentials",
+      "[micro:login_user] \u25b6 run_task finished success=False",
+      "\u2705 login_user complete \u2014 1 issue(s)",
+      "\u2501\u2501\u2501 Micro task: check_navigation_links \u2501\u2501\u2501",
+      "[micro:check_navigation_links] \u25b6 run_task start (timeout=20.0s)",
+      "[micro:check_navigation_links] before \u2014 main nav",
+      "[micro:check_navigation_links] nav 1/3",
+      "[micro:check_navigation_links] nav 2/3",
+      "[micro:check_navigation_links] nav 3/3",
+      "[micro:check_navigation_links] after \u2014 broken=0",
+      "[micro:check_navigation_links] \u25b6 run_task finished success=True",
+      "\u2705 check_navigation_links complete \u2014 0 issue(s)",
+      "\u2501\u2501\u2501 Micro task: search_product \u2501\u2501\u2501",
+      "[micro:search_product] \u25b6 run_task start (timeout=20.0s)",
+      "Using synthetic search data",
+      "[micro:search_product] before \u2014 search keyword='shoes'",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] after \u2014 submit failed",
+      "[micro:search_product] \u25b6 run_task finished success=False",
+      "\u2705 search_product complete \u2014 1 issue(s)",
+      "\u2501\u2501\u2501 Micro task: open_product_from_search \u2501\u2501\u2501",
+      "[micro:open_product_from_search] \u25b6 run_task start (timeout=20.0s)",
+      "[micro:open_product_from_search] before \u2014 open first result",
+      "[micro:open_product_from_search] clicked result via pattern",
+      "[micro:open_product_from_search] after \u2014 ok=False",
+      "[micro:open_product_from_search] \u25b6 run_task finished success=False",
+      "\u2705 open_product_from_search complete \u2014 1 issue(s)",
+      "\u2501\u2501\u2501 Micro task: add_to_cart \u2501\u2501\u2501",
+      "[micro:add_to_cart] \u25b6 run_task start (timeout=20.0s)",
+      "[micro:add_to_cart] before \u2014 add to cart",
+      "[micro:add_to_cart] after \u2014 no button",
+      "[micro:add_to_cart] \u25b6 run_task finished success=False",
+      "\u2705 add_to_cart complete \u2014 1 issue(s)",
+      "\u2501\u2501\u2501 Micro task: start_checkout \u2501\u2501\u2501",
+      "[micro:start_checkout] \u25b6 run_task start (timeout=20.0s)",
+      "[micro:start_checkout] before \u2014 checkout",
+      "[micro:start_checkout] after \u2014 no CTA",
+      "[micro:start_checkout] \u25b6 run_task finished success=False",
+      "\u2705 start_checkout complete \u2014 1 issue(s)",
+      "\u2501\u2501\u2501 Micro task: fill_address_form \u2501\u2501\u2501",
+      "[micro:fill_address_form] \u25b6 run_task start (timeout=20.0s)",
+      "Using synthetic user data",
+      "[micro:fill_address_form] before \u2014 minimal address",
+      "[micro:fill_address_form] after \u2014 insufficient fields",
+      "[micro:fill_address_form] \u25b6 run_task finished success=False",
+      "\u2705 fill_address_form complete \u2014 1 issue(s)",
+      "Execution complete \u2014 6 issues detected"
+    ],
+    "duration": 62.31
+  },
+  "coverage": {
+    "overall": 0.42857142857142855,
+    "categories": {
+      "functional": 1.0
+    }
+  },
+  "reports": {
+    "html": "qa-reports\\report_run_0c982166.html",
+    "json": "qa-reports\\report_run_0c982166.json"
+  },
+  "pipeline_metrics": {
+    "total_scan_time": 103.33,
+    "crawl_time": 0.0,
+    "execution_time": 70.34,
+    "retries_count": 0,
+    "step_retries": 0,
+    "pages_scanned": 1,
+    "task": "11 micro-tasks (Auth, Navigation, \u2026)"
+  },
+  "action_trail": [
+    {
+      "id": "d4132ee7-2124-4879-b29c-dbdc2b15c35d",
+      "timestamp": "2026-03-30T03:07:44.590577+00:00",
+      "phase": "execute",
+      "action_type": "navigate",
+      "description": "Navigate to target for ecommerce scan",
+      "target_url": "https://theoneshop.in/",
+      "target_element": "",
+      "input_value": "",
+      "outcome": "success",
+      "outcome_detail": "",
+      "screenshot_path_before": "screenshots\\run_592e9d7fd1\\d4132ee7-2124-4879-b29c-dbdc2b15c35d_before.png",
+      "screenshot_path_after": "screenshots\\run_592e9d7fd1\\d4132ee7-2124-4879-b29c-dbdc2b15c35d_after.png",
+      "duration_ms": 2302,
+      "defect_triggered": null,
+      "screenshot_path": "screenshots\\run_592e9d7fd1\\d4132ee7-2124-4879-b29c-dbdc2b15c35d_after.png"
+    }
+  ],
+  "summary": {
+    "total_pages_scanned": 1,
+    "total_actions_run": 0,
+    "total_issues_found": 6
+  },
+  "report_id": "b8fdfb74-cf3c-4c8b-b1fa-e2ec7a737336",
+  "risk_explanation": "The score reflects 6 open issues (0 critical, 5 high). Severity mix and journey exposure lift the 78-point Critical rating. Tackle critical and high items first to protect users and revenue.",
+  "top_risks": [
+    "Could not fill at least name/address/phone (need 2+)",
+    "Could not submit search via safe_click",
+    "No add-to-cart control matched"
+  ],
+  "business_summary": {
+    "revenue_risk_level": "severe",
+    "user_impact_level": "severe"
+  },
+  "urgency_score": 8,
+  "executive_summary": "We reviewed 1 page(s) and found 6 issue(s) that could affect experience or sales if ignored. The top concern is Address fields missing \u2014 Could not fill at least name/address/phone (need 2+) (seen on https://theoneshop.in/product-category/marriage-return-gifts/). Reduced confidence in release quality until verified Next step: Reproduce on staging, capture console/network logs, and patch the failing interaction or assertion."
+}

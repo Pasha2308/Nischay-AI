@@ -1,9 +1,9 @@
 {
-  "base_url": "https://www.mochishoes.com/",
+  "base_url": "https://amazon.in",
   "pages": [
     {
-      "page_id": "page_www.mochishoes.com_f126f5adc10f",
-      "url": "https://www.mochishoes.com/",
+      "page_id": "page_amazon.in_1e4668e104ac",
+      "url": "https://amazon.in",
       "page_type": "static",
       "title": "",
       "elements": [],

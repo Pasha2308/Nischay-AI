@@ -1,6 +1,6 @@
 {
   "target_url": "https://example.com",
-  "last_updated": "2026-03-29T20:03:07Z",
+  "last_updated": "2026-03-30T08:49:25Z",
   "pages": {
     "page_example.com_0f115db062b7": {
       "page_id": "page_example.com_0f115db062b7",
@@ -1254,13 +1254,271 @@
       "elements_tested": {},
       "last_tested": "2026-03-29T20:03:07Z",
       "test_count": 1
+    },
+    "page_www.fnp.com_b41c9e3d4e48": {
+      "page_id": "page_www.fnp.com_b41c9e3d4e48",
+      "url": "https://www.fnp.com",
+      "page_type": "static",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "micro_task_scan_v1",
+              "last_tested": "2026-03-30T07:44:28Z",
+              "last_result": "fail",
+              "test_count": 1,
+              "history": [
+                {
+                  "run_id": "run_8ebdde37",
+                  "timestamp": "2026-03-30T07:44:28Z",
+                  "result": "fail",
+                  "duration_seconds": 62.2,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-30T07:44:28Z",
+      "test_count": 1
+    },
+    "page_thebombaystore.com_b4664170c4f3": {
+      "page_id": "page_thebombaystore.com_b4664170c4f3",
+      "url": "https://thebombaystore.com",
+      "page_type": "static",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_thebombaystore.com_6101d50652ae": {
+      "page_id": "page_thebombaystore.com_6101d50652ae",
+      "url": "https://thebombaystore.com/search?q=shoes",
+      "page_type": "",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "micro_task_scan_v1",
+              "last_tested": "2026-03-30T07:51:25Z",
+              "last_result": "fail",
+              "test_count": 1,
+              "history": [
+                {
+                  "run_id": "run_61709baa",
+                  "timestamp": "2026-03-30T07:51:25Z",
+                  "result": "fail",
+                  "duration_seconds": 55.53,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-30T07:51:25Z",
+      "test_count": 1
+    },
+    "page_thebombaystore.com_f5cfd4a2ce4f": {
+      "page_id": "page_thebombaystore.com_f5cfd4a2ce4f",
+      "url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+      "page_type": "",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "micro_task_scan_v1",
+              "last_tested": "2026-03-30T07:54:17Z",
+              "last_result": "fail",
+              "test_count": 1,
+              "history": [
+                {
+                  "run_id": "run_f39b95a0",
+                  "timestamp": "2026-03-30T07:54:17Z",
+                  "result": "fail",
+                  "duration_seconds": 39.61,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-30T07:54:17Z",
+      "test_count": 1
+    },
+    "page_theoneshop.in_f5e3afb6698a": {
+      "page_id": "page_theoneshop.in_f5e3afb6698a",
+      "url": "https://theoneshop.in/",
+      "page_type": "static",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_theoneshop.in_f360b22d56d0": {
+      "page_id": "page_theoneshop.in_f360b22d56d0",
+      "url": "https://theoneshop.in/product-category/marriage-return-gifts/",
+      "page_type": "",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "micro_task_scan_v1",
+              "last_tested": "2026-03-30T08:38:50Z",
+              "last_result": "fail",
+              "test_count": 2,
+              "history": [
+                {
+                  "run_id": "run_ba5c62b0",
+                  "timestamp": "2026-03-30T07:58:37Z",
+                  "result": "fail",
+                  "duration_seconds": 49.15,
+                  "failure_reason": null
+                },
+                {
+                  "run_id": "run_0c982166",
+                  "timestamp": "2026-03-30T08:38:50Z",
+                  "result": "fail",
+                  "duration_seconds": 62.31,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-30T08:38:50Z",
+      "test_count": 2
+    },
+    "page_amazon.in_1e4668e104ac": {
+      "page_id": "page_amazon.in_1e4668e104ac",
+      "url": "https://amazon.in",
+      "page_type": "static",
+      "categories": {},
+      "elements_tested": {},
+      "last_tested": "",
+      "test_count": 0
+    },
+    "page_www.amazon.in_8e1873636a5d": {
+      "page_id": "page_www.amazon.in_8e1873636a5d",
+      "url": "https://www.amazon.in/s?k=shoes&crid=3VF9DNIS43ERD&sprefix=shoes%2Caps%2C341&ref=nb_sb_noss_2",
+      "page_type": "",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "micro_task_scan_v1",
+              "last_tested": "2026-03-30T08:01:20Z",
+              "last_result": "fail",
+              "test_count": 1,
+              "history": [
+                {
+                  "run_id": "run_f567b80c",
+                  "timestamp": "2026-03-30T08:01:20Z",
+                  "result": "fail",
+                  "duration_seconds": 44.04,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-30T08:01:20Z",
+      "test_count": 1
+    },
+    "page_www.amazon.in_eba2534b0c3f": {
+      "page_id": "page_www.amazon.in_eba2534b0c3f",
+      "url": "https://www.amazon.in/s?k=dress&crid=QC5PYQCCD8UB&sprefix=dress%2Caps%2C342&ref=nb_sb_noss_2",
+      "page_type": "",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "micro_task_scan_v1",
+              "last_tested": "2026-03-30T08:05:02Z",
+              "last_result": "fail",
+              "test_count": 1,
+              "history": [
+                {
+                  "run_id": "run_64aab396",
+                  "timestamp": "2026-03-30T08:05:02Z",
+                  "result": "fail",
+                  "duration_seconds": 34.17,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-30T08:05:02Z",
+      "test_count": 1
+    },
+    "page_www.amazon.in_f1f4898395c5": {
+      "page_id": "page_www.amazon.in_f1f4898395c5",
+      "url": "https://www.amazon.in/s?k=watch&crid=TZ46B0HD4DWH&sprefix=watch%2Caps%2C378&ref=nb_sb_noss_2",
+      "page_type": "",
+      "categories": {
+        "functional": {
+          "category": "functional",
+          "signatures_tested": [
+            {
+              "signature": "micro_task_scan_v1",
+              "last_tested": "2026-03-30T08:49:24Z",
+              "last_result": "fail",
+              "test_count": 1,
+              "history": [
+                {
+                  "run_id": "run_fcbb3240",
+                  "timestamp": "2026-03-30T08:49:24Z",
+                  "result": "fail",
+                  "duration_seconds": 132.09,
+                  "failure_reason": null
+                }
+              ]
+            }
+          ],
+          "coverage_score": 0.0,
+          "last_tested": ""
+        }
+      },
+      "elements_tested": {},
+      "last_tested": "2026-03-30T08:49:24Z",
+      "test_count": 1
     }
   },
   "journeys": {},
   "global_stats": {
-    "total_pages": 54,
-    "pages_tested": 21,
-    "overall_score": 0.3888888888888889,
+    "total_pages": 64,
+    "pages_tested": 28,
+    "overall_score": 0.4375,
     "category_scores": {
       "functional": 1.0
     },
