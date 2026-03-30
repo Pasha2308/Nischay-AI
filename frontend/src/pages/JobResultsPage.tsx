@@ -42,6 +42,8 @@ function normalizeSeverity(s: string | undefined): string {
 function defectTitle(issue: ScanIssue): string {
   const headline = issue.title?.trim();
   if (headline) return headline;
+  const canon = issue.description?.trim();
+  if (canon) return canon.length > 120 ? `${canon.slice(0, 117)}…` : canon;
   const d = issue.defect?.trim();
   if (d) return d.replace(/_/g, " ");
   const t = issue.type?.trim();
@@ -64,6 +66,27 @@ function actionsTakenFromResult(result: ScanResultPayload): number {
   const ar = result.actions_run;
   if (Array.isArray(ar)) return ar.length;
   return 0;
+}
+
+function formatDuration(seconds: number): string {
+  const s = Math.max(0, seconds);
+  if (s < 60) return `${Math.round(s)}s`;
+  if (s < 3600) {
+    const m = Math.floor(s / 60);
+    const r = Math.round(s % 60);
+    return `${m}m ${r}s`;
+  }
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return `${h}h ${m}m`;
+}
+
+function durationSecondsFromResult(result: ScanResultPayload): number | null {
+  if (typeof result.test_duration_seconds === "number") return result.test_duration_seconds;
+  if (typeof result.pipeline_metrics?.total_scan_time === "number")
+    return result.pipeline_metrics.total_scan_time;
+  if (typeof result.duration === "number") return result.duration;
+  return null;
 }
 
 function issuesFoundFromResult(result: ScanResultPayload, issues: ScanIssue[]): number {
@@ -161,9 +184,8 @@ function TaskMetricsPanel({
   const mode = result.scan_mode ?? "—";
   rows.push({ label: "Scan mode", value: String(mode) });
 
-  if (typeof result.duration === "number") {
-    rows.push({ label: "Pipeline duration", value: `${result.duration.toFixed(1)}s` });
-  }
+  const d = durationSecondsFromResult(result);
+  if (typeof d === "number") rows.push({ label: "Test duration", value: formatDuration(d) });
   if (pm?.total_scan_time != null) {
     rows.push({ label: "Total scan time", value: `${pm.total_scan_time}s` });
   }
@@ -526,9 +548,11 @@ export function JobResultsPage() {
                     const title = defectTitle(issue);
                     const page = defectPage(issue);
                     const impact =
+                      issue.user_view?.trim() ||
                       issue.business_impact?.trim() ||
                       "Impact not classified — review the message and page context.";
                     const fix =
+                      issue.how_to_fix?.trim() ||
                       issue.fix_suggestion?.trim() ||
                       "Investigate the failing flow on the URL above and patch before release.";
                     return (

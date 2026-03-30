@@ -8,11 +8,8 @@ from urllib.parse import urlparse
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.services.defect_intelligence import (
-    DefectIntelligenceService,
-    _tag_business_impact,
-    issue_dict_to_defect_mapping,
-)
+from backend.core.defects import make_defect
+from backend.services.defect_intelligence import DefectIntelligenceService, _tag_business_impact, issue_dict_to_defect_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -125,17 +122,51 @@ def _finalize_issues_for_display(issues: list[dict[str, Any]]) -> list[dict[str,
         if not _issue_is_meaningful(i):
             continue
         row = dict(i)
-        row["title"] = _issue_display_title(row)
-        if not str(row.get("fix_suggestion") or "").strip():
-            row["fix_suggestion"] = _fix_suggestion_heuristic(row)
-        bi = str(row.get("business_impact") or "").strip()
-        if not bi or bi.lower() == "general":
-            row["business_impact"] = _tag_business_impact(
-                str(row.get("page_url") or ""),
-                str(row.get("defect") or row.get("type") or ""),
-                str(row.get("message") or ""),
-            )
-        out.append(row)
+        # Ensure every issue shipped to the frontend has the full defect schema.
+        page_url = str(row.get("page_url") or "").strip()
+        defect_code = str(row.get("defect") or row.get("type") or "unknown")
+        message = str(row.get("message") or row.get("description") or "").strip()
+        element = str(
+            row.get("element")
+            or row.get("selector")
+            or row.get("element_selector")
+            or row.get("target_element")
+            or ""
+        ).strip()
+        title = str(row.get("title") or "").strip() or _issue_display_title(row)
+
+        fix = str(row.get("how_to_fix") or row.get("fix_suggestion") or "").strip()
+        if not fix:
+            fix = _fix_suggestion_heuristic(row)
+
+        impact = str(row.get("business_impact") or "").strip()
+        if impact not in ("revenue", "trust", "ux", "compliance", "performance"):
+            impact = _tag_business_impact(page_url, defect_code, message)
+
+        sev = _normalize_severity(str(row.get("severity") or "medium"))
+        # Severity must be business-impact aligned for display.
+        if defect_code.lower().startswith(("checkout", "payment", "place_order", "login", "auth")):
+            sev = "critical"
+
+        user_view = str(row.get("user_view") or "").strip()
+        how_to_fix = str(row.get("how_to_fix") or "").strip() or fix
+
+        canonical = make_defect(
+            defect=defect_code,
+            title=title,
+            description=message,
+            element=element or "unknown",
+            user_view=user_view or None,
+            how_to_fix=how_to_fix,
+            severity=sev,
+            business_impact=impact,
+            page_url=page_url,
+            extra={k: v for k, v in row.items() if k not in {"description"}},
+        )
+        # Back-compat fields (kept, but the canonical fields are the source of truth).
+        canonical["message"] = canonical["description"]
+        canonical["fix_suggestion"] = canonical["how_to_fix"]
+        out.append(canonical)
     return out
 
 

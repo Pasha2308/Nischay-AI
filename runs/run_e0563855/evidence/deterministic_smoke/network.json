@@ -1,8 +1,0 @@
-[
-  {
-    "url": "https://example.com/",
-    "method": "GET",
-    "status": 200,
-    "resource_type": "document"
-  }
-]

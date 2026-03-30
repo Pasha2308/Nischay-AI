@@ -248,10 +248,9 @@ DEFAULT_UX_DEFINITION: dict[str, Any] = {
     "ux_category": "General",
     "ux_impact": "MEDIUM",
     "ux_penalty": 10,
-    "user_message": "Issue detected that may affect user experience",
+    "user_message": "DEFECT_TITLE_MISSING — fix in backend/ux_scorer.py",
     "improvement": (
-        "Review and fix this issue to improve "
-        "the overall user experience."
+        "DEFECT_TITLE_MISSING — fix in backend/ux_scorer.py"
     ),
     "affects": "Some users",
 }
@@ -329,6 +328,42 @@ def _match_ux_definition(issue_type: str) -> dict[str, Any]:
     return DEFAULT_UX_DEFINITION
 
 
+def _norm_severity(s: str) -> str:
+    v = (s or "").strip().lower()
+    if v in {"crit", "critical", "blocker"}:
+        return "critical"
+    if v in {"high", "major"}:
+        return "high"
+    if v in {"medium", "med", "moderate"}:
+        return "medium"
+    if v in {"low", "minor"}:
+        return "low"
+    return v or "medium"
+
+
+def get_max_severity(defects_in_category: list[UXIssue]) -> str:
+    rank = {"critical": 4, "high": 3, "medium": 2, "low": 1}
+    best = "low"
+    best_r = 0
+    for d in defects_in_category:
+        sev = _norm_severity(str(getattr(d, "severity", "") or ""))
+        r = rank.get(sev, 0)
+        if r > best_r:
+            best_r = r
+            best = sev
+    return best
+
+
+def apply_defect_penalty(base_score: float, defects_in_category: list[UXIssue]) -> float:
+    if not defects_in_category:
+        return base_score
+
+    max_severity = get_max_severity(defects_in_category)
+    caps = {"critical": 45, "high": 65, "medium": 82, "low": 93}
+    cap = caps.get(max_severity, 100)
+    return min(base_score, cap)
+
+
 def score_ux(raw_issues: list[dict[str, Any]], pages_scanned: int = 1) -> UXScoreResult:
     """
     Main UX scoring function.
@@ -368,24 +403,42 @@ def score_ux(raw_issues: list[dict[str, Any]], pages_scanned: int = 1) -> UXScor
         if not isinstance(raw_sev, str):
             raw_sev = str(raw_sev)
 
+        raw_page_url = str(raw.get("page_url") or raw.get("url") or "")
+        raw_element = str(
+            raw.get("element_selector")
+            or raw.get("element")
+            or raw.get("selector")
+            or ""
+        )
+        raw_desc = str(raw.get("description") or raw.get("message") or "")
+        raw_desc_short = raw_desc.strip().replace("\n", " ")
+        if len(raw_desc_short) > 140:
+            raw_desc_short = raw_desc_short[:137] + "…"
+
+        user_message = str(ux_def["user_message"])
+        improvement = str(ux_def["improvement"])
+        # Avoid generic placeholders for unknown issue types.
+        if (
+            user_message.strip().lower().startswith("issue detected")
+            or ux_def is DEFAULT_UX_DEFINITION
+        ):
+            user_message = f"Issue on {raw_page_url or 'unknown page'}: {raw_desc_short or issue_type_norm}"
+            improvement = (
+                f"Fix {raw_element or 'the affected element'} on {raw_page_url or 'the affected page'}: "
+                f"{raw_desc_short or issue_type_norm}. Re-run the flow to confirm the UI/state changes as expected."
+            )
+
         ux_issue = UXIssue(
             original_type=issue_type_norm,
             severity=raw_sev,
             ux_category=category,
             ux_impact=str(ux_def["ux_impact"]),
             ux_penalty=weighted_penalty,
-            page_url=str(raw.get("page_url") or raw.get("url") or ""),
-            element=str(
-                raw.get("element_selector")
-                or raw.get("element")
-                or raw.get("selector")
-                or ""
-            ),
-            raw_description=str(
-                raw.get("description") or raw.get("message") or ""
-            ),
-            user_message=str(ux_def["user_message"]),
-            improvement=str(ux_def["improvement"]),
+            page_url=raw_page_url,
+            element=raw_element,
+            raw_description=raw_desc,
+            user_message=user_message,
+            improvement=improvement,
             affects=str(ux_def["affects"]),
             screenshot_path=_opt_str(raw.get("screenshot_path")),
             evidence=_opt_str(raw.get("evidence")),
@@ -424,11 +477,13 @@ def score_ux(raw_issues: list[dict[str, Any]], pages_scanned: int = 1) -> UXScor
     category_scores: dict[str, Any] = {}
     for cat in CATEGORY_WEIGHTS:
         penalty = category_penalties.get(cat, 0)
-        cat_score = max(0, 100 - int(penalty * 1.5))
+        cat_score = float(max(0, 100 - int(penalty * 1.5)))
+        defects_in_category = [u for u in ux_issues if u.ux_category == cat]
+        cat_score = apply_defect_penalty(cat_score, defects_in_category)
         category_scores[cat] = {
-            "score": cat_score,
+            "score": int(round(cat_score)),
             "penalty": penalty,
-            "label": _score_label(cat_score),
+            "label": _score_label(int(round(cat_score))),
         }
 
     sorted_issues = sorted(

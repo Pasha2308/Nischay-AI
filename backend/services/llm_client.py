@@ -18,6 +18,24 @@ _DEFAULT_TIMEOUT = httpx.Timeout(30.0, connect=10.0)
 
 logger = logging.getLogger(__name__)
 
+_RUNTIME_OVERRIDE: dict[str, str] = {}
+
+
+def apply_runtime_llm_override(*, provider: str, api_key: str, model_name: str, base_url: str) -> None:
+    """
+    Set an in-memory override used by LLMClient() for future calls.
+    This enables Settings changes to take effect on the next scan without restart.
+    """
+    _RUNTIME_OVERRIDE.clear()
+    if provider:
+        _RUNTIME_OVERRIDE["provider"] = provider
+    if api_key:
+        _RUNTIME_OVERRIDE["api_key"] = api_key
+    if model_name:
+        _RUNTIME_OVERRIDE["model_smart"] = model_name
+    if base_url:
+        _RUNTIME_OVERRIDE["base_url"] = base_url.rstrip("/")
+
 
 def _is_placeholder_api_key(key: str) -> bool:
     k = (key or "").strip()
@@ -35,13 +53,14 @@ class LLMClient:
     """Async HTTP client for `/v1/chat/completions` style APIs."""
 
     def __init__(self) -> None:
-        self.provider = (os.environ.get("LLM_PROVIDER") or "").strip()
-        self.api_key = (os.environ.get("LLM_API_KEY") or "").strip()
-        self.model_smart = os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
+        # Prefer in-memory runtime override (set by Settings/scan start), else fall back to env.
+        self.provider = (_RUNTIME_OVERRIDE.get("provider") or os.environ.get("LLM_PROVIDER") or "").strip()
+        self.api_key = (_RUNTIME_OVERRIDE.get("api_key") or os.environ.get("LLM_API_KEY") or "").strip()
+        self.model_smart = (_RUNTIME_OVERRIDE.get("model_smart") or os.getenv("LLM_MODEL") or "llama-3.3-70b-versatile")
         self.model_fast = os.getenv("LLM_MODEL_FAST", "llama-3.1-8b-instant")
         # Backward compat: callers/tests use ``llm.model`` for the primary (smart) model id
         self.model = self.model_smart
-        base = (os.environ.get("LLM_BASE_URL") or "").strip().rstrip("/")
+        base = (_RUNTIME_OVERRIDE.get("base_url") or os.environ.get("LLM_BASE_URL") or "").strip().rstrip("/")
         self.base_url = base
         if (
             self.api_key

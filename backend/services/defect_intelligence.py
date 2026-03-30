@@ -49,7 +49,11 @@ def _llm_configured() -> bool:
 
 
 def _tag_business_impact(page_url: str, issue_type: str, description: str) -> str:
-    """Human-readable business impact (avoid generic \"general\")."""
+    """
+    Return one of: revenue | trust | ux | compliance | performance.
+
+    Keep this as a lightweight, deterministic classifier so defect payloads are consistent.
+    """
     u = (page_url or "").lower()
     t = (issue_type or "").lower()
     d = (description or "").lower()
@@ -65,16 +69,16 @@ def _tag_business_impact(page_url: str, issue_type: str, description: str) -> st
             "no results",
         )
     ):
-        return "Users cannot find products, reducing conversions"
+        return "revenue"
     if any(x in combined for x in ("add_to_cart", "cart", "basket")) or "cart" in t:
-        return "Users cannot complete purchase → revenue loss"
+        return "revenue"
     if any(
         x in combined or x in u
         for x in ("checkout", "payment", "place_order", "order", "shipping")
     ):
-        return "Direct revenue blockage"
+        return "revenue"
     if any(x in combined for x in ("login", "signin", "sign-in", "password", "auth")):
-        return "Users cannot access accounts"
+        return "revenue"
     if (
         "performance" in t
         or "performance" in d
@@ -84,10 +88,12 @@ def _tag_business_impact(page_url: str, issue_type: str, description: str) -> st
         or "load time" in d
         or "page_load" in t
     ):
-        return "Slow or unstable pages increase bounce rate and erode trust"
+        return "performance"
     if "console" in t or "console" in d:
-        return "Client-side errors may break flows and skew analytics"
-    return "Reduced confidence in release quality until verified"
+        return "trust"
+    if any(x in combined for x in ("aria", "alt", "accessibility", "a11y", "wcag")):
+        return "compliance"
+    return "ux"
 
 
 def issue_dict_to_defect_mapping(issue: Mapping[str, Any] | dict[str, Any], page_url: str) -> dict[str, Any]:
@@ -101,6 +107,9 @@ def issue_dict_to_defect_mapping(issue: Mapping[str, Any] | dict[str, Any], page
         "issue_type": str(issue.get("defect") or issue.get("type") or "unknown"),
         "severity": str(issue.get("severity") or "medium"),
         "description": str(issue.get("message") or "")[:8000],
+        "element": str(issue.get("element") or issue.get("selector") or issue.get("element_selector") or ""),
+        "title": str(issue.get("title") or ""),
+        "user_view": str(issue.get("user_view") or ""),
     }
 
 
@@ -153,22 +162,32 @@ class DefectIntelligenceService:
         severity: str,
         description: str,
         recurring: bool,
+        element: str = "",
+        title: str = "",
+        user_view: str = "",
     ) -> str:
         if not _llm_configured():
             return ""
         try:
             llm = self._get_llm()
             sys = (
-                "You are a senior QA engineer. Respond with 1–3 short, actionable sentences. "
-                "No markdown fences."
+                "You are a senior QA engineer writing a specific fix instruction for developers. "
+                "Respond with 2–4 sentences max, plain text only. "
+                "Be concrete: reference the exact element/selector when available, and describe what to verify in code (handler, request, state update, validation). "
+                "Never say generic advice like 'review and fix' or 'improve user experience'. "
+                "Do not mention HTML/DOM/devtools unless it's essential to pinpoint the fix."
             )
             user = (
+                f"Title: {title}\n"
                 f"Issue type: {issue_type}\n"
                 f"Severity: {severity}\n"
+                f"Business impact: {_tag_business_impact(page_url, issue_type, description)}\n"
                 f"Page: {page_url}\n"
+                f"Element: {element}\n"
+                f"User experience: {user_view}\n"
                 f"Recurring: {recurring}\n"
                 f"Details: {description[:4000]}\n\n"
-                "Suggest a concrete fix or verification step."
+                "Provide one primary fix plus one verification step."
             )
             text = await llm.complete(sys, user)
             return (text or "").strip()
@@ -192,6 +211,9 @@ class DefectIntelligenceService:
         page_url = str(base.get("page_url") or "")
         issue_type = str(base.get("issue_type") or "")
         description = str(base.get("description") or "")
+        element = str(base.get("element") or "")
+        title = str(base.get("title") or "")
+        user_view = str(base.get("user_view") or "")
         raw_severity = base.get("severity")
 
         exclude_id: int | None = None
@@ -230,6 +252,9 @@ class DefectIntelligenceService:
             severity=severity,
             description=description,
             recurring=recurring,
+            element=element,
+            title=title,
+            user_view=user_view,
         )
 
         out: dict[str, Any] = {**base, "severity": severity}

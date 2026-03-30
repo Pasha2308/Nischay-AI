@@ -475,6 +475,30 @@ class Orchestrator:
                         pages_scanned = len(site_model.pages)
                         self._last_site_model = site_model
                         self._save_site_model(site_model)
+                        self.crawled_pages = [p.url for p in (site_model.pages or []) if getattr(p, "url", None)]
+                        if len(self.crawled_pages) <= 1:
+                            nav_defect = {
+                                "title": "Limited page discovery — only homepage crawled",
+                                "description": (
+                                    f"Crawler found only 1 page on {self.config.target_url}. "
+                                    f"Navigation links may be JavaScript-rendered "
+                                    f"or behind authentication."
+                                ),
+                                "element": "nav, header a, [role='navigation']",
+                                "user_view": "Automated testing coverage is limited to the homepage only.",
+                                "how_to_fix": (
+                                    "Ensure navigation links are in the HTML source, "
+                                    "not rendered by JavaScript after page load. "
+                                    "Or enable login to access authenticated pages."
+                                ),
+                                "severity": "medium",
+                                "business_impact": "ux",
+                                "page_url": self.config.target_url,
+                                "status": "open",
+                            }
+                            if not hasattr(self, "defects") or not isinstance(getattr(self, "defects"), list):
+                                self.defects = []
+                            self.defects.append(nav_defect)
                         logger.info(
                             "--- Stage 1 complete: %d pages in %.1fs ---",
                             len(site_model.pages),
@@ -613,6 +637,10 @@ class Orchestrator:
                     "reports": reports,
                     "pipeline_metrics": pm,
                     "action_trail": list(self.action_trail),
+                    "actions": list(self.action_trail),
+                    "actions_run": len(list(self.action_trail)),
+                    "defects": list(getattr(self, "defects", []) or []),
+                    "issues": list(getattr(self, "defects", []) or []),
                     **site_pages_payload(site_model),
                 },
             )
@@ -689,6 +717,10 @@ class Orchestrator:
             "reports": reports,
             "pipeline_metrics": pm,
             "action_trail": list(self.action_trail),
+            "actions": list(self.action_trail),
+            "actions_run": len(list(self.action_trail)),
+            "defects": list(getattr(self, "defects", []) or []),
+            "issues": list(getattr(self, "defects", []) or []),
             **site_pages_payload(site_model),
         }
         out = await build_structured_output(
@@ -768,6 +800,10 @@ class Orchestrator:
                 else None,
                 "pipeline_metrics": pm,
                 "action_trail": list(self.action_trail),
+                "actions": list(self.action_trail),
+                "actions_run": len(list(self.action_trail)),
+                "defects": list(getattr(self, "defects", []) or []),
+                "issues": list(getattr(self, "defects", []) or []),
                 **site_pages_payload(self._last_site_model),
             },
         )
@@ -895,6 +931,29 @@ class Orchestrator:
                     # END ADD THIS
                 except Exception as e:
                     logger.warning("Ecommerce scan initial navigation failed: %s", e)
+                    try:
+                        from backend.core.defects import make_defect
+
+                        nav_defect = make_defect(
+                            defect="page_load_failure",
+                            title=f"Initial navigation failed on {self.config.target_url}",
+                            description=f"page.goto({self.config.target_url!r}) raised: {type(e).__name__}: {str(e)}",
+                            element="page.goto",
+                            page_url=self.config.target_url,
+                            severity="critical",
+                            business_impact="revenue",
+                            user_view="User cannot load the site to start the journey; scan could not proceed.",
+                            how_to_fix="Fix the initial page load/navigation failure (DNS/TLS, redirects, bot protection, or timeout). Then re-run the scan.",
+                            extra={"evidence": str(e)[:500]},
+                        )
+                    except Exception:
+                        nav_defect = {
+                            "defect": "page_load_failure",
+                            "severity": "critical",
+                            "page_url": self.config.target_url,
+                            "description": f"Initial navigation failed: {type(e).__name__}: {str(e)}",
+                            "title": "DEFECT_TITLE_MISSING — fix in backend/orchestrator.py",
+                        }
                     if log_action:
                         await log_action(
                             page,
@@ -920,7 +979,13 @@ class Orchestrator:
                             result="error",
                             duration_seconds=round(time.time() - t0, 2),
                             failure_reason=str(e),
-                            qa_defects_by_page=[],
+                            qa_defects_by_page=[
+                                {
+                                    "page_url": self.config.target_url,
+                                    "defects": [nav_defect],
+                                    "metrics": {"stage": "initial_goto"},
+                                }
+                            ],
                         )
                     )
                     completed_at = time.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -940,7 +1005,7 @@ class Orchestrator:
                         step_retries=0,
                         execution_snapshot=_build_execution_snapshot(
                             page_url=str(page.url or self.config.target_url),
-                            defects=[],
+                            defects=[nav_defect],
                             results={},
                             task_type="",
                             logs=execution_logs,
@@ -1001,7 +1066,24 @@ class Orchestrator:
                     else:
                         st = str(self.config.scan_task or "full_app_scan").strip() or "full_app_scan"
                         selected_flows = expand_selected_flows([st])
+                    print(f"[SCAN EXEC] calling run_ecommerce_scan now", flush=True)
                     results = await run_ecommerce_scan(page, selected_flows, context, emit_event)
+
+                    # Wire action trail from ecommerce flows into orchestrator
+                    if isinstance(results, dict):
+                        flow_actions = results.get("actions", [])
+                        if hasattr(self, "action_trail"):
+                            if isinstance(flow_actions, list):
+                                self.action_trail.extend(flow_actions)
+                        else:
+                            self.action_trail = flow_actions if isinstance(flow_actions, list) else []
+
+                        flow_defects = results.get("defects", [])
+                        if hasattr(self, "defects"):
+                            if isinstance(flow_defects, list):
+                                self.defects.extend(flow_defects)
+                        else:
+                            self.defects = flow_defects if isinstance(flow_defects, list) else []
 
                 # ADD THIS — post-scan page + per-defect evidence + final state
                 _sm = getattr(self, "_screenshot_mgr", None)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy import text
 
 from backend.db.base import Base
 from backend.db.config import get_database_url, normalize_database_url
@@ -50,6 +51,25 @@ async def ensure_schema(engine: AsyncEngine) -> None:
     """Create tables if they do not exist (dev-friendly; use Alembic in production)."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Best-effort additive schema migrations (avoid alembic requirement for demo).
+        # These are safe "ADD COLUMN IF NOT EXISTS" operations.
+        try:
+            await conn.execute(text("ALTER TABLE defects ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'open'"))
+            await conn.execute(text("ALTER TABLE defects ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMP"))
+            await conn.execute(text("ALTER TABLE defects ADD COLUMN IF NOT EXISTS notes TEXT"))
+            await conn.execute(text("ALTER TABLE defects ADD COLUMN IF NOT EXISTS title VARCHAR(512) DEFAULT ''"))
+            await conn.execute(text("ALTER TABLE defects ADD COLUMN IF NOT EXISTS element TEXT DEFAULT ''"))
+            await conn.execute(text("ALTER TABLE defects ADD COLUMN IF NOT EXISTS user_view TEXT DEFAULT ''"))
+            await conn.execute(text("ALTER TABLE defects ADD COLUMN IF NOT EXISTS how_to_fix TEXT DEFAULT ''"))
+            await conn.execute(text("ALTER TABLE defects ADD COLUMN IF NOT EXISTS business_impact VARCHAR(32) DEFAULT 'ux'"))
+            await conn.execute(text("ALTER TABLE defects ADD COLUMN IF NOT EXISTS first_seen_at TIMESTAMP"))
+            await conn.execute(text("ALTER TABLE defects ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP"))
+            await conn.execute(text("ALTER TABLE defects ADD COLUMN IF NOT EXISTS scan_count INTEGER DEFAULT 1"))
+            await conn.execute(text("ALTER TABLE defects ADD COLUMN IF NOT EXISTS scan_ids JSON"))
+            await conn.execute(text("ALTER TABLE defects ADD COLUMN IF NOT EXISTS screenshot_path TEXT DEFAULT ''"))
+        except Exception:
+            # If DB dialect doesn't support IF NOT EXISTS, ignore.
+            pass
 
 
 async def dispose_engine() -> None:

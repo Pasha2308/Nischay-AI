@@ -343,16 +343,71 @@ async def persist_pipeline_result(
                         issue.get("type") or issue.get("defect") or "unknown"
                     )[:256]
                     severity = str(issue.get("severity") or "medium")[:64]
-                    desc = str(issue.get("message") or "")[:50000]
-                    session.add(
-                        Defect(
-                            scan_id=scan.id,
-                            page_url=page_url[:2048],
-                            issue_type=issue_type,
-                            severity=severity,
-                            description=desc,
+                    title = str(issue.get("title") or "")[:512]
+                    desc = str(issue.get("description") or issue.get("message") or "")[:50000]
+                    element = str(issue.get("element") or "")[:50000]
+                    user_view = str(issue.get("user_view") or "")[:50000]
+                    how_to_fix = str(issue.get("how_to_fix") or issue.get("fix_suggestion") or "")[:50000]
+                    business_impact = str(issue.get("business_impact") or "ux")[:32]
+                    screenshot_path = str(issue.get("screenshot_path") or "")[:50000]
+
+                    # Deduplication: same page_url + title represent one tracked issue.
+                    # scan_id stores "first seen" scan id; scan_ids tracks all occurrences.
+                    if title and page_url:
+                        existing = (
+                            await session.execute(
+                                select(Defect).where(
+                                    Defect.page_url == page_url[:2048],
+                                    Defect.title == title,
+                                )
+                            )
+                        ).scalars().first()
+                    else:
+                        existing = None
+
+                    if existing is not None:
+                        existing.last_seen_at = datetime.now(timezone.utc)
+                        existing.scan_count = int(existing.scan_count or 0) + 1
+                        existing.severity = severity or existing.severity
+                        existing.issue_type = issue_type or existing.issue_type
+                        # Keep the most recent details (helps keep fixes up-to-date).
+                        if desc:
+                            existing.description = desc
+                        if element:
+                            existing.element = element
+                        if user_view:
+                            existing.user_view = user_view
+                        if how_to_fix:
+                            existing.how_to_fix = how_to_fix
+                        if business_impact:
+                            existing.business_impact = business_impact
+                        if screenshot_path:
+                            existing.screenshot_path = screenshot_path
+                        prior = list(existing.scan_ids or [])
+                        if scan.id not in prior:
+                            prior.append(scan.id)
+                        existing.scan_ids = prior
+                    else:
+                        session.add(
+                            Defect(
+                                scan_id=scan.id,
+                                page_url=page_url[:2048],
+                                issue_type=issue_type,
+                                title=title,
+                                severity=severity,
+                                business_impact=business_impact,
+                                element=element,
+                                user_view=user_view,
+                                how_to_fix=how_to_fix,
+                                description=desc,
+                                status="open",
+                                first_seen_at=datetime.now(timezone.utc),
+                                last_seen_at=datetime.now(timezone.utc),
+                                scan_count=1,
+                                scan_ids=[scan.id],
+                                screenshot_path=screenshot_path,
+                            )
                         )
-                    )
                 except Exception as ie:
                     logger.debug("Skip defect row: %s", ie)
 

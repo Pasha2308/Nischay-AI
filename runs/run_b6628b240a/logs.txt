@@ -1,2 +1,0 @@
-[start] run_id=run_b6628b240a job_id=run_b6628b240a url=https://amazon.in
-[end] status=success partial=False error=None

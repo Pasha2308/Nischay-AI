@@ -18,6 +18,7 @@ from typing import Any, Awaitable, Callable
 from playwright.async_api import Page
 
 from backend.core.context import ensure_shared_context
+from backend.core.defects import make_defect
 from backend.core.synthetic_data import generate_coupon, generate_search_query, generate_user_profile
 from backend.core.ecommerce_plan import (
     _checkout_shipping_fixture,
@@ -609,13 +610,37 @@ async def task_search_product(page: Page, context: dict[str, Any], emit: EmitFn)
         return _result(tid, False, defects, "HIGH")
 
     if not await safe_fill(page, search_sel, kw, timeout_ms=5000):
-        defects.append({"defect": "search_not_working", "description": "safe_fill search failed", "severity": "high", "page_url": page.url})
+        defects.append(
+            make_defect(
+                defect="search_not_working",
+                title=f"Search input not fillable on {page.url}",
+                description=f"safe_fill failed for selector {search_sel!r} with query {kw!r}",
+                element=search_sel,
+                user_view="User tries to type into search, but input does not accept text.",
+                how_to_fix=f"Confirm the search input {search_sel!r} is enabled and not covered. Verify its input handler updates value and triggers suggestions/results.",
+                severity="high",
+                business_impact="revenue",
+                page_url=page.url,
+            )
+        )
         await _emit_safe(emit, f"[micro:{tid}] after — fill failed")
         return _result(tid, False, defects, "HIGH")
 
     submitted = await _submit_search_safe_click_only(page, emit, tid)
     if not submitted:
-        defects.append({"defect": "search_not_working", "description": "Could not submit search via safe_click", "severity": "high", "page_url": page.url})
+        defects.append(
+            make_defect(
+                defect="search_not_working",
+                title=f"Search cannot be submitted on {page.url}",
+                description="Could not submit search via safe_click patterns; no submit control succeeded.",
+                element="; ".join(SEARCH_SUBMIT_PATTERNS[:6]),
+                user_view="User types a search query but cannot execute search (no working submit action).",
+                how_to_fix="Ensure there is a submit button or Enter key handler wired to trigger search results, and that it is clickable/visible.",
+                severity="high",
+                business_impact="revenue",
+                page_url=page.url,
+            )
+        )
         await _emit_safe(emit, f"[micro:{tid}] after — submit failed")
         return _result(tid, False, defects, "HIGH")
 
@@ -628,15 +653,51 @@ async def task_search_product(page: Page, context: dict[str, Any], emit: EmitFn)
         or int(after.get("productLinks", 0)) != int(before.get("productLinks", 0))
     )
     if not ui_moved:
-        defects.append({"defect": "search_not_working", "description": "No meaningful UI change after search", "severity": "high", "page_url": page.url})
+        defects.append(
+            make_defect(
+                defect="search_not_working",
+                title=f"Search produces no visible change on {page.url}",
+                description="After submitting search, URL/text/product link signals did not change enough to indicate results updated.",
+                element=search_sel,
+                user_view="User submits a search but results do not update.",
+                how_to_fix="Verify the search submit handler triggers a results request/route change and renders results or a clear empty state.",
+                severity="high",
+                business_impact="revenue",
+                page_url=page.url,
+            )
+        )
 
     empty_state = await _has_empty_results_signal(page)
     if empty_state:
-        defects.append({"defect": "no_results", "description": "Empty / no-results state shown", "severity": "high", "page_url": page.url})
+        defects.append(
+            make_defect(
+                defect="no_results",
+                title=f"No results shown for {kw!r}",
+                description="Page displayed an empty/no-results signal after search.",
+                element=search_sel,
+                user_view=f"User searches for {kw!r} but sees no results.",
+                how_to_fix="Confirm the catalog contains results for this query and the search endpoint returns items; ensure the UI renders the list and does not filter everything out.",
+                severity="high",
+                business_impact="revenue",
+                page_url=page.url,
+            )
+        )
 
     has_results = await _has_plausible_search_results(page)
     if not has_results and not empty_state:
-        defects.append({"defect": "no_results", "description": "No product listing or clear empty-state after search", "severity": "high", "page_url": page.url})
+        defects.append(
+            make_defect(
+                defect="no_results",
+                title=f"Search results not visible after searching {kw!r}",
+                description="No product listing was detected and no clear empty-state text was found after search.",
+                element=search_sel,
+                user_view="User submits a search but cannot find any results or explanation.",
+                how_to_fix="Ensure the results container renders after submit and add an explicit empty-state message when zero matches are returned.",
+                severity="high",
+                business_impact="revenue",
+                page_url=page.url,
+            )
+        )
 
     # Required: keep existing search logic, but add fallbacks to behave like a real user.
     if not has_results:
@@ -685,14 +746,38 @@ async def task_open_product_from_search(page: Page, context: dict[str, Any], emi
             logger.debug("open_product %s: %s", sel, e)
 
     if not clicked:
-        defects.append({"defect": "product_click_failed", "description": "Could not click a product link from results", "severity": "high", "page_url": page.url})
+        defects.append(
+            make_defect(
+                defect="product_click_failed",
+                title=f"Cannot open a product from search results on {page.url}",
+                description="No product link pattern was clickable; safe_click failed for all candidates.",
+                element="; ".join(PRODUCT_RESULT_LINK_PATTERNS[:6]),
+                user_view="User clicks a product in search results but nothing opens.",
+                how_to_fix="Ensure product tiles/links are real anchors/buttons (not covered), have stable href/onClick handlers, and are interactable.",
+                severity="high",
+                business_impact="revenue",
+                page_url=page.url,
+            )
+        )
         await _emit_safe(emit, f"[micro:{tid}] after — click failed")
         return _result(tid, False, defects, "HIGH")
 
     await page.wait_for_timeout(1200)
     url_after = page.url or ""
     if url_before == url_after:
-        defects.append({"defect": "page_not_changed", "description": "URL unchanged after product click", "severity": "high", "page_url": page.url})
+        defects.append(
+            make_defect(
+                defect="page_not_changed",
+                title=f"Product click does not navigate from {url_before}",
+                description="After clicking the first product result, URL did not change.",
+                element="product result link",
+                user_view="User clicks a product but stays on the same page.",
+                how_to_fix="Check the click handler/href for product items and ensure navigation is not prevented by overlays or JS errors.",
+                severity="high",
+                business_impact="revenue",
+                page_url=page.url,
+            )
+        )
 
     pdp_signal = False
     for hint in PDP_HINT_PATTERNS:
@@ -707,7 +792,19 @@ async def task_open_product_from_search(page: Page, context: dict[str, Any], emi
         pdp_signal = text_delta > 150 and url_before != url_after
 
     if not pdp_signal:
-        defects.append({"defect": "pdp_not_loaded", "description": "No clear product-page signals after click", "severity": "high", "page_url": page.url})
+        defects.append(
+            make_defect(
+                defect="pdp_not_loaded",
+                title=f"Product detail page did not load after clicking a result ({url_after})",
+                description="No PDP signals detected (price/add-to-cart/qty), and text delta + URL change did not indicate a PDP.",
+                element="product detail page",
+                user_view="User clicks a product but does not land on a usable product detail page.",
+                how_to_fix="Ensure product pages render price/CTA elements and routing resolves correctly; check for client-side errors and missing data.",
+                severity="high",
+                business_impact="revenue",
+                page_url=page.url,
+            )
+        )
 
     ok = len([d for d in defects if d.get("severity") == "high"]) == 0
     if ok:
@@ -731,12 +828,36 @@ async def task_add_to_cart(page: Page, context: dict[str, Any], emit: EmitFn) ->
     before = await _snapshot_page_signals(page)
     atc_sel = await _first_matching_visible_selector(page, ADD_TO_CART_PATTERNS)
     if not atc_sel:
-        defects.append({"defect": "add_to_cart_missing", "description": "No add-to-cart control matched", "severity": "high", "page_url": page.url})
+        defects.append(
+            make_defect(
+                defect="add_to_cart_missing",
+                title=f"Add to cart control missing on {page.url}",
+                description="No add-to-cart selector pattern matched a visible control.",
+                element="; ".join(ADD_TO_CART_PATTERNS[:6]),
+                user_view="User cannot add items to cart because the Add to Cart button/control is not present.",
+                how_to_fix="Render an Add to Cart button on the product page and ensure it is visible/enabled for in-stock items.",
+                severity="high",
+                business_impact="revenue",
+                page_url=page.url,
+            )
+        )
         await _emit_safe(emit, f"[micro:{tid}] after — no button")
         return _result(tid, False, defects, "HIGH")
 
     if not await safe_click(page, atc_sel, timeout_ms=8000):
-        defects.append({"defect": "add_to_cart_not_clickable", "description": "safe_click add-to-cart failed", "severity": "high", "page_url": page.url})
+        defects.append(
+            make_defect(
+                defect="add_to_cart_not_clickable",
+                title=f"Add to cart not clickable on {page.url}",
+                description=f"safe_click failed for selector {atc_sel!r}.",
+                element=atc_sel,
+                user_view="User clicks Add to Cart but it does not respond.",
+                how_to_fix="Ensure the Add to Cart control is not disabled/covered and has a click handler; confirm it triggers the add-to-cart request.",
+                severity="high",
+                business_impact="revenue",
+                page_url=page.url,
+            )
+        )
         await _emit_safe(emit, f"[micro:{tid}] after — not clickable")
         return _result(tid, False, defects, "HIGH")
 
@@ -750,7 +871,22 @@ async def task_add_to_cart(page: Page, context: dict[str, Any], emit: EmitFn) ->
     cart_updated = badge > 0 or popup > 0 or mentions_delta != 0 or text_delta > 80 or before.get("url") != after.get("url")
 
     if not cart_updated:
-        defects.append({"defect": "cart_not_updated", "description": "No badge, popup, cart text change, or URL change after add-to-cart", "severity": "high", "page_url": page.url})
+        defects.append(
+            make_defect(
+                defect="cart_not_updated",
+                title=f"Cart does not update after Add to Cart on {page.url}",
+                description=(
+                    "After clicking Add to Cart, there was no cart badge/toast/text change and URL did not change "
+                    f"(badge={badge}, popup={popup}, cartMentionsΔ={mentions_delta}, textΔ={text_delta})."
+                ),
+                element=atc_sel,
+                user_view="User clicks Add to Cart but cart stays empty (no confirmation and no cart count change).",
+                how_to_fix="Check the add-to-cart API call and state update; ensure success response updates cart UI (badge/toast) and persists session/cart cookie.",
+                severity="high",
+                business_impact="revenue",
+                page_url=page.url,
+            )
+        )
 
     ok = len([d for d in defects if d.get("severity") == "high"]) == 0
     if ok and cart_updated:

@@ -4,6 +4,22 @@ __pycache__/
 
 node_modules/
 dist/
+.DS_Store
 
 .env
 *.log
+
+# Build outputs
+build/
+dist/
+
+# Runtime/generated artifacts (do not commit)
+runs/
+screenshots/
+qa-reports/
+.qa-framework/
+
+# Temp folders
+tmp/
+temp/
+temp-nischay/

@@ -238,6 +238,9 @@ class Crawler:
         log_action: Any | None = None,
         log_bracketed: Any | None = None,
     ) -> SiteModel:
+        print("[CRAWL START] crawl function called", flush=True)
+        print(f"[CRAWL START] url={self.crawl_config.target_url}", flush=True)
+        print(f"[CRAWL START] page object=None (crawler creates pages)", flush=True)
         """Execute the crawl and return a SiteModel.
 
         When ``browser_context`` and ``browser`` are provided (pipeline mode), uses
@@ -943,6 +946,7 @@ class Crawler:
                     )
                     return True
 
+                print(f"[GOTO] about to navigate to {url}", flush=True)
                 resp = await page.goto(url, wait_until="domcontentloaded", timeout=20000)
                 if resp is None:
                     logger.warning("Navigation returned no response for %s", url)

@@ -40,6 +40,13 @@ dependencies = [
   # PostgreSQL (async)
   "sqlalchemy[asyncio]>=2.0.0,<3.0.0",
   "asyncpg>=0.29.0,<1.0.0",
+
+  # Background scheduling (cron-like)
+  "apscheduler>=3.10.0,<4.0.0",
+
+  # API key hashing + settings encryption
+  "bcrypt>=4.1.0,<5.0.0",
+  "cryptography>=42.0.0,<45.0.0",
 ]
 
 [project.optional-dependencies]

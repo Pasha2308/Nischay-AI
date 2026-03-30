@@ -3825,6 +3825,7 @@ async def run_ecommerce_scan(
     context: dict[str, Any] | None,
     emit_event=None,
 ) -> dict[str, Any]:
+    print(f"[ECOMMERCE SCAN] run_ecommerce_scan called, flows={selected_flows}", flush=True)
     """
     Run **micro tasks only** (no crawler dependency): ``task → action → result`` via
     :func:`run_micro_task_group_scan`.

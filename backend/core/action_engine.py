@@ -7,6 +7,8 @@ from typing import Any, Awaitable, Callable, Optional
 
 from playwright.async_api import Page
 
+from backend.core.defects import make_defect
+
 logger = logging.getLogger(__name__)
 
 EmitEvent = Optional[Callable[[str], Awaitable[None]]]
@@ -30,13 +32,20 @@ async def capture_console_errors(
             if key in seen:
                 continue
             seen.add(key)
-            defects.append({
-                "defect": "console_error",
-                "type": "browser_console",
-                "severity": "high",
-                "page_url": url,
-                "description": line[:2000],
-            })
+            defects.append(
+                make_defect(
+                    defect="console_error",
+                    title=f"Client-side error in console on {url}",
+                    description=f"Console error: {line[:2000]}",
+                    element="browser console",
+                    user_view="User may see broken UI behavior or missing functionality due to a client-side error.",
+                    how_to_fix="Fix the reported JS error at its source and add a regression test for the failing path. Verify no console errors remain on page load and key interactions.",
+                    severity="medium",
+                    business_impact="trust",
+                    page_url=url,
+                    extra={"type": "browser_console"},
+                )
+            )
 
     try:
         failed_res = await page.evaluate("""() => {
@@ -52,13 +61,20 @@ async def capture_console_errors(
           return out.slice(0, 20);
         }""")
         for name in failed_res:
-            defects.append({
-                "defect": "console_error",
-                "type": "failed_resource",
-                "severity": "medium",
-                "page_url": url,
-                "description": f"Possible failed script/style load: {name[:200]}",
-            })
+            defects.append(
+                make_defect(
+                    defect="console_error",
+                    title=f"Possible failed asset load on {url}",
+                    description=f"Possible failed script/style load (performance entries): {str(name)[:200]}",
+                    element=str(name)[:200],
+                    user_view="Parts of the page may not render or behave correctly if scripts/styles fail to load.",
+                    how_to_fix="Verify the asset URL returns 200, correct content-type, and is not blocked by CSP/CDN. Ensure build pipeline publishes the referenced file.",
+                    severity="low",
+                    business_impact="performance",
+                    page_url=url,
+                    extra={"type": "failed_resource"},
+                )
+            )
     except Exception as e:
         logger.debug("capture_console_errors: %s", e)
     return defects
@@ -70,13 +86,20 @@ def merge_console_log_defects(page_url: str, console_lines: list[str]) -> list[d
     for line in console_lines:
         low = line.lower()
         if "[error]" in low or " uncaught " in low or "typeerror" in low or "syntaxerror" in low:
-            defects.append({
-                "defect": "console_error",
-                "type": "browser_console",
-                "severity": "high",
-                "page_url": page_url,
-                "description": line[:500],
-            })
+            defects.append(
+                make_defect(
+                    defect="console_error",
+                    title=f"Client-side error in console on {page_url}",
+                    description=f"Console error: {line[:500]}",
+                    element="browser console",
+                    user_view="User may encounter broken UI or missing functionality due to a JS error.",
+                    how_to_fix="Fix the exception (check stack/message), add guards for undefined values, and ensure bundles/load order are correct. Re-test the flow that triggers it.",
+                    severity="medium",
+                    business_impact="trust",
+                    page_url=page_url,
+                    extra={"type": "browser_console"},
+                )
+            )
     return defects
 
 

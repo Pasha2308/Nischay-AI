@@ -7,6 +7,11 @@ export type ScanIssue = {
   defect?: string;
   severity?: Severity | string;
   message?: string;
+  /** Canonical defect schema fields (always populated by backend for defects). */
+  description?: string;
+  element?: string;
+  user_view?: string;
+  how_to_fix?: string;
   test_id?: string;
   phase?: string;
   step_index?: number;
@@ -15,7 +20,9 @@ export type ScanIssue = {
   assertion_type?: string;
   /** Page URL where the issue was found */
   page_url?: string;
+  /** One of: revenue | trust | ux | compliance | performance */
   business_impact?: string;
+  /** Back-compat; prefer `how_to_fix` */
   fix_suggestion?: string;
 };
 
@@ -98,6 +105,8 @@ export type ScanResultPayload = {
   missing_elements?: unknown[];
   run_id?: string | null;
   duration?: number;
+  /** Convenience metric for UI: pipeline duration in seconds. */
+  test_duration_seconds?: number;
   mode?: string;
   status?: string;
   warning?: string;
