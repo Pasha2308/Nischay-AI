@@ -1,0 +1,23 @@
+{
+  "url": "https://theoneshop.in/",
+  "depth": "deep",
+  "modules": [
+    "auth",
+    "navigation",
+    "search",
+    "product_pages",
+    "cart",
+    "checkout",
+    "wishlist",
+    "performance",
+    "accessibility",
+    "security",
+    "links_assets"
+  ],
+  "tasks": [
+    "search for a product",
+    "add to cart and proceed to checkout"
+  ],
+  "device": "desktop",
+  "auth": null
+}

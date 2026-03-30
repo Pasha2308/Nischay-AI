@@ -1,0 +1,17 @@
+{
+  "url": "https://thebombaystore.com",
+  "depth": "deep",
+  "modules": [
+    "auth",
+    "cart",
+    "navigation",
+    "search",
+    "product_pages"
+  ],
+  "tasks": [
+    "search for a product",
+    "add to cart and proceed to checkout"
+  ],
+  "device": "desktop",
+  "auth": null
+}

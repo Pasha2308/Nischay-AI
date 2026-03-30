@@ -1,0 +1,290 @@
+{
+  "run_id": "run_7c4e1344",
+  "plan_id": "plan_det_a35df824",
+  "started_at": "2026-03-29T20:24:08Z",
+  "completed_at": "2026-03-29T20:24:55Z",
+  "target_url": "https://www.fnp.com/",
+  "total_tests": 1,
+  "passed": 0,
+  "failed": 1,
+  "skipped": 0,
+  "errors": 0,
+  "duration_seconds": 47.05,
+  "test_results": [
+    {
+      "test_id": "micro_task_scan",
+      "test_name": "Micro task scan",
+      "description": "Micro task orchestration (11 tasks in registry)",
+      "category": "functional",
+      "priority": 1,
+      "target_page_id": "page_www.fnp.com_b41c9e3d4e48",
+      "actual_page_id": "page_www.fnp.com_b41c9e3d4e48",
+      "actual_url": "https://www.fnp.com/",
+      "coverage_signature": "micro_task_scan_v1",
+      "result": "fail",
+      "duration_seconds": 43.06,
+      "failure_reason": null,
+      "evidence": {
+        "screenshots": [],
+        "console_logs": [],
+        "network_log": [],
+        "dom_snapshot_path": null,
+        "video_path": null
+      },
+      "fallback_records": [],
+      "precondition_results": [],
+      "step_results": [],
+      "assertion_results": [],
+      "assertions_passed": 0,
+      "assertions_failed": 0,
+      "assertions_total": 0,
+      "potentially_flaky": false,
+      "qa_defects_by_page": [
+        {
+          "page_url": "https://www.fnp.com/",
+          "defects": [
+            {
+              "defect": "search_not_working",
+              "description": "Could not submit search via safe_click",
+              "severity": "high",
+              "page_url": "https://www.fnp.com/",
+              "micro_task": "search_product"
+            },
+            {
+              "defect": "coupon_field_missing",
+              "description": "No coupon field matched",
+              "severity": "high",
+              "page_url": "https://www.fnp.com/",
+              "micro_task": "apply_coupon"
+            },
+            {
+              "defect": "checkout_unavailable",
+              "description": "No checkout control matched",
+              "severity": "high",
+              "page_url": "https://www.fnp.com/",
+              "micro_task": "start_checkout"
+            },
+            {
+              "defect": "place_order_broken",
+              "description": "Place order control not found",
+              "severity": "high",
+              "page_url": "https://www.fnp.com/",
+              "micro_task": "place_order_attempt"
+            },
+            {
+              "defect": "contact_form_missing",
+              "description": "Contact form fields not found",
+              "severity": "high",
+              "page_url": "https://www.fnp.com/",
+              "micro_task": "contact_support"
+            }
+          ],
+          "metrics": {
+            "search_product": {
+              "success": false,
+              "impact": "HIGH",
+              "defects_count": 1
+            },
+            "add_to_cart": {
+              "success": true,
+              "impact": "LOW",
+              "defects_count": 0
+            },
+            "apply_coupon": {
+              "success": false,
+              "impact": "HIGH",
+              "defects_count": 1
+            },
+            "start_checkout": {
+              "success": false,
+              "impact": "HIGH",
+              "defects_count": 1
+            },
+            "place_order_attempt": {
+              "success": false,
+              "impact": "HIGH",
+              "defects_count": 1
+            },
+            "contact_support": {
+              "success": false,
+              "impact": "HIGH",
+              "defects_count": 1
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "ai_summary": "",
+  "step_retries": 0,
+  "execution_snapshot": {
+    "url": "https://www.fnp.com/",
+    "decision": "DO NOT SHIP",
+    "risk": "HIGH",
+    "risk_score": 100,
+    "summary": "5 high-impact task failure(s), 5 total task failure(s), 0 medium-impact failure(s). Numeric risk score: 100/100.",
+    "task_results": [
+      {
+        "task": "search_product",
+        "success": false,
+        "defects": [
+          {
+            "defect": "search_not_working",
+            "description": "Could not submit search via safe_click",
+            "severity": "high",
+            "page_url": "https://www.fnp.com/"
+          }
+        ],
+        "impact": "HIGH"
+      },
+      {
+        "task": "add_to_cart",
+        "success": true,
+        "defects": [],
+        "impact": "LOW"
+      },
+      {
+        "task": "apply_coupon",
+        "success": false,
+        "defects": [
+          {
+            "defect": "coupon_field_missing",
+            "description": "No coupon field matched",
+            "severity": "high",
+            "page_url": "https://www.fnp.com/"
+          }
+        ],
+        "impact": "HIGH"
+      },
+      {
+        "task": "start_checkout",
+        "success": false,
+        "defects": [
+          {
+            "defect": "checkout_unavailable",
+            "description": "No checkout control matched",
+            "severity": "high",
+            "page_url": "https://www.fnp.com/"
+          }
+        ],
+        "impact": "HIGH"
+      },
+      {
+        "task": "place_order_attempt",
+        "success": false,
+        "defects": [
+          {
+            "defect": "place_order_broken",
+            "description": "Place order control not found",
+            "severity": "high",
+            "page_url": "https://www.fnp.com/"
+          }
+        ],
+        "impact": "HIGH"
+      },
+      {
+        "task": "contact_support",
+        "success": false,
+        "defects": [
+          {
+            "defect": "contact_form_missing",
+            "description": "Contact form fields not found",
+            "severity": "high",
+            "page_url": "https://www.fnp.com/"
+          }
+        ],
+        "impact": "HIGH"
+      }
+    ],
+    "defects": [
+      {
+        "defect": "search_not_working",
+        "description": "Could not submit search via safe_click",
+        "severity": "high",
+        "page_url": "https://www.fnp.com/",
+        "micro_task": "search_product"
+      },
+      {
+        "defect": "coupon_field_missing",
+        "description": "No coupon field matched",
+        "severity": "high",
+        "page_url": "https://www.fnp.com/",
+        "micro_task": "apply_coupon"
+      },
+      {
+        "defect": "checkout_unavailable",
+        "description": "No checkout control matched",
+        "severity": "high",
+        "page_url": "https://www.fnp.com/",
+        "micro_task": "start_checkout"
+      },
+      {
+        "defect": "place_order_broken",
+        "description": "Place order control not found",
+        "severity": "high",
+        "page_url": "https://www.fnp.com/",
+        "micro_task": "place_order_attempt"
+      },
+      {
+        "defect": "contact_form_missing",
+        "description": "Contact form fields not found",
+        "severity": "high",
+        "page_url": "https://www.fnp.com/",
+        "micro_task": "contact_support"
+      }
+    ],
+    "logs": [
+      "\u2501\u2501\u2501 Micro task: search_product \u2501\u2501\u2501",
+      "[micro:search_product] \u25b6 run_task start (timeout=20.0s)",
+      "Using synthetic search data",
+      "[micro:search_product] before \u2014 search keyword='watch'",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] after \u2014 submit failed",
+      "[micro:search_product] \u25b6 run_task finished success=False",
+      "\u2705 search_product complete \u2014 1 issue(s)",
+      "\u2501\u2501\u2501 Micro task: add_to_cart \u2501\u2501\u2501",
+      "[micro:add_to_cart] \u25b6 run_task start (timeout=20.0s)",
+      "[micro:add_to_cart] before \u2014 add to cart",
+      "[micro:add_to_cart] context.cart_items=1",
+      "[micro:add_to_cart] after \u2014 cart_updated=True",
+      "[micro:add_to_cart] \u25b6 run_task finished success=True",
+      "\u2705 add_to_cart complete \u2014 0 issue(s)",
+      "\u2501\u2501\u2501 Micro task: apply_coupon \u2501\u2501\u2501",
+      "[micro:apply_coupon] \u25b6 run_task start (timeout=20.0s)",
+      "Using synthetic user data",
+      "[micro:apply_coupon] before \u2014 invalid coupon TEST123",
+      "[micro:apply_coupon] after \u2014 no field",
+      "[micro:apply_coupon] \u25b6 run_task finished success=False",
+      "\u2705 apply_coupon complete \u2014 1 issue(s)",
+      "\u2501\u2501\u2501 Micro task: start_checkout \u2501\u2501\u2501",
+      "[micro:start_checkout] \u25b6 run_task start (timeout=20.0s)",
+      "[micro:start_checkout] before \u2014 checkout",
+      "[micro:start_checkout] after \u2014 no CTA",
+      "[micro:start_checkout] \u25b6 run_task finished success=False",
+      "\u2705 start_checkout complete \u2014 1 issue(s)",
+      "\u2501\u2501\u2501 Micro task: place_order_attempt \u2501\u2501\u2501",
+      "[micro:place_order_attempt] \u25b6 run_task start (timeout=20.0s)",
+      "[micro:place_order_attempt] before \u2014 place order click",
+      "[micro:place_order_attempt] after \u2014 no button",
+      "[micro:place_order_attempt] \u25b6 run_task finished success=False",
+      "\u2705 place_order_attempt complete \u2014 1 issue(s)",
+      "\u2501\u2501\u2501 Micro task: contact_support \u2501\u2501\u2501",
+      "[micro:contact_support] \u25b6 run_task start (timeout=20.0s)",
+      "Using synthetic user data",
+      "[micro:contact_support] before \u2014 contact form",
+      "[micro:contact_support] after \u2014 no form",
+      "[micro:contact_support] \u25b6 run_task finished success=False",
+      "\u2705 contact_support complete \u2014 1 issue(s)",
+      "Execution complete \u2014 5 issues detected"
+    ],
+    "duration": 43.06
+  },
+  "regressions": []
+}

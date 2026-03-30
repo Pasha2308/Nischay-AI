@@ -1,0 +1,478 @@
+{
+  "risk_score": 100,
+  "risk_level": "Critical",
+  "risk_level_legacy": "CRITICAL RISK",
+  "risk": {
+    "score": 100,
+    "level": "CRITICAL"
+  },
+  "partial": false,
+  "auth_status": "not_attempted",
+  "issues_by_severity": {
+    "critical": [],
+    "high": [
+      {
+        "type": "broken_navigation",
+        "defect": "broken_navigation",
+        "severity": "high",
+        "message": "No main navigation links matched",
+        "test_id": "micro_task_scan",
+        "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+        "recurring": false,
+        "fix_suggestion": "Reproduce on staging, capture console/network logs, and patch the failing interaction or assertion.",
+        "business_impact": "Reduced confidence in release quality until verified",
+        "title": "Broken navigation \u2014 No main navigation links matched"
+      },
+      {
+        "type": "search_not_working",
+        "defect": "search_not_working",
+        "severity": "high",
+        "message": "Could not submit search via safe_click",
+        "test_id": "micro_task_scan",
+        "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+        "recurring": false,
+        "fix_suggestion": "Validate search field selectors, catalog data, and that results render for representative queries.",
+        "business_impact": "Users cannot find products, reducing conversions",
+        "title": "Search not working \u2014 Could not submit search via safe_click"
+      },
+      {
+        "type": "product_click_failed",
+        "defect": "product_click_failed",
+        "severity": "high",
+        "message": "Could not click a product link from results",
+        "test_id": "micro_task_scan",
+        "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+        "recurring": false,
+        "fix_suggestion": "Reproduce on staging, capture console/network logs, and patch the failing interaction or assertion.",
+        "business_impact": "Reduced confidence in release quality until verified",
+        "title": "Product click failed \u2014 Could not click a product link from results"
+      },
+      {
+        "type": "add_to_cart_missing",
+        "defect": "add_to_cart_missing",
+        "severity": "high",
+        "message": "No add-to-cart control matched",
+        "test_id": "micro_task_scan",
+        "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+        "recurring": false,
+        "fix_suggestion": "Trace cart state (cookies/session), button handlers, and inventory APIs; retest add-to-cart on staging.",
+        "business_impact": "Users cannot complete purchase \u2192 revenue loss",
+        "title": "Add to cart missing \u2014 No add-to-cart control matched"
+      },
+      {
+        "type": "checkout_unavailable",
+        "defect": "checkout_unavailable",
+        "severity": "high",
+        "message": "No checkout control matched",
+        "test_id": "micro_task_scan",
+        "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+        "recurring": false,
+        "fix_suggestion": "Review checkout funnel, payment gateway responses, and error handling; test with sandbox cards.",
+        "business_impact": "Direct revenue blockage",
+        "title": "Checkout unavailable \u2014 No checkout control matched"
+      },
+      {
+        "type": "address_fields_missing",
+        "defect": "address_fields_missing",
+        "severity": "high",
+        "message": "Could not fill at least name/address/phone (need 2+)",
+        "test_id": "micro_task_scan",
+        "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+        "recurring": false,
+        "fix_suggestion": "Reproduce on staging, capture console/network logs, and patch the failing interaction or assertion.",
+        "business_impact": "Reduced confidence in release quality until verified",
+        "title": "Address fields missing \u2014 Could not fill at least name/address/phone (need 2+)"
+      }
+    ],
+    "medium": [
+      {
+        "type": "login_missing_credentials",
+        "defect": "login_missing_credentials",
+        "severity": "medium",
+        "message": "username/password not in context",
+        "test_id": "micro_task_scan",
+        "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+        "recurring": false,
+        "fix_suggestion": "Verify credentials flow, session cookies, and bot protection rules; align with identity provider.",
+        "business_impact": "Users cannot access accounts",
+        "title": "Login missing credentials \u2014 username/password not in context"
+      }
+    ],
+    "low": []
+  },
+  "issues": [
+    {
+      "type": "login_missing_credentials",
+      "defect": "login_missing_credentials",
+      "severity": "medium",
+      "message": "username/password not in context",
+      "test_id": "micro_task_scan",
+      "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+      "recurring": false,
+      "fix_suggestion": "Verify credentials flow, session cookies, and bot protection rules; align with identity provider.",
+      "business_impact": "Users cannot access accounts",
+      "title": "Login missing credentials \u2014 username/password not in context"
+    },
+    {
+      "type": "broken_navigation",
+      "defect": "broken_navigation",
+      "severity": "high",
+      "message": "No main navigation links matched",
+      "test_id": "micro_task_scan",
+      "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+      "recurring": false,
+      "fix_suggestion": "Reproduce on staging, capture console/network logs, and patch the failing interaction or assertion.",
+      "business_impact": "Reduced confidence in release quality until verified",
+      "title": "Broken navigation \u2014 No main navigation links matched"
+    },
+    {
+      "type": "search_not_working",
+      "defect": "search_not_working",
+      "severity": "high",
+      "message": "Could not submit search via safe_click",
+      "test_id": "micro_task_scan",
+      "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+      "recurring": false,
+      "fix_suggestion": "Validate search field selectors, catalog data, and that results render for representative queries.",
+      "business_impact": "Users cannot find products, reducing conversions",
+      "title": "Search not working \u2014 Could not submit search via safe_click"
+    },
+    {
+      "type": "product_click_failed",
+      "defect": "product_click_failed",
+      "severity": "high",
+      "message": "Could not click a product link from results",
+      "test_id": "micro_task_scan",
+      "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+      "recurring": false,
+      "fix_suggestion": "Reproduce on staging, capture console/network logs, and patch the failing interaction or assertion.",
+      "business_impact": "Reduced confidence in release quality until verified",
+      "title": "Product click failed \u2014 Could not click a product link from results"
+    },
+    {
+      "type": "add_to_cart_missing",
+      "defect": "add_to_cart_missing",
+      "severity": "high",
+      "message": "No add-to-cart control matched",
+      "test_id": "micro_task_scan",
+      "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+      "recurring": false,
+      "fix_suggestion": "Trace cart state (cookies/session), button handlers, and inventory APIs; retest add-to-cart on staging.",
+      "business_impact": "Users cannot complete purchase \u2192 revenue loss",
+      "title": "Add to cart missing \u2014 No add-to-cart control matched"
+    },
+    {
+      "type": "checkout_unavailable",
+      "defect": "checkout_unavailable",
+      "severity": "high",
+      "message": "No checkout control matched",
+      "test_id": "micro_task_scan",
+      "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+      "recurring": false,
+      "fix_suggestion": "Review checkout funnel, payment gateway responses, and error handling; test with sandbox cards.",
+      "business_impact": "Direct revenue blockage",
+      "title": "Checkout unavailable \u2014 No checkout control matched"
+    },
+    {
+      "type": "address_fields_missing",
+      "defect": "address_fields_missing",
+      "severity": "high",
+      "message": "Could not fill at least name/address/phone (need 2+)",
+      "test_id": "micro_task_scan",
+      "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+      "recurring": false,
+      "fix_suggestion": "Reproduce on staging, capture console/network logs, and patch the failing interaction or assertion.",
+      "business_impact": "Reduced confidence in release quality until verified",
+      "title": "Address fields missing \u2014 Could not fill at least name/address/phone (need 2+)"
+    }
+  ],
+  "pages": [
+    {
+      "page_id": "page_thebombaystore.com_b4664170c4f3",
+      "url": "https://thebombaystore.com/",
+      "title": "",
+      "page_type": "static"
+    }
+  ],
+  "pages_scanned": 1,
+  "actions_run": [],
+  "console_errors": [],
+  "failed_actions": [],
+  "missing_elements": [],
+  "run_id": "run_f39b95a0",
+  "duration": 72.93,
+  "mode": "deterministic_no_ai",
+  "scan_mode": "fast",
+  "scan_task": "full_app_scan",
+  "target_url": "https://thebombaystore.com/",
+  "results": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1,
+    "skipped": 0,
+    "errors": 0
+  },
+  "execution_snapshot": {
+    "url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+    "decision": "DO NOT SHIP",
+    "risk": "HIGH",
+    "risk_score": 100,
+    "summary": "6 high-impact task failure(s), 7 total task failure(s), 1 medium-impact failure(s). Numeric risk score: 100/100.",
+    "task_results": [
+      {
+        "task": "login_user",
+        "success": false,
+        "defects": [
+          {
+            "defect": "login_missing_credentials",
+            "description": "username/password not in context",
+            "severity": "medium",
+            "page_url": "https://thebombaystore.com/"
+          }
+        ],
+        "impact": "MEDIUM"
+      },
+      {
+        "task": "check_navigation_links",
+        "success": false,
+        "defects": [
+          {
+            "defect": "broken_navigation",
+            "description": "No main navigation links matched",
+            "severity": "high",
+            "page_url": "https://thebombaystore.com/"
+          }
+        ],
+        "impact": "HIGH"
+      },
+      {
+        "task": "search_product",
+        "success": false,
+        "defects": [
+          {
+            "defect": "search_not_working",
+            "description": "Could not submit search via safe_click",
+            "severity": "high",
+            "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in"
+          }
+        ],
+        "impact": "HIGH"
+      },
+      {
+        "task": "open_product_from_search",
+        "success": false,
+        "defects": [
+          {
+            "defect": "product_click_failed",
+            "description": "Could not click a product link from results",
+            "severity": "high",
+            "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in"
+          }
+        ],
+        "impact": "HIGH"
+      },
+      {
+        "task": "add_to_cart",
+        "success": false,
+        "defects": [
+          {
+            "defect": "add_to_cart_missing",
+            "description": "No add-to-cart control matched",
+            "severity": "high",
+            "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in"
+          }
+        ],
+        "impact": "HIGH"
+      },
+      {
+        "task": "start_checkout",
+        "success": false,
+        "defects": [
+          {
+            "defect": "checkout_unavailable",
+            "description": "No checkout control matched",
+            "severity": "high",
+            "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in"
+          }
+        ],
+        "impact": "HIGH"
+      },
+      {
+        "task": "fill_address_form",
+        "success": false,
+        "defects": [
+          {
+            "defect": "address_fields_missing",
+            "description": "Could not fill at least name/address/phone (need 2+)",
+            "severity": "high",
+            "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in"
+          }
+        ],
+        "impact": "HIGH"
+      }
+    ],
+    "defects": [
+      {
+        "defect": "login_missing_credentials",
+        "description": "username/password not in context",
+        "severity": "medium",
+        "page_url": "https://thebombaystore.com/",
+        "micro_task": "login_user"
+      },
+      {
+        "defect": "broken_navigation",
+        "description": "No main navigation links matched",
+        "severity": "high",
+        "page_url": "https://thebombaystore.com/",
+        "micro_task": "check_navigation_links"
+      },
+      {
+        "defect": "search_not_working",
+        "description": "Could not submit search via safe_click",
+        "severity": "high",
+        "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+        "micro_task": "search_product"
+      },
+      {
+        "defect": "product_click_failed",
+        "description": "Could not click a product link from results",
+        "severity": "high",
+        "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+        "micro_task": "open_product_from_search"
+      },
+      {
+        "defect": "add_to_cart_missing",
+        "description": "No add-to-cart control matched",
+        "severity": "high",
+        "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+        "micro_task": "add_to_cart"
+      },
+      {
+        "defect": "checkout_unavailable",
+        "description": "No checkout control matched",
+        "severity": "high",
+        "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+        "micro_task": "start_checkout"
+      },
+      {
+        "defect": "address_fields_missing",
+        "description": "Could not fill at least name/address/phone (need 2+)",
+        "severity": "high",
+        "page_url": "https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in",
+        "micro_task": "fill_address_form"
+      }
+    ],
+    "logs": [
+      "\u2501\u2501\u2501 Micro task: login_user \u2501\u2501\u2501",
+      "[micro:login_user] \u25b6 run_task start (timeout=20.0s)",
+      "[micro:login_user] before \u2014 login",
+      "[micro:login_user] after \u2014 missing credentials",
+      "[micro:login_user] \u25b6 run_task finished success=False",
+      "\u2705 login_user complete \u2014 1 issue(s)",
+      "\u2501\u2501\u2501 Micro task: check_navigation_links \u2501\u2501\u2501",
+      "[micro:check_navigation_links] \u25b6 run_task start (timeout=20.0s)",
+      "[micro:check_navigation_links] before \u2014 main nav",
+      "[micro:check_navigation_links] after \u2014 no nav",
+      "[micro:check_navigation_links] \u25b6 run_task finished success=False",
+      "\u2705 check_navigation_links complete \u2014 1 issue(s)",
+      "\u2501\u2501\u2501 Micro task: search_product \u2501\u2501\u2501",
+      "[micro:search_product] \u25b6 run_task start (timeout=20.0s)",
+      "Using synthetic search data",
+      "[micro:search_product] before \u2014 search keyword='dress'",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] try search submit pattern",
+      "[micro:search_product] after \u2014 submit failed",
+      "[micro:search_product] \u25b6 run_task finished success=False",
+      "\u2705 search_product complete \u2014 1 issue(s)",
+      "\u2501\u2501\u2501 Micro task: open_product_from_search \u2501\u2501\u2501",
+      "[micro:open_product_from_search] \u25b6 run_task start (timeout=20.0s)",
+      "[micro:open_product_from_search] before \u2014 open first result",
+      "[micro:open_product_from_search] after \u2014 click failed",
+      "[micro:open_product_from_search] \u25b6 run_task finished success=False",
+      "\u2705 open_product_from_search complete \u2014 1 issue(s)",
+      "\u2501\u2501\u2501 Micro task: add_to_cart \u2501\u2501\u2501",
+      "[micro:add_to_cart] \u25b6 run_task start (timeout=20.0s)",
+      "[micro:add_to_cart] before \u2014 add to cart",
+      "[micro:add_to_cart] after \u2014 no button",
+      "[micro:add_to_cart] \u25b6 run_task finished success=False",
+      "\u2705 add_to_cart complete \u2014 1 issue(s)",
+      "\u2501\u2501\u2501 Micro task: start_checkout \u2501\u2501\u2501",
+      "[micro:start_checkout] \u25b6 run_task start (timeout=20.0s)",
+      "[micro:start_checkout] before \u2014 checkout",
+      "[micro:start_checkout] after \u2014 no CTA",
+      "[micro:start_checkout] \u25b6 run_task finished success=False",
+      "\u2705 start_checkout complete \u2014 1 issue(s)",
+      "\u2501\u2501\u2501 Micro task: fill_address_form \u2501\u2501\u2501",
+      "[micro:fill_address_form] \u25b6 run_task start (timeout=20.0s)",
+      "Using synthetic user data",
+      "[micro:fill_address_form] before \u2014 minimal address",
+      "[micro:fill_address_form] after \u2014 insufficient fields",
+      "[micro:fill_address_form] \u25b6 run_task finished success=False",
+      "\u2705 fill_address_form complete \u2014 1 issue(s)",
+      "Execution complete \u2014 7 issues detected"
+    ],
+    "duration": 39.61
+  },
+  "coverage": {
+    "overall": 0.41379310344827586,
+    "categories": {
+      "functional": 1.0
+    }
+  },
+  "reports": {
+    "html": "qa-reports\\report_run_f39b95a0.html",
+    "json": "qa-reports\\report_run_f39b95a0.json"
+  },
+  "pipeline_metrics": {
+    "total_scan_time": 72.93,
+    "crawl_time": 0.0,
+    "execution_time": 41.37,
+    "retries_count": 0,
+    "step_retries": 0,
+    "pages_scanned": 1,
+    "task": "11 micro-tasks (Auth, Navigation, \u2026)"
+  },
+  "action_trail": [
+    {
+      "id": "90a3af6a-7deb-40de-98b5-241dea290e6d",
+      "timestamp": "2026-03-30T02:23:37.650929+00:00",
+      "phase": "execute",
+      "action_type": "navigate",
+      "description": "Navigate to target for ecommerce scan",
+      "target_url": "https://thebombaystore.com/",
+      "target_element": "",
+      "input_value": "",
+      "outcome": "success",
+      "outcome_detail": "",
+      "screenshot_path_before": "screenshots\\run_253de8b248\\90a3af6a-7deb-40de-98b5-241dea290e6d_before.png",
+      "screenshot_path_after": "screenshots\\run_253de8b248\\90a3af6a-7deb-40de-98b5-241dea290e6d_after.png",
+      "duration_ms": 778,
+      "defect_triggered": null,
+      "screenshot_path": "screenshots\\run_253de8b248\\90a3af6a-7deb-40de-98b5-241dea290e6d_after.png"
+    }
+  ],
+  "summary": {
+    "total_pages_scanned": 1,
+    "total_actions_run": 0,
+    "total_issues_found": 7
+  },
+  "report_id": "15174573-ecd1-4ce7-ba7a-6090d83e16e8",
+  "risk_explanation": "The score reflects 7 open issues (0 critical, 6 high). Severity mix and journey exposure lift the 100-point Critical rating. Tackle critical and high items first to protect users and revenue.",
+  "top_risks": [
+    "Could not click a product link from results",
+    "Could not fill at least name/address/phone (need 2+)",
+    "Could not submit search via safe_click"
+  ],
+  "business_summary": {
+    "revenue_risk_level": "severe",
+    "user_impact_level": "severe"
+  },
+  "urgency_score": 10,
+  "executive_summary": "We reviewed 1 page(s) and found 7 issue(s) that could affect experience or sales if ignored. The top concern is Product click failed \u2014 Could not click a product link from results (seen on https://thebombaystore.com/products/kanmani-doll-with-curly-hair-10-in). Reduced confidence in release quality until verified Next step: Reproduce on staging, capture console/network logs, and patch the failing interaction or assertion."
+}

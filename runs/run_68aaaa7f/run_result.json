@@ -1,0 +1,16 @@
+{
+  "run_id": "run_68aaaa7f",
+  "plan_id": "plan_det_4a13939b",
+  "started_at": "2026-03-29T13:20:39Z",
+  "completed_at": "2026-03-29T13:20:39Z",
+  "target_url": "https://www.amazon.in/",
+  "total_tests": 0,
+  "passed": 0,
+  "failed": 0,
+  "skipped": 0,
+  "errors": 0,
+  "duration_seconds": 0.21,
+  "test_results": [],
+  "ai_summary": "",
+  "step_retries": 0
+}
